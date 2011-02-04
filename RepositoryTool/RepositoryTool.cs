@@ -32,6 +32,7 @@ namespace RepositoryTool
             ModifiedFiles = new List<ManifestFileInfo>();
             MissingFiles = new List<ManifestFileInfo>();
             DateModifiedFiles = new List<ManifestFileInfo>();
+            ErrorFiles = new List<ManifestFileInfo>();
 
             Clear();
         }
@@ -45,6 +46,7 @@ namespace RepositoryTool
             ModifiedFiles.Clear();
             MissingFiles.Clear();
             DateModifiedFiles.Clear();
+            ErrorFiles.Clear();
         }
 
         public void Execute(
@@ -116,10 +118,23 @@ namespace RepositoryTool
                         else if (mode == Mode.Validate ||
                             nextFileInfo.LastWriteTimeUtc != nextManFileInfo.LastModifiedTime)
                         {
-                            // TODO: Catch exceptions
-                            byte[] hash = ComputeHash(nextFileInfo);
+                            byte[] hash = null;
 
-                            if (CompareHash(hash, nextManFileInfo.Hash) == false)
+                            try
+                            {
+                                hash = ComputeHash(nextFileInfo);
+                            }
+                            catch (Exception)
+                            {
+                                // TODO: More detail?
+                            }
+
+                            if (hash == null)
+                            {
+                                Write(" [ERROR]");
+                                ErrorFiles.Add(nextManFileInfo);
+                            }
+                            else if (CompareHash(hash, nextManFileInfo.Hash) == false)
                             {
                                 Write(" [DIFFERENT]");
                                 ModifiedFiles.Add(nextManFileInfo);
@@ -175,8 +190,6 @@ namespace RepositoryTool
                     }
                     else
                     {
-                        NewFiles.Add(nextFileInfo);
-                        Write(" [NEW]");
 
                         if (mode == Mode.Create)
                         {
@@ -191,12 +204,34 @@ namespace RepositoryTool
                             newManFileInfo.LastModifiedTime =
                                 nextFileInfo.LastWriteTimeUtc;
 
-                            // TODO: Catch exceptions
-                            newManFileInfo.Hash = ComputeHash(nextFileInfo);
+                            try
+                            {
+                                newManFileInfo.Hash = ComputeHash(nextFileInfo);
+                            }
+                            catch (Exception)
+                            {
+                                // TODO: More detail?
+                            }
+
+                            if (newManFileInfo.Hash == null)
+                            {
+                                ErrorFiles.Add(newManFileInfo);
+                                Write(" [ERROR]");
+                            }
+                            else
+                            {
+                                NewFiles.Add(nextFileInfo);
+                                Write(" [NEW]");
+                            }
 
                             currentManfestDirInfo.Files.Add(
                                 nextFileInfo.Name,
                                 newManFileInfo);
+                        }
+                        else
+                        {
+                            NewFiles.Add(nextFileInfo);
+                            Write(" [NEW]");
                         }
                     }
 
@@ -370,6 +405,7 @@ namespace RepositoryTool
         public List<ManifestFileInfo> ModifiedFiles { private set; get; }
         public List<ManifestFileInfo> MissingFiles { private set; get; }
         public List<ManifestFileInfo> DateModifiedFiles { private set; get; }
+        public List<ManifestFileInfo> ErrorFiles { private set; get; }
 
 
 

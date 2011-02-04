@@ -166,6 +166,17 @@ namespace RepositoryTool
                                 }
                             }
 
+                            if (tool.ErrorFiles.Count > 0)
+                            {
+                                WriteLine(tool.ErrorFiles.Count.ToString() + " files have errors.");
+                                DetailFiles(tool.ErrorFiles);
+
+                                if (ignoreDate == false)
+                                {
+                                    exitCode = 1;
+                                }
+                            }
+
                             if (mode != Mode.Create)
                             {
                                 WriteLine(tool.FileCheckedCount.ToString() + " files were checked.");
