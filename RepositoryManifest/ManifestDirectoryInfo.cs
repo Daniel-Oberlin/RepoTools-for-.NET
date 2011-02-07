@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
+
 namespace RepositoryManifest
 {
     /// <summary>
@@ -15,7 +16,10 @@ namespace RepositoryManifest
         /// Constructor
         /// </summary>
         /// <param name="name">
-        /// Object name
+        /// The name of this directory
+        /// </param>
+        /// <param name="parentDirectory">
+        /// The parent directory
         /// </param>
         public ManifestDirectoryInfo(
             String name,
@@ -26,8 +30,49 @@ namespace RepositoryManifest
             Subdirectories = new Dictionary<string, ManifestDirectoryInfo>();
         }
 
+        /// <summary>
+        /// Copy constructor
+        /// </summary>
+        /// <param name="original">
+        /// The original object
+        /// </param>
+        /// <param name="parentDirectory">
+        /// The parent directory
+        /// </param>
+        public ManifestDirectoryInfo(
+            ManifestDirectoryInfo original,
+            ManifestDirectoryInfo parentDirectory) :
+            base(original.Name, parentDirectory)
+        {
+            foreach (String nextDirName in original.Subdirectories.Keys)
+            {
+                ManifestDirectoryInfo dirClone =
+                    new ManifestDirectoryInfo(
+                        original.Subdirectories[nextDirName],
+                        this);
+
+                Subdirectories.Add(nextDirName, dirClone);
+            }
+
+            foreach (String nextFileName in original.Files.Keys)
+            {
+                ManifestFileInfo fileClone =
+                    new ManifestFileInfo(
+                        original.Files[nextFileName],
+                        this);
+
+                Files.Add(nextFileName, fileClone);
+            }
+        }
+
+        /// <summary>
+        /// The files contained by this directory
+        /// </summary>
         public Dictionary<String, ManifestFileInfo> Files { private set; get; }
 
+        /// <summary>
+        /// The directories contained by this directory
+        /// </summary>
         public Dictionary<String, ManifestDirectoryInfo> Subdirectories { private set; get; }
     }
 }

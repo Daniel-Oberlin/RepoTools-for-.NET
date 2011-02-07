@@ -14,21 +14,16 @@ namespace RepositoryTool
 {
     public delegate void WriteLogDelegate(String message);
 
-    public enum Mode
-    {
-        Create,
-        Validate,
-        Status,
-        Update
-    }
-
     public class RepositoryTool
     {
         public RepositoryTool()
         {
             ShowProgress = false;
-          
-            NewFiles = new List<FileInfo>();
+
+            Update = false;
+            Force = false;
+
+            NewFiles = new List<ManifestFileInfo>();
             ModifiedFiles = new List<ManifestFileInfo>();
             MissingFiles = new List<ManifestFileInfo>();
             DateModifiedFiles = new List<ManifestFileInfo>();
@@ -39,7 +34,6 @@ namespace RepositoryTool
 
         public void Clear()
         {
-            FileAddedCount = 0;
             FileCheckedCount = 0;
 
             NewFiles.Clear();
@@ -49,22 +43,21 @@ namespace RepositoryTool
             ErrorFiles.Clear();
         }
 
-        public void Execute(
-            Manifest manifest,
-            Mode mode)
+        public void DoUpdate()
         {
             Clear();
 
-            ExecuteRecursive(
+            UpdateRecursive(
                 RootDirectory,
-                manifest.RootDirectory,
-                mode);
+                Manifest.RootDirectory);
+
+            Manifest.DateOfLastUpdate =
+                DateTime.UtcNow;
         }
 
-        protected void ExecuteRecursive(
+        protected void UpdateRecursive(
             DirectoryInfo currentDirectoryInfo,
-            ManifestDirectoryInfo currentManfestDirInfo,
-            Mode mode)
+            ManifestDirectoryInfo currentManfestDirInfo)
         {
             // Setup data for current directory
             Dictionary<String, FileInfo> fileDict =
@@ -94,145 +87,150 @@ namespace RepositoryTool
 
 
             // Iterate through existing manifest entries
-            if (currentManfestDirInfo != null)
+            List<ManifestFileInfo> listClone =
+                new List<ManifestFileInfo>(currentManfestDirInfo.Files.Values);
+
+            foreach (ManifestFileInfo nextManFileInfo in listClone)
             {
-                foreach (ManifestFileInfo nextManFileInfo in
-                    currentManfestDirInfo.Files.Values)
+                if (ShowProgress)
                 {
-                    if (ShowProgress)
+                    Write(MakePathString(nextManFileInfo));
+                }
+
+                if (fileDict.ContainsKey(nextManFileInfo.Name))
+                {
+                    FileCheckedCount++;
+
+                    FileInfo nextFileInfo = fileDict[nextManFileInfo.Name];
+
+                    if (nextFileInfo.Length != nextManFileInfo.FileLength &&
+                        Update == false &&
+                        Force == false)
                     {
-                        Write(MakePathString(nextManFileInfo));
+                        Write(" [DIFFERENT]");
+                        ModifiedFiles.Add(nextManFileInfo);
                     }
-
-                    if (fileDict.ContainsKey(nextManFileInfo.Name))
+                    else if (Force == true ||
+                        nextFileInfo.LastWriteTimeUtc != nextManFileInfo.LastModifiedTime ||
+                        nextFileInfo.Length != nextManFileInfo.FileLength)
                     {
-                        FileCheckedCount++;
+                        byte[] hash = null;
 
-                        FileInfo nextFileInfo = fileDict[nextManFileInfo.Name];
+                        try
+                        {
+                            hash = ComputeHash(nextFileInfo);
+                        }
+                        catch (Exception)
+                        {
+                            // TODO: More detail?
+                        }
 
-                        if (nextFileInfo.Length != nextManFileInfo.FileLength)
+                        if (hash == null)
+                        {
+                            Write(" [ERROR]");
+                            ErrorFiles.Add(nextManFileInfo);
+                        }
+                        else if (CompareHash(hash, nextManFileInfo.Hash) == false)
                         {
                             Write(" [DIFFERENT]");
                             ModifiedFiles.Add(nextManFileInfo);
                         }
-                        else if (mode == Mode.Validate ||
-                            nextFileInfo.LastWriteTimeUtc != nextManFileInfo.LastModifiedTime)
+                        else if (nextFileInfo.LastWriteTimeUtc != nextManFileInfo.LastModifiedTime)
                         {
-                            byte[] hash = null;
-
-                            try
-                            {
-                                hash = ComputeHash(nextFileInfo);
-                            }
-                            catch (Exception)
-                            {
-                                // TODO: More detail?
-                            }
-
-                            if (hash == null)
-                            {
-                                Write(" [ERROR]");
-                                ErrorFiles.Add(nextManFileInfo);
-                            }
-                            else if (CompareHash(hash, nextManFileInfo.Hash) == false)
-                            {
-                                Write(" [DIFFERENT]");
-                                ModifiedFiles.Add(nextManFileInfo);
-                            }
-                            else if (nextFileInfo.LastWriteTimeUtc != nextManFileInfo.LastModifiedTime)
-                            {
-                                Write(" [DATE]");
-                                DateModifiedFiles.Add(nextManFileInfo);
-                            }
+                            Write(" [DATE]");
+                            DateModifiedFiles.Add(nextManFileInfo);
                         }
-                        else
-                        {
-                            Write(" [SKIPPED]");
-                        }
+
+                        nextManFileInfo.Hash = hash;
+                        nextManFileInfo.HashType = "SHA256";
+                        nextManFileInfo.LastModifiedTime = nextFileInfo.LastWriteTimeUtc;
+                        nextManFileInfo.FileLength = nextFileInfo.Length;
                     }
                     else
                     {
-                        Write(" [MISSING]");
-                        MissingFiles.Add(nextManFileInfo);
+                        Write(" [SKIPPED]");
                     }
-
-                    WriteLine("");
                 }
-
-                foreach (ManifestDirectoryInfo nextManDirInfo in
-                    currentManfestDirInfo.Subdirectories.Values)
+                else
                 {
-                    DirectoryInfo nextDirInfo = null;
-                    if (dirDict.ContainsKey(nextManDirInfo.Name))
-                    {
-                        nextDirInfo = dirDict[nextManDirInfo.Name];
-                    }
-
-                    ExecuteRecursive(
-                        nextDirInfo,
-                        nextManDirInfo,
-                        mode);
+                    Write(" [MISSING]");
+                    currentManfestDirInfo.Files.Remove(nextManFileInfo.Name);
+                    MissingFiles.Add(nextManFileInfo);
                 }
+
+                WriteLine("");
+            }
+
+            foreach (ManifestDirectoryInfo nextManDirInfo in
+                currentManfestDirInfo.Subdirectories.Values)
+            {
+                DirectoryInfo nextDirInfo = null;
+                if (dirDict.ContainsKey(nextManDirInfo.Name))
+                {
+                    nextDirInfo = dirDict[nextManDirInfo.Name];
+                }
+
+                UpdateRecursive(
+                    nextDirInfo,
+                    nextManDirInfo);
             }
 
 
             // Look for new files
             foreach (FileInfo nextFileInfo in fileDict.Values)
             {
-                if (currentManfestDirInfo == null ||
-                    currentManfestDirInfo.Files.ContainsKey(nextFileInfo.Name) == false)
+                if (currentManfestDirInfo.Files.ContainsKey(nextFileInfo.Name) == false)
                 {
-                    Write(MakePathString(nextFileInfo));
+                    ManifestFileInfo newManFileInfo =
+                       new ManifestFileInfo(
+                           nextFileInfo.Name,
+                           currentManfestDirInfo);
 
-                    if (IgnoreFile(MakePathString(nextFileInfo)))
+                    Write(MakePathString(newManFileInfo));
+
+                    if (IgnoreFile(MakePathString(newManFileInfo)))
                     {
                         Write(" [IGNORED]");
                     }
                     else
                     {
+                        FileCheckedCount++;
 
-                        if (mode == Mode.Create)
+                        bool checkHash = Update == true || Force == true;
+
+                        if (checkHash)
                         {
-                            ManifestFileInfo newManFileInfo =
-                                new ManifestFileInfo(
-                                    nextFileInfo.Name,
-                                    currentManfestDirInfo);
-
-                            newManFileInfo.FileLength =
-                                nextFileInfo.Length;
-
-                            newManFileInfo.LastModifiedTime =
-                                nextFileInfo.LastWriteTimeUtc;
-
                             try
                             {
                                 newManFileInfo.Hash = ComputeHash(nextFileInfo);
+                                newManFileInfo.HashType = "SHA256";
                             }
                             catch (Exception)
                             {
                                 // TODO: More detail?
                             }
+                        }
 
-                            if (newManFileInfo.Hash == null)
-                            {
-                                ErrorFiles.Add(newManFileInfo);
-                                Write(" [ERROR]");
-                            }
-                            else
-                            {
-                                NewFiles.Add(nextFileInfo);
-                                Write(" [NEW]");
-                            }
-
-                            currentManfestDirInfo.Files.Add(
-                                nextFileInfo.Name,
-                                newManFileInfo);
+                        if (checkHash && newManFileInfo.Hash == null)
+                        {
+                            ErrorFiles.Add(newManFileInfo);
+                            Write(" [ERROR]");
                         }
                         else
                         {
-                            NewFiles.Add(nextFileInfo);
+                            NewFiles.Add(newManFileInfo);
                             Write(" [NEW]");
                         }
+
+                        newManFileInfo.FileLength =
+                            nextFileInfo.Length;
+
+                        newManFileInfo.LastModifiedTime =
+                            nextFileInfo.LastWriteTimeUtc;
+
+                        currentManfestDirInfo.Files.Add(
+                            nextFileInfo.Name,
+                            newManFileInfo);
                     }
 
                     WriteLine("");
@@ -243,28 +241,19 @@ namespace RepositoryTool
             // Recurse looking for new directories
             foreach (DirectoryInfo nextDirInfo in dirDict.Values)
             {
-                ManifestDirectoryInfo nextManDirInfo = null;
-
-                bool newDirectory =
-                    currentManfestDirInfo.Subdirectories.ContainsKey(nextDirInfo.Name) == false;
-
-                if (mode == Mode.Create)
+                if (currentManfestDirInfo.Subdirectories.ContainsKey(nextDirInfo.Name) == false)
                 {
-                    nextManDirInfo = new ManifestDirectoryInfo(
+                    ManifestDirectoryInfo nextManDirInfo = new ManifestDirectoryInfo(
                         nextDirInfo.Name,
                         currentManfestDirInfo);
 
                     currentManfestDirInfo.Subdirectories.Add(
                         nextManDirInfo.Name,
                         nextManDirInfo);
-                }
 
-                if (currentManfestDirInfo == null || newDirectory)
-                {
-                    ExecuteRecursive(
+                    UpdateRecursive(
                         nextDirInfo,
-                        nextManDirInfo,
-                        mode);
+                        nextManDirInfo);
                 }
             }
         }
@@ -298,30 +287,6 @@ namespace RepositoryTool
             if (directoryInfo.ParentDirectory != null)
             {
                 pathString = MakePathString(directoryInfo.ParentDirectory) + pathString;
-            }
-
-            return pathString;
-        }
-
-        public String MakePathString(FileInfo fileInfo)
-        {
-            return MakePathString(fileInfo.Directory) + fileInfo.Name;
-        }
-
-        public String MakePathString(DirectoryInfo directoryInfo)
-        {
-            String pathString;
-            if (directoryInfo.FullName != RootDirectory.FullName)
-            {
-                pathString = directoryInfo.Name + PathDelimeterString;
-
-                pathString =
-                    MakePathString(directoryInfo.Parent) +
-                    pathString;
-            }
-            else
-            {
-                pathString = "." + PathDelimeterString;
             }
 
             return pathString;
@@ -397,11 +362,13 @@ namespace RepositoryTool
         public DirectoryInfo RootDirectory { set; get; }
 
         public bool ShowProgress { set; get; }
+        public bool Update { set; get; }
+        public bool Force { set; get; }
 
-        public int FileAddedCount { private set; get; }
         public int FileCheckedCount { private set; get; }
 
-        public List<FileInfo> NewFiles { private set; get; }
+        public Manifest Manifest { set; get; }
+        public List<ManifestFileInfo> NewFiles { private set; get; }
         public List<ManifestFileInfo> ModifiedFiles { private set; get; }
         public List<ManifestFileInfo> MissingFiles { private set; get; }
         public List<ManifestFileInfo> DateModifiedFiles { private set; get; }

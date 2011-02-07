@@ -11,12 +11,40 @@ namespace RepositoryManifest
     [Serializable]
     public class ManifestFileInfo : ManifestObjectInfo
     {
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="name">
+        /// The file name
+        /// </param>
+        /// <param name="parentDirectory">
+        /// The parent directory
+        /// </param>
         public ManifestFileInfo(
             String name,
             ManifestDirectoryInfo parentDirectory) :
             base(name, parentDirectory)
         {
             Hash = null;
+        }
+
+        /// <summary>
+        /// Copy constructor
+        /// </summary>
+        /// <param name="original">
+        /// The original object
+        /// </param>
+        /// <param name="parentDirectory">
+        /// The parent directory
+        /// </param>
+        public ManifestFileInfo(
+            ManifestFileInfo original,
+            ManifestDirectoryInfo parentDirectory) :
+            base(original.Name, parentDirectory)
+        {
+            FileLength = original.FileLength;
+            LastModifiedTime = original.LastModifiedTime;
+            Hash = (byte[]) original.Hash.Clone();
         }
 
         /// <summary>
@@ -33,5 +61,10 @@ namespace RepositoryManifest
         /// The SHA256 hash of the file data
         /// </summary>
         public byte[] Hash { set; get; }
+
+        /// <summary>
+        /// The name of the hash algorithm used
+        /// </summary>
+        public String HashType { set; get; }
     }
 }

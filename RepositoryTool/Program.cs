@@ -15,12 +15,6 @@ namespace RepositoryTool
         {
             int exitCode = 0;
 
-            Dictionary<String, Mode> modes = new Dictionary<string, Mode>();
-            modes.Add("create", Mode.Create);
-            modes.Add("validate", Mode.Validate);
-            modes.Add("status", Mode.Status);
-            modes.Add("update", Mode.Update);
-
             int argIndex = 0;
             string commandArg = args[argIndex++];
 
@@ -32,12 +26,12 @@ namespace RepositoryTool
                     Write(message);
                 };
 
-            tool.RootDirectory = new DirectoryInfo(Directory.GetCurrentDirectory());
+            tool.RootDirectory =
+                new DirectoryInfo(Directory.GetCurrentDirectory());
 
             bool ignoreDate = false;
             bool ignoreNew = false;
             //bool backDate = false;
-            //bool verbose = false;
 
             while (argIndex < args.Count())
             {
@@ -66,12 +60,12 @@ namespace RepositoryTool
                         ignoreNew = true;
                         break;
 
+                    case "-force":
+                        tool.Force = true;
+                        break;
+
                     //case "-backDate":
                     //    backDate = true;
-                    //    break;
-
-                    //case "-verbose":
-                    //    verbose = true;
                     //    break;
 
                     default:
@@ -82,76 +76,74 @@ namespace RepositoryTool
                 }
             }
 
+            String manifestFilePath =
+                tool.RootDirectory.FullName +
+                RepositoryTool.PathDelimeterString +
+                RepositoryTool.ManifestFileName;
+
             switch (commandArg)
             {
                 case "create":
+                    {
+                        tool.Manifest = new Manifest();
+                        break;
+                    }
+
                 case "validate":
                 case "status":
+                case "update":
                     {
-                        Mode mode = modes[commandArg];
-
-                        String manifestFilePath =
-                            tool.RootDirectory.FullName +
-                            RepositoryTool.PathDelimeterString +
-                            RepositoryTool.ManifestFileName;
-
-                        Manifest manifest = null;
-
-                        if (mode == Mode.Create)
+                        if (commandArg == "validate")
                         {
-                            manifest = new Manifest();
+                            tool.Force = true;
                         }
-                        else
+                        else if (commandArg == "update")
                         {
-                            try
-                            {
-                                manifest = Manifest.ReadManifestFile(manifestFilePath);
-                            }
-                            catch (Exception ex)
-                            {
-                                ReportException(ex);
-                                WriteLine("Could not read manifest.");
-                            }
+                            tool.Update = true;
                         }
 
-                        if (manifest == null)
+                        bool different = false;
+
+                        try
+                        {
+                            tool.Manifest = Manifest.ReadManifestFile(manifestFilePath);
+                        }
+                        catch (Exception ex)
+                        {
+                            ReportException(ex);
+                            WriteLine("Could not read manifest.");
+                        }
+
+                        if (tool.Manifest == null)
                         {
                             exitCode = 1;
                         }
                         else
                         {
-                            tool.Execute(manifest, mode);
+                            tool.DoUpdate();
 
                             if (tool.MissingFiles.Count > 0)
                             {
                                 WriteLine(tool.MissingFiles.Count.ToString() + " files are missing.");
                                 DetailFiles(tool.MissingFiles);
-                                exitCode = 1;
+                                different = true;
                             }
 
                             if (tool.ModifiedFiles.Count > 0)
                             {
                                 WriteLine(tool.ModifiedFiles.Count.ToString() + " files are different.");
                                 DetailFiles(tool.ModifiedFiles);
-                                exitCode = 1;
+                                different = true;
                             }
 
                             if (tool.NewFiles.Count > 0)
                             {
-                                if (mode == Mode.Create || mode == Mode.Update)
-                                {
-                                    WriteLine(tool.NewFiles.Count.ToString() + " files were added.");
-                                }
-                                else
-                                {
-                                    WriteLine(tool.NewFiles.Count.ToString() + " files are new.");
-                                }
-                                
-                                DetailFiles(tool.NewFiles, tool);
+                                WriteLine(tool.NewFiles.Count.ToString() + " files are new.");                                
+                                DetailFiles(tool.NewFiles);
 
                                 if (ignoreNew == false)
                                 {
-                                    exitCode = 1;
+                                    different = true;
                                 }
                             }
 
@@ -162,7 +154,7 @@ namespace RepositoryTool
 
                                 if (ignoreDate == false)
                                 {
-                                    exitCode = 1;
+                                    different = true;
                                 }
                             }
 
@@ -170,50 +162,26 @@ namespace RepositoryTool
                             {
                                 WriteLine(tool.ErrorFiles.Count.ToString() + " files have errors.");
                                 DetailFiles(tool.ErrorFiles);
+                                different = true;
+                            }
 
-                                if (ignoreDate == false)
+                            WriteLine(tool.FileCheckedCount.ToString() + " files were checked.");
+
+                            if (commandArg == "validate")
+                            {
+                                if (different)
                                 {
+                                    WriteLine("Problems found.");
                                     exitCode = 1;
-                                }
-                            }
-
-                            if (mode != Mode.Create)
-                            {
-                                WriteLine(tool.FileCheckedCount.ToString() + " files were checked.");
-                            }
-
-                            if (mode == Mode.Validate)
-                            {
-                                if (exitCode == 0)
-                                {
-                                    WriteLine("No problems.");
                                 }
                                 else
                                 {
-                                    WriteLine("Problems found.");
-                                }
-                            }
-
-                            if (mode == Mode.Create || mode == Mode.Update)
-                            {
-                                try
-                                {
-                                    manifest.WriteManifestFile(manifestFilePath);
-                                }
-                                catch (Exception ex)
-                                {
-                                    ReportException(ex);
-                                    WriteLine("Could not write manifest.");
-                                    exitCode = 1;
+                                    WriteLine("No problems.");
                                 }
                             }
                         }
                         break;
                     }
-
-
-                case "update":
-                    break;
 
                 case "clean":
                     break;
@@ -227,6 +195,26 @@ namespace RepositoryTool
                 default:
                     WriteLine("Unrecognized command \" " + commandArg + "\"");
                     exitCode = 1;
+                    break;
+            }
+
+            switch (commandArg)
+            {
+                case "create":
+                case "update":
+                    if (tool.Manifest != null)
+                    {
+                        try
+                        {
+                            tool.Manifest.WriteManifestFile(manifestFilePath);
+                        }
+                        catch (Exception ex)
+                        {
+                            ReportException(ex);
+                            WriteLine("Could not write manifest.");
+                            exitCode = 1;
+                        }
+                    }
                     break;
             }
 
@@ -264,19 +252,6 @@ namespace RepositoryTool
                 foreach (ManifestFileInfo nextManFileInfo in files)
                 {
                     WriteLine("   " + RepositoryTool.MakePathString(nextManFileInfo));
-                }
-
-                WriteLine("");
-            }
-        }
-
-        static void DetailFiles(List<FileInfo> files, RepositoryTool tool)
-        {
-            if (detailReport)
-            {
-                foreach (FileInfo nextFileInfo in files)
-                {
-                    WriteLine("   " + tool.MakePathString(nextFileInfo));
                 }
 
                 WriteLine("");

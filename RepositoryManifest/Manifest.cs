@@ -18,27 +18,30 @@ namespace RepositoryManifest
         /// <summary>
         /// Default constructor
         /// </summary>
-        public Manifest() :
-            this(Guid.NewGuid(), new ManifestDirectoryInfo(".", null))
+       public Manifest()
         {
+            Guid = Guid.NewGuid();
+            RootDirectory = new ManifestDirectoryInfo(".", null);
+            IgnoreList = new List<string>();
+            DateOfInception = DateTime.UtcNow;
         }
 
         /// <summary>
-        /// Constructory
+        /// Copy constructor
         /// </summary>
-        /// <param name="guid">
-        /// Unique identifier for repository listed by this manifest
+        /// <param name="original">
+        /// The original object
         /// </param>
-        /// <param name="rootDirectory">
-        /// Top level directory in the manifest
-        /// </param>
-        public Manifest(
-            Guid guid,
-            ManifestDirectoryInfo rootDirectory)
-        {
-            Guid = guid;
-            RootDirectory = rootDirectory;
-        }
+       public Manifest(Manifest original)
+       {
+           Guid = original.Guid;
+           RootDirectory = new ManifestDirectoryInfo(RootDirectory, null);
+           Name = original.Name;
+           Description = original.Description;
+           DateOfInception = original.DateOfInception;
+           DateOfLastUpdate = original.DateOfLastUpdate;
+           IgnoreList = new List<string>(original.IgnoreList);
+       }
 
         /// <summary>
         /// Unique identifier for this repository
@@ -49,6 +52,31 @@ namespace RepositoryManifest
         /// The containing directory for the repository
         /// </summary>
         public ManifestDirectoryInfo RootDirectory { private set; get; }
+
+        /// <summary>
+        /// The name of the repository
+        /// </summary>
+        public String Name { set; get; }
+
+        /// <summary>
+        /// A description of the contents of the repository
+        /// </summary>
+        public String Description { set; get; }
+
+        /// <summary>
+        /// The UTC DateTime when the repository was first created
+        /// </summary>
+        public DateTime DateOfInception { set; get; }
+
+        /// <summary>
+        /// The UTC DateTime when the repository was last updated
+        /// </summary>
+        public DateTime DateOfLastUpdate { set; get; }
+
+        /// <summary>
+        /// A list of regular expressions for filenames to ignore
+        /// </summary>
+        public List<String> IgnoreList { private set; get; }
 
         /// <summary>
         /// Read a manifest from a disk file
@@ -82,6 +110,12 @@ namespace RepositoryManifest
             return manifest;
         }
 
+        /// <summary>
+        /// Write a manifest to a disk file
+        /// </summary>
+        /// <param name="manifestFilePath">
+        /// The path to the manifest file
+        /// </param>
         public void WriteManifestFile(string manifestFilePath)
         {
             FileStream fileStream =
