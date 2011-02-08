@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -14,6 +15,7 @@ namespace RepositoryTool
         static void Main(string[] args)
         {
             int exitCode = 0;
+            DateTime startTime = DateTime.Now;
 
             int argIndex = 0;
             string commandArg = args[argIndex++];
@@ -31,6 +33,13 @@ namespace RepositoryTool
 
             bool ignoreDate = false;
             bool ignoreNew = false;
+            bool time = false;
+
+            string repositoryName = null;
+            string repositoryDescription = null;
+            string hashMethod = null;
+
+            // TODO:
             //bool backDate = false;
 
             while (argIndex < args.Count())
@@ -64,8 +73,36 @@ namespace RepositoryTool
                         tool.Force = true;
                         break;
 
+                    case "-newHash":
+                        tool.NewHash = true;
+                        break;
+
+                    case "-time":
+                        time = true;
+                        break;
+                        
+                    case "-name":
+                        repositoryName = args[argIndex++];
+                        break;
+
+                    case "-description":
+                        repositoryDescription = args[argIndex++];
+                        break;
+
+                    case "-hashMethod":
+                        hashMethod = args[argIndex++];
+                        break;
+
+                    // TODO:
+
                     //case "-backDate":
                     //    backDate = true;
+                    //    break;
+
+                    //case "-ignore":
+                    //    break;
+
+                    //case "-dontIgnore":
                     //    break;
 
                     default:
@@ -86,12 +123,17 @@ namespace RepositoryTool
                 case "create":
                     {
                         tool.Manifest = new Manifest();
+
+                        tool.Manifest.DefaultHashMethod =
+                            RepositoryTool.NewHashType;
+
                         break;
                     }
 
                 case "validate":
                 case "status":
                 case "update":
+                case "edit":
                     {
                         if (commandArg == "validate")
                         {
@@ -118,7 +160,7 @@ namespace RepositoryTool
                         {
                             exitCode = 1;
                         }
-                        else
+                        else if (commandArg != "edit")
                         {
                             tool.DoUpdate();
 
@@ -184,9 +226,66 @@ namespace RepositoryTool
                     }
 
                 case "clean":
+                    // TODO
                     break;
 
                 case "info":
+                    try
+                    {
+                        tool.Manifest = Manifest.ReadManifestFile(manifestFilePath);
+                    }
+                    catch (Exception ex)
+                    {
+                        ReportException(ex);
+                        WriteLine("Could not read manifest.");
+                    }
+
+                    if (tool.Manifest == null)
+                    {
+                        exitCode = 1;
+                    }
+                    else
+                    {
+                        if (tool.Manifest.Name != null)
+                        {
+                            WriteLine("Name:                  " + tool.Manifest.Name);
+                        }
+
+
+                        WriteLine("GUID:                  " + tool.Manifest.Guid.ToString());
+
+                        if (tool.Manifest.DefaultHashMethod != null)
+                        {
+                            WriteLine("Default hash method:   " + tool.Manifest.DefaultHashMethod);
+                        }
+
+                        WriteLine("Date of creation:      " + tool.Manifest.DateOfInception.ToString());
+
+                        if (tool.Manifest.DateOfLastUpdate != null)
+                        {
+                            WriteLine("Date of last update:   " + tool.Manifest.DateOfLastUpdate.ToString());
+                        }
+                        else
+                        {
+                            WriteLine("Date of last update:   Never.");
+                        }
+
+                        NumberFormatInfo nfi = new CultureInfo("en-US", false).NumberFormat;
+                        nfi.NumberDecimalDigits = 0;
+
+
+                        WriteLine("Total number of files: " + tool.Manifest.CountFiles().ToString("N", nfi));
+                        WriteLine("Total number of bytes: " + tool.Manifest.CountBytes().ToString("N", nfi));
+                    }
+
+                    if (tool.Manifest.Description != null)
+                    {
+                        WriteLine();
+                        WriteLine("Description: ");
+                        WriteLine(tool.Manifest.Description);
+                        WriteLine();
+                    }
+
                     break;
 
                 case "":
@@ -202,6 +301,23 @@ namespace RepositoryTool
             {
                 case "create":
                 case "update":
+                case "edit":
+
+                    if (repositoryName != null)
+                    {
+                        tool.Manifest.Name = repositoryName;
+                    }
+
+                    if (repositoryDescription != null)
+                    {
+                        tool.Manifest.Description = repositoryDescription;
+                    }
+
+                    if (hashMethod != null)
+                    {
+                        tool.Manifest.DefaultHashMethod = hashMethod;
+                    }
+
                     if (tool.Manifest != null)
                     {
                         try
@@ -216,6 +332,11 @@ namespace RepositoryTool
                         }
                     }
                     break;
+            }
+
+            if (time)
+            {
+                WriteLine("Duration: " + (DateTime.Now - startTime).ToString());
             }
 
             Environment.Exit(exitCode);
@@ -240,6 +361,11 @@ namespace RepositoryTool
             Write(message + "\r\n");
         }
 
+        static void WriteLine()
+        {
+            WriteLine("");
+        }
+
         static void ReportException(Exception ex)
         {
             WriteLine(ex.GetType().ToString() + ": " + ex.Message);
@@ -254,7 +380,7 @@ namespace RepositoryTool
                     WriteLine("   " + RepositoryTool.MakePathString(nextManFileInfo));
                 }
 
-                WriteLine("");
+                WriteLine();
             }
         }
     }

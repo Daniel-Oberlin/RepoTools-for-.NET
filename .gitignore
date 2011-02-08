@@ -1,4 +1,10 @@
 *.suo
+*.user
 *.dll
 *.exe
 *.user
+*.cache
+*.force
+*.dll
+*.pdb
+*.FileListAbsolute.txt

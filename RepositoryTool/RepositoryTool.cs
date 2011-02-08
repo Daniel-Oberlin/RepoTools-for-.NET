@@ -19,9 +19,9 @@ namespace RepositoryTool
         public RepositoryTool()
         {
             ShowProgress = false;
-
             Update = false;
             Force = false;
+            NewHash = false;
 
             NewFiles = new List<ManifestFileInfo>();
             ModifiedFiles = new List<ManifestFileInfo>();
@@ -114,23 +114,25 @@ namespace RepositoryTool
                         nextFileInfo.LastWriteTimeUtc != nextManFileInfo.LastModifiedTime ||
                         nextFileInfo.Length != nextManFileInfo.FileLength)
                     {
-                        byte[] hash = null;
+                        byte[] checkHash = null;
 
                         try
                         {
-                            hash = ComputeHash(nextFileInfo);
+                            checkHash = ComputeHash(
+                                nextFileInfo,
+                                nextManFileInfo.HashType);
                         }
                         catch (Exception)
                         {
                             // TODO: More detail?
                         }
 
-                        if (hash == null)
+                        if (checkHash == null)
                         {
                             Write(" [ERROR]");
                             ErrorFiles.Add(nextManFileInfo);
                         }
-                        else if (CompareHash(hash, nextManFileInfo.Hash) == false)
+                        else if (CompareHash(checkHash, nextManFileInfo.Hash) == false)
                         {
                             Write(" [DIFFERENT]");
                             ModifiedFiles.Add(nextManFileInfo);
@@ -141,8 +143,21 @@ namespace RepositoryTool
                             DateModifiedFiles.Add(nextManFileInfo);
                         }
 
-                        nextManFileInfo.Hash = hash;
-                        nextManFileInfo.HashType = "SHA256";
+                        byte[] newHash = checkHash;
+                        string newHashType = nextManFileInfo.HashType;
+
+                        if (NewHash)
+                        {
+                            newHashType = GetNewHashType(Manifest);
+
+                            checkHash = ComputeHash(
+                                nextFileInfo,
+                                newHashType);
+                        }                        
+
+                        nextManFileInfo.Hash = newHash;
+                        nextManFileInfo.HashType = newHashType;
+
                         nextManFileInfo.LastModifiedTime = nextFileInfo.LastWriteTimeUtc;
                         nextManFileInfo.FileLength = nextFileInfo.Length;
                     }
@@ -202,8 +217,11 @@ namespace RepositoryTool
                         {
                             try
                             {
-                                newManFileInfo.Hash = ComputeHash(nextFileInfo);
-                                newManFileInfo.HashType = "SHA256";
+                                newManFileInfo.Hash =
+                                    ComputeHash(nextFileInfo, NewHashType);
+
+                                newManFileInfo.HashType =
+                                    GetNewHashType(Manifest);
                             }
                             catch (Exception)
                             {
@@ -292,14 +310,43 @@ namespace RepositoryTool
             return pathString;
         }
 
-        protected byte[] ComputeHash(FileInfo file)
+        protected String GetNewHashType(Manifest man)
         {
+            if (man.DefaultHashMethod != null)
+            {
+                switch (man.DefaultHashMethod)
+                {
+                    case "MD5":
+                    case "SHA256":
+                        return man.DefaultHashMethod;
+                }
+            }
+
+            return NewHashType;
+        }
+
+        protected byte[] ComputeHash(
+            FileInfo file,
+            string hashType)
+        {
+            byte[] hash = null;
+
             Stream fileStream =
                 file.Open(FileMode.Open, FileAccess.Read);
 
-            SHA256 hashFunction = new SHA256Managed();
+            switch (hashType)
+            {
+                case "MD5":
+                    hash = new MD5CryptoServiceProvider().ComputeHash(fileStream);
+                    break;
 
-            byte[] hash = hashFunction.ComputeHash(fileStream);
+                case "SHA256":
+                    hash = new SHA256Managed().ComputeHash(fileStream);
+                    break;
+
+                default:
+                    throw new Exception("Unrecognized hash method: " + hashType);
+            }
 
             fileStream.Close();
 
@@ -312,8 +359,6 @@ namespace RepositoryTool
             {
                 return false;
             }
-
-            Debug.Assert(hash1.Count() == hash2.Count());
 
             if (hash1.Count() != hash2.Count())
             {
@@ -364,6 +409,7 @@ namespace RepositoryTool
         public bool ShowProgress { set; get; }
         public bool Update { set; get; }
         public bool Force { set; get; }
+        public bool NewHash { set; get; }
 
         public int FileCheckedCount { private set; get; }
 
@@ -381,6 +427,7 @@ namespace RepositoryTool
         public static String ManifestFileName;
         public static String PathDelimeterString;
         public static String ManifestFilePath;
+        public static String NewHashType;
 
         static RepositoryTool()
         {
@@ -388,6 +435,7 @@ namespace RepositoryTool
             ManifestFileName = ".repositoryManifest";
             PathDelimeterString = "\\";
             ManifestFilePath = "." + PathDelimeterString + ManifestFileName;
+            NewHashType = "MD5";
         }
     }
 }

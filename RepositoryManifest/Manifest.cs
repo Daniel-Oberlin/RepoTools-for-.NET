@@ -24,6 +24,7 @@ namespace RepositoryManifest
             RootDirectory = new ManifestDirectoryInfo(".", null);
             IgnoreList = new List<string>();
             DateOfInception = DateTime.UtcNow;
+            DefaultHashMethod = null;
         }
 
         /// <summary>
@@ -41,6 +42,7 @@ namespace RepositoryManifest
            DateOfInception = original.DateOfInception;
            DateOfLastUpdate = original.DateOfLastUpdate;
            IgnoreList = new List<string>(original.IgnoreList);
+           DefaultHashMethod = original.DefaultHashMethod;
        }
 
         /// <summary>
@@ -77,6 +79,11 @@ namespace RepositoryManifest
         /// A list of regular expressions for filenames to ignore
         /// </summary>
         public List<String> IgnoreList { private set; get; }
+
+        /// <summary>
+        /// The name of the default hash method being used by the repository
+        /// </summary>
+        public String DefaultHashMethod { set; get; }
 
         /// <summary>
         /// Read a manifest from a disk file
@@ -137,6 +144,54 @@ namespace RepositoryManifest
             {
                 fileStream.Close();
             }
+        }
+
+        public Int64 CountFiles()
+        {
+            return CountFilesRecursive(RootDirectory);
+        }
+
+        protected Int64 CountFilesRecursive(ManifestDirectoryInfo currentDir)
+        {
+            Int64 fileCount = 0;
+
+            foreach (ManifestFileInfo nextFileInfo in
+                currentDir.Files.Values)
+            {
+                fileCount++;
+            }
+
+            foreach (ManifestDirectoryInfo nextDirInfo in
+                currentDir.Subdirectories.Values)
+            {
+                fileCount += CountFilesRecursive(nextDirInfo);
+            }
+
+            return fileCount;
+        }
+
+        public Int64 CountBytes()
+        {
+            return CountBytesRecursive(RootDirectory);
+        }
+
+        protected Int64 CountBytesRecursive(ManifestDirectoryInfo currentDir)
+        {
+            Int64 byteCount = 0;
+
+            foreach (ManifestFileInfo nextFileInfo in
+                currentDir.Files.Values)
+            {
+                byteCount += nextFileInfo.FileLength;
+            }
+
+            foreach (ManifestDirectoryInfo nextDirInfo in
+                currentDir.Subdirectories.Values)
+            {
+                byteCount += CountBytesRecursive(nextDirInfo);
+            }
+
+            return byteCount;
         }
     }
 }
