@@ -43,7 +43,7 @@ namespace RepositoryManifest
             base(original.Name, parentDirectory)
         {
             FileLength = original.FileLength;
-            LastModifiedTime = original.LastModifiedTime;
+            LastModifiedUtc = original.LastModifiedUtc;
             Hash = (byte[]) original.Hash.Clone();
         }
 
@@ -55,7 +55,7 @@ namespace RepositoryManifest
         /// <summary>
         /// The time that this file was last mofified according to the filesystem
         /// </summary>
-        public DateTime LastModifiedTime { set; get; }
+        public DateTime LastModifiedUtc { set; get; }
 
         /// <summary>
         /// The SHA256 hash of the file data

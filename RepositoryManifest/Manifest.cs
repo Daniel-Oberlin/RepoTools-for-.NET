@@ -23,7 +23,7 @@ namespace RepositoryManifest
             Guid = Guid.NewGuid();
             RootDirectory = new ManifestDirectoryInfo(".", null);
             IgnoreList = new List<string>();
-            DateOfInception = DateTime.UtcNow;
+            InceptionDateUtc = DateTime.UtcNow;
             DefaultHashMethod = null;
         }
 
@@ -39,8 +39,8 @@ namespace RepositoryManifest
            RootDirectory = new ManifestDirectoryInfo(RootDirectory, null);
            Name = original.Name;
            Description = original.Description;
-           DateOfInception = original.DateOfInception;
-           DateOfLastUpdate = original.DateOfLastUpdate;
+           InceptionDateUtc = original.InceptionDateUtc;
+           LastUpdateDateUtc = original.LastUpdateDateUtc;
            IgnoreList = new List<string>(original.IgnoreList);
            DefaultHashMethod = original.DefaultHashMethod;
        }
@@ -68,12 +68,12 @@ namespace RepositoryManifest
         /// <summary>
         /// The UTC DateTime when the repository was first created
         /// </summary>
-        public DateTime DateOfInception { set; get; }
+        public DateTime InceptionDateUtc { set; get; }
 
         /// <summary>
         /// The UTC DateTime when the repository was last updated
         /// </summary>
-        public DateTime DateOfLastUpdate { set; get; }
+        public DateTime LastUpdateDateUtc { set; get; }
 
         /// <summary>
         /// A list of regular expressions for filenames to ignore

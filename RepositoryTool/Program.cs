@@ -39,9 +39,6 @@ namespace RepositoryTool
             string repositoryDescription = null;
             string hashMethod = null;
 
-            // TODO:
-            //bool backDate = false;
-
             while (argIndex < args.Count())
             {
                 string nextArg = args[argIndex++];
@@ -93,11 +90,9 @@ namespace RepositoryTool
                         hashMethod = args[argIndex++];
                         break;
 
-                    // TODO:
-
-                    //case "-backDate":
-                    //    backDate = true;
-                    //    break;
+                    case "-backDate":
+                        tool.BackDate = true;
+                        break;
 
                     //case "-ignore":
                     //    break;
@@ -122,10 +117,27 @@ namespace RepositoryTool
             {
                 case "create":
                     {
+                        bool doCreate = false;
+
+                        if (File.Exists(manifestFilePath))
+                        {
+                            Write("Replace existing manifest file? ");
+                            String confirmString = Console.ReadLine();
+
+                            if (confirmString.StartsWith("y") ||
+                                confirmString.StartsWith("Y"))
+                            {
+                                doCreate = true;
+                            }
+                        }
+
+                        if (doCreate == true)
+                        {
                         tool.Manifest = new Manifest();
 
                         tool.Manifest.DefaultHashMethod =
                             RepositoryTool.NewHashType;
+                        }
 
                         break;
                     }
@@ -134,6 +146,7 @@ namespace RepositoryTool
                 case "status":
                 case "update":
                 case "edit":
+                case "clean":
                     {
                         if (commandArg == "validate")
                         {
@@ -225,10 +238,6 @@ namespace RepositoryTool
                         break;
                     }
 
-                case "clean":
-                    // TODO
-                    break;
-
                 case "info":
                     try
                     {
@@ -259,11 +268,11 @@ namespace RepositoryTool
                             WriteLine("Default hash method:   " + tool.Manifest.DefaultHashMethod);
                         }
 
-                        WriteLine("Date of creation:      " + tool.Manifest.DateOfInception.ToString());
+                        WriteLine("Date of creation:      " + tool.Manifest.InceptionDateUtc.ToString());
 
-                        if (tool.Manifest.DateOfLastUpdate != null)
+                        if (tool.Manifest.LastUpdateDateUtc != null)
                         {
-                            WriteLine("Date of last update:   " + tool.Manifest.DateOfLastUpdate.ToString());
+                            WriteLine("Date of last update:   " + tool.Manifest.LastUpdateDateUtc.ToString());
                         }
                         else
                         {
@@ -303,34 +312,59 @@ namespace RepositoryTool
                 case "update":
                 case "edit":
 
-                    if (repositoryName != null)
-                    {
-                        tool.Manifest.Name = repositoryName;
-                    }
-
-                    if (repositoryDescription != null)
-                    {
-                        tool.Manifest.Description = repositoryDescription;
-                    }
-
-                    if (hashMethod != null)
-                    {
-                        tool.Manifest.DefaultHashMethod = hashMethod;
-                    }
-
                     if (tool.Manifest != null)
                     {
-                        try
+                        if (repositoryName != null)
                         {
-                            tool.Manifest.WriteManifestFile(manifestFilePath);
+                            tool.Manifest.Name = repositoryName;
                         }
-                        catch (Exception ex)
+
+                        if (repositoryDescription != null)
                         {
-                            ReportException(ex);
-                            WriteLine("Could not write manifest.");
-                            exitCode = 1;
+                            tool.Manifest.Description = repositoryDescription;
+                        }
+
+                        if (hashMethod != null)
+                        {
+                            tool.Manifest.DefaultHashMethod = hashMethod;
+                        }
+
+                        if (tool.Manifest != null)
+                        {
+                            try
+                            {
+                                tool.Manifest.WriteManifestFile(manifestFilePath);
+                            }
+                            catch (Exception ex)
+                            {
+                                ReportException(ex);
+                                WriteLine("Could not write manifest.");
+                                exitCode = 1;
+                            }
                         }
                     }
+                    break;
+
+                case "clean":
+                    
+                    if (tool.NewFilesForClean.Count > 0)
+                    {
+                        Write("Delete " +
+                            tool.NewFilesForClean.Count.ToString() +
+                            " new files? ");
+
+                        String confirmString = Console.ReadLine();
+
+                        if (confirmString.StartsWith("y") ||
+                            confirmString.StartsWith("Y"))
+                        {
+                            foreach (FileInfo delFile in tool.NewFilesForClean)
+                            {
+                                delFile.Delete();
+                            }
+                        }
+                    }
+
                     break;
             }
 

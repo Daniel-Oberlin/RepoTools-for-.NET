@@ -22,8 +22,10 @@ namespace RepositoryTool
             Update = false;
             Force = false;
             NewHash = false;
+            BackDate = false;
 
             NewFiles = new List<ManifestFileInfo>();
+            NewFilesForClean = new List<FileInfo>();
             ModifiedFiles = new List<ManifestFileInfo>();
             MissingFiles = new List<ManifestFileInfo>();
             DateModifiedFiles = new List<ManifestFileInfo>();
@@ -37,6 +39,7 @@ namespace RepositoryTool
             FileCheckedCount = 0;
 
             NewFiles.Clear();
+            NewFilesForClean.Clear();
             ModifiedFiles.Clear();
             MissingFiles.Clear();
             DateModifiedFiles.Clear();
@@ -51,7 +54,7 @@ namespace RepositoryTool
                 RootDirectory,
                 Manifest.RootDirectory);
 
-            Manifest.DateOfLastUpdate =
+            Manifest.LastUpdateDateUtc =
                 DateTime.UtcNow;
         }
 
@@ -111,7 +114,7 @@ namespace RepositoryTool
                         ModifiedFiles.Add(nextManFileInfo);
                     }
                     else if (Force == true ||
-                        nextFileInfo.LastWriteTimeUtc != nextManFileInfo.LastModifiedTime ||
+                        nextFileInfo.LastWriteTimeUtc != nextManFileInfo.LastModifiedUtc ||
                         nextFileInfo.Length != nextManFileInfo.FileLength)
                     {
                         byte[] checkHash = null;
@@ -137,10 +140,16 @@ namespace RepositoryTool
                             Write(" [DIFFERENT]");
                             ModifiedFiles.Add(nextManFileInfo);
                         }
-                        else if (nextFileInfo.LastWriteTimeUtc != nextManFileInfo.LastModifiedTime)
+                        else if (nextFileInfo.LastWriteTimeUtc != nextManFileInfo.LastModifiedUtc)
                         {
                             Write(" [DATE]");
                             DateModifiedFiles.Add(nextManFileInfo);
+
+                            if (BackDate == true)
+                            {
+                                nextFileInfo.LastWriteTimeUtc =
+                                    nextManFileInfo.LastModifiedUtc;
+                            }
                         }
 
                         byte[] newHash = checkHash;
@@ -158,7 +167,7 @@ namespace RepositoryTool
                         nextManFileInfo.Hash = newHash;
                         nextManFileInfo.HashType = newHashType;
 
-                        nextManFileInfo.LastModifiedTime = nextFileInfo.LastWriteTimeUtc;
+                        nextManFileInfo.LastModifiedUtc = nextFileInfo.LastWriteTimeUtc;
                         nextManFileInfo.FileLength = nextFileInfo.Length;
                     }
                     else
@@ -237,13 +246,14 @@ namespace RepositoryTool
                         else
                         {
                             NewFiles.Add(newManFileInfo);
+                            NewFilesForClean.Add(nextFileInfo);
                             Write(" [NEW]");
                         }
 
                         newManFileInfo.FileLength =
                             nextFileInfo.Length;
 
-                        newManFileInfo.LastModifiedTime =
+                        newManFileInfo.LastModifiedUtc =
                             nextFileInfo.LastWriteTimeUtc;
 
                         currentManfestDirInfo.Files.Add(
@@ -410,11 +420,13 @@ namespace RepositoryTool
         public bool Update { set; get; }
         public bool Force { set; get; }
         public bool NewHash { set; get; }
+        public bool BackDate { set; get; }
 
         public int FileCheckedCount { private set; get; }
 
         public Manifest Manifest { set; get; }
         public List<ManifestFileInfo> NewFiles { private set; get; }
+        public List<FileInfo> NewFilesForClean { private set; get; }
         public List<ManifestFileInfo> ModifiedFiles { private set; get; }
         public List<ManifestFileInfo> MissingFiles { private set; get; }
         public List<ManifestFileInfo> DateModifiedFiles { private set; get; }
