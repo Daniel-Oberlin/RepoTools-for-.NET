@@ -39,6 +39,9 @@ namespace RepositoryTool
             string repositoryDescription = null;
             string hashMethod = null;
 
+            List<String> ignoreList = new List<string>();
+            List<String> dontIgnoreList = new List<string>();
+
             while (argIndex < args.Count())
             {
                 string nextArg = args[argIndex++];
@@ -98,11 +101,13 @@ namespace RepositoryTool
                         tool.CheckMoves = true;
                         break;
 
-                    //case "-ignore":
-                    //    break;
+                    case "-ignore":
+                        ignoreList.Add(args[argIndex++]);
+                        break;
 
-                    //case "-dontIgnore":
-                    //    break;
+                    case "-dontIgnore":
+                        dontIgnoreList.Add(args[argIndex++]);
+                        break;
 
                     default:
                         WriteLine("Unrecognized parameter \" " + nextArg + "\"");
@@ -137,10 +142,7 @@ namespace RepositoryTool
 
                         if (doCreate == true)
                         {
-                        tool.Manifest = new Manifest();
-
-                        tool.Manifest.DefaultHashMethod =
-                            RepositoryTool.NewHashType;
+                            tool.Manifest = tool.MakeManifest();
                         }
 
                         break;
@@ -296,6 +298,14 @@ namespace RepositoryTool
 
                         WriteLine("Total number of files: " + tool.Manifest.CountFiles().ToString("N", nfi));
                         WriteLine("Total number of bytes: " + tool.Manifest.CountBytes().ToString("N", nfi));
+                        WriteLine("Ignoring these file patterns:");
+                        if (tool.Manifest.IgnoreList.Count > 0)
+                        {
+                            foreach (String nextIgnore in tool.Manifest.IgnoreList)
+                            {
+                                WriteLine("   " + nextIgnore);
+                            }
+                        }
                     }
 
                     if (tool.Manifest.Description != null)
@@ -303,7 +313,6 @@ namespace RepositoryTool
                         WriteLine();
                         WriteLine("Description: ");
                         WriteLine(tool.Manifest.Description);
-                        WriteLine();
                     }
 
                     break;
@@ -342,6 +351,28 @@ namespace RepositoryTool
                         if (hashMethod != null)
                         {
                             tool.Manifest.DefaultHashMethod = hashMethod;
+                        }
+
+                        if (ignoreList.Count > 0)
+                        {
+                            foreach (String nextIgnore in ignoreList)
+                            {
+                                if (tool.Manifest.IgnoreList.Contains(nextIgnore) == false)
+                                {
+                                    tool.Manifest.IgnoreList.Add(nextIgnore);
+                                }
+                            }
+                        }
+
+                        if (dontIgnoreList.Count > 0)
+                        {
+                            foreach (String nextIgnore in dontIgnoreList)
+                            {
+                                if (tool.Manifest.IgnoreList.Contains(nextIgnore) == true)
+                                {
+                                    tool.Manifest.IgnoreList.Remove(nextIgnore);
+                                }
+                            }
                         }
 
                         if (tool.Manifest != null)

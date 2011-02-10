@@ -333,6 +333,16 @@ namespace RepositoryTool
 
         // Helper methods
 
+        public Manifest MakeManifest()
+        {
+            Manifest manifest = new Manifest();
+
+            manifest.DefaultHashMethod = NewHashType;
+            manifest.IgnoreList.Add(ManifestFilePath);
+
+            return manifest;
+        }
+
         public void WriteLine(String message)
         {
             Write(message + "\r\n");
@@ -442,12 +452,16 @@ namespace RepositoryTool
 
         protected bool IgnoreFile(String fileName)
         {
-            if (fileName == ManifestFilePath)
+            foreach (String nextExpression in Manifest.IgnoreList)
             {
-                return true;
-            }
+                System.Text.RegularExpressions.Regex regex =
+                    new System.Text.RegularExpressions.Regex(nextExpression);
 
-            // TODO: Allow for other filters
+                if (regex.Matches(fileName).Count > 0)
+                {
+                    return true;
+                }
+            }
 
             return false;
         }
@@ -480,8 +494,8 @@ namespace RepositoryTool
 
         // Static
 
-        public static String ManifestFileName;
         public static String PathDelimeterString;
+        public static String ManifestFileName;
         public static String ManifestFilePath;
         public static String NewHashType;
 
