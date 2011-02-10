@@ -93,6 +93,10 @@ namespace RepositoryTool
                     case "-backDate":
                         tool.BackDate = true;
                         break;
+                        
+                    case "-checkMoves":
+                        tool.CheckMoves = true;
+                        break;
 
                     //case "-ignore":
                     //    break;
@@ -220,6 +224,13 @@ namespace RepositoryTool
                                 different = true;
                             }
 
+                            if (tool.MovedFiles.Count > 0)
+                            {
+                                WriteLine(tool.MovedFiles.Count.ToString() + " files were moved.");
+                                DetailFiles(tool.MovedFiles);
+                                different = true;
+                            }
+
                             WriteLine(tool.FileCheckedCount.ToString() + " files were checked.");
 
                             if (commandArg == "validate")
@@ -295,6 +306,10 @@ namespace RepositoryTool
                         WriteLine();
                     }
 
+                    break;
+
+                case "help":
+                    // TODO
                     break;
 
                 case "":
@@ -412,6 +427,25 @@ namespace RepositoryTool
                 foreach (ManifestFileInfo nextManFileInfo in files)
                 {
                     WriteLine("   " + RepositoryTool.MakePathString(nextManFileInfo));
+                }
+
+                WriteLine();
+            }
+        }
+
+        static void DetailFiles(Dictionary<ManifestFileInfo, ManifestFileInfo> files)
+        {
+            if (detailReport)
+            {
+                foreach (ManifestFileInfo missingFile in files.Keys)
+                {
+                    ManifestFileInfo newFile = files[missingFile];
+
+                    WriteLine(
+                        "   " +
+                        RepositoryTool.MakePathString(missingFile) +
+                        " -> " +
+                        RepositoryTool.MakePathString(newFile));
                 }
 
                 WriteLine();

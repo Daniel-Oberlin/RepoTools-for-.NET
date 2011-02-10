@@ -30,6 +30,7 @@ namespace RepositoryTool
             MissingFiles = new List<ManifestFileInfo>();
             DateModifiedFiles = new List<ManifestFileInfo>();
             ErrorFiles = new List<ManifestFileInfo>();
+            MovedFiles = new Dictionary<ManifestFileInfo, ManifestFileInfo>();
 
             Clear();
         }
@@ -44,6 +45,7 @@ namespace RepositoryTool
             MissingFiles.Clear();
             DateModifiedFiles.Clear();
             ErrorFiles.Clear();
+            MovedFiles.Clear();
         }
 
         public void DoUpdate()
@@ -53,6 +55,11 @@ namespace RepositoryTool
             UpdateRecursive(
                 RootDirectory,
                 Manifest.RootDirectory);
+
+            if (CheckMoves == true)
+            {
+                DoCheckMoves();
+            }
 
             Manifest.LastUpdateDateUtc =
                 DateTime.UtcNow;
@@ -220,7 +227,11 @@ namespace RepositoryTool
                     {
                         FileCheckedCount++;
 
-                        bool checkHash = Update == true || Force == true;
+                        bool checkHash = false;
+                        if (Update == true || Force == true || CheckMoves == true)
+                        {
+                            checkHash = true;
+                        }
 
                         if (checkHash)
                         {
@@ -286,6 +297,38 @@ namespace RepositoryTool
             }
         }
 
+        protected void DoCheckMoves()
+        {
+            // Clone because of iteration
+            List<ManifestFileInfo> missingFiles =
+                new List<ManifestFileInfo>(MissingFiles);
+
+            foreach (ManifestFileInfo checkMissingFile in missingFiles)
+            {
+                int dupCount = 0;
+                ManifestFileInfo newFile = null;
+
+                // Clone because of iteration
+                List<ManifestFileInfo> newFiles =
+                    new List<ManifestFileInfo>(NewFiles);
+
+                foreach (ManifestFileInfo checkNewFile in newFiles)
+                {
+                    if (CompareHash(checkMissingFile.Hash, checkNewFile.Hash) == true)
+                    {
+                        newFile = checkNewFile;
+                        dupCount++;
+                    }
+                }
+
+                if (dupCount == 1)
+                {
+                    MissingFiles.Remove(checkMissingFile);
+                    NewFiles.Remove(newFile);
+                    MovedFiles.Add(checkMissingFile, newFile);
+                }
+            }
+        }
 
 
         // Helper methods
@@ -421,6 +464,7 @@ namespace RepositoryTool
         public bool Force { set; get; }
         public bool NewHash { set; get; }
         public bool BackDate { set; get; }
+        public bool CheckMoves { set; get; }
 
         public int FileCheckedCount { private set; get; }
 
@@ -431,7 +475,7 @@ namespace RepositoryTool
         public List<ManifestFileInfo> MissingFiles { private set; get; }
         public List<ManifestFileInfo> DateModifiedFiles { private set; get; }
         public List<ManifestFileInfo> ErrorFiles { private set; get; }
-
+        public Dictionary<ManifestFileInfo, ManifestFileInfo> MovedFiles { private set; get; }
 
 
         // Static
