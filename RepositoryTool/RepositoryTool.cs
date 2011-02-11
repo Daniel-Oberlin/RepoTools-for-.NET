@@ -38,6 +38,7 @@ namespace RepositoryTool
         public void Clear()
         {
             FileCheckedCount = 0;
+            FileIgnoredCount = 0;
 
             NewFiles.Clear();
             NewFilesForClean.Clear();
@@ -221,6 +222,7 @@ namespace RepositoryTool
 
                     if (IgnoreFile(MakePathString(newManFileInfo)))
                     {
+                        FileIgnoredCount++;
                         Write(" [IGNORED]");
                     }
                     else
@@ -338,7 +340,10 @@ namespace RepositoryTool
             Manifest manifest = new Manifest();
 
             manifest.DefaultHashMethod = NewHashType;
-            manifest.IgnoreList.Add(ManifestFilePath);
+
+            manifest.IgnoreList.Add(
+                System.Text.RegularExpressions.Regex.Escape(
+                    ManifestFilePath));
 
             return manifest;
         }
@@ -481,6 +486,7 @@ namespace RepositoryTool
         public bool CheckMoves { set; get; }
 
         public int FileCheckedCount { private set; get; }
+        public int FileIgnoredCount { private set; get; }
 
         public Manifest Manifest { set; get; }
         public List<ManifestFileInfo> NewFiles { private set; get; }
@@ -503,7 +509,7 @@ namespace RepositoryTool
         {
             // TODO: Fix later for different platforms
             ManifestFileName = ".repositoryManifest";
-            PathDelimeterString = "\\";
+            PathDelimeterString = "/";
             ManifestFilePath = "." + PathDelimeterString + ManifestFileName;
             NewHashType = "MD5";
         }

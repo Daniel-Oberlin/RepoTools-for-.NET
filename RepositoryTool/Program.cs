@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 
 using RepositoryManifest;
+using System.Resources;
 
 
 namespace RepositoryTool
@@ -18,7 +19,12 @@ namespace RepositoryTool
             DateTime startTime = DateTime.Now;
 
             int argIndex = 0;
-            string commandArg = args[argIndex++];
+
+            string commandArg = "help";
+            if (args.Length > 0)
+            {
+                commandArg = args[argIndex++];
+            }
 
             RepositoryTool tool = new RepositoryTool();
 
@@ -235,6 +241,11 @@ namespace RepositoryTool
 
                             WriteLine(tool.FileCheckedCount.ToString() + " files were checked.");
 
+                            if (tool.FileIgnoredCount > 1)
+                            {
+                                WriteLine(tool.FileIgnoredCount.ToString() + " files were ignored.");
+                            }
+
                             if (commandArg == "validate")
                             {
                                 if (different)
@@ -281,11 +292,13 @@ namespace RepositoryTool
                             WriteLine("Default hash method:   " + tool.Manifest.DefaultHashMethod);
                         }
 
-                        WriteLine("Date of creation:      " + tool.Manifest.InceptionDateUtc.ToString());
+                        WriteLine("Date of creation:      " +
+                                (tool.Manifest.InceptionDateUtc.ToLocalTime()).ToString());
 
                         if (tool.Manifest.LastUpdateDateUtc != null)
                         {
-                            WriteLine("Date of last update:   " + tool.Manifest.LastUpdateDateUtc.ToString());
+                            WriteLine("Date of last update:   " +
+                                (tool.Manifest.LastUpdateDateUtc.ToLocalTime()).ToString());
                         }
                         else
                         {
@@ -318,12 +331,12 @@ namespace RepositoryTool
                     break;
 
                 case "help":
-                    // TODO
+                    Write(Properties.Resources.RepositoryToolHelp);
                     break;
 
                 case "":
                     break;
-
+                    
                 default:
                     WriteLine("Unrecognized command \" " + commandArg + "\"");
                     exitCode = 1;

@@ -1,0 +1,106 @@
+REPOTOOL - Repository Tool for Data Validation
+
+This tool maintains a manifest of files in a repository along with their hash
+values and last modified dates.  In this way, the data integrity of the
+repository can be validated conveniently.  The manifest is stored in a file at
+the top level directory of the repository.
+
+
+SYNTAX:
+
+repoTool command [option] ...
+
+
+COMMANDS:
+
+    help
+        Show this description of commands and options.
+
+    create
+        Create an empty repository manifest in the current directory.
+
+    status
+        Check every file in the manifest based on file length and last modified
+        date.  Check the hash values of modified files.  Report new files,
+        missing files, and any differences.
+
+    validate
+        Check every file in the manifest against its hash value.  Report new
+        files, missing files, and any differences.
+
+    update
+        Bring the manifest up to date with the current state of the repository.
+        By default, only the file length and last modified dates are checked.
+        New hashes will be computed for any changes detected.  The update will
+        account for new files, removed files, and changed files.  A new copy of
+        the manifest file will be written by this command.
+
+    edit
+        Make changes to the manifest settings without scanning files.  A new
+        copy of the manifest file will be written by this command.
+
+    clean
+        Delete any files that are not listed in the manifest(!)
+
+    info
+        Show manifest information.
+
+
+OPTIONS:
+
+    -silent
+        Don't output anything.  Exit code may still be checked by a script.
+
+    -detailReport
+        List the actual files that are different - not just the counts.
+
+    -showProgress
+        List each file as it is being scanned.
+
+    -ignoreDate
+        Don't count a date change alone as being a significant difference
+        between the manifest and the repository.  Don't return an error exit
+        code for this difference alone.  Useful for status and validate
+        commands.
+
+    -ignoreNew
+        Don't count the presence of new files alone as being a significant
+        difference between the manifest and the repository.  Don't return an
+        error exit code for this difference alone.  Useful for status and
+        validate commands.
+
+    -force
+        Force the checking of all hash values.  Useful for update, which skips
+        the hash value check for files whose date and length match the
+        manifest information.
+
+    -time
+        Measure and report the time of the operation.
+
+    -name repositoryName
+        Specify the name of the repository in the manifest.
+
+    -description repositoryDescription
+        Specify a description of the repository in the manifest.
+
+    -backDate
+        For files whose last modified dates have been changed but are otherwise
+        identical, this option will set the dates back to their values which
+        were stored in the manifest.
+
+    -checkMoves
+        Try to identify files that have been renamed or moved based on their
+        hash values.
+
+    -ignore ignoreExpression
+        Add a regular expression which matches filename paths which should be
+        ignored by the manifest.
+
+    -dontIgnore ignoreExpression
+        Remove a regular expression which was added with -ignore.
+
+    -hashMethod method
+        Specify the default hash method used by the manifest: MD5 or SHA256
+
+    -newHash
+        Recompute all hash values using the default hash method.
