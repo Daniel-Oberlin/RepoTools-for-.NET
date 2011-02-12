@@ -132,10 +132,11 @@ namespace RepositoryTool
             {
                 case "create":
                     {
-                        bool doCreate = false;
+                        bool doCreate = true;
 
                         if (File.Exists(manifestFilePath))
                         {
+                            doCreate = false;
                             Write("Replace existing manifest file? ");
                             String confirmString = Console.ReadLine();
 

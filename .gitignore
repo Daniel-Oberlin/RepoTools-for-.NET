@@ -8,3 +8,6 @@
 *.dll
 *.pdb
 *.FileListAbsolute.txt
+*.pidb
+*.userprefs
+
