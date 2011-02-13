@@ -2,7 +2,6 @@
 *.user
 *.dll
 *.exe
-*.user
 *.cache
 *.force
 *.dll
@@ -10,5 +9,4 @@
 *.FileListAbsolute.txt
 *.pidb
 *.userprefs
-*.config
-
+Resources.resources
