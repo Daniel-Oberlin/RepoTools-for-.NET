@@ -1,10 +1,6 @@
 TODO:
 
-Rename clean -> groom
 Add clear which removes all entries from the manifest
-Search upwards until you find the manifest file so that you can operate underneath
+Search upwards until you find the manifest file so that you can operate underneath (why?)
 
-shorten names:
-
-repoTool -> rt
-repoSync -> rs
+Allow for mapping a local piece of a repository

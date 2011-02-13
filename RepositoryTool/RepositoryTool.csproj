@@ -142,12 +142,10 @@
     <None Include="app.config" />
     <None Include="RepositoryToolHelp.txt" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Service References\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy RepositoryTool.exe repoTool.exe</PostBuildEvent>
+    <PostBuildEvent>copy RepositoryTool.exe rt.exe</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

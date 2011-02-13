@@ -16,6 +16,6 @@
 export AS="as -arch i386" \
 export CC="cc -arch i386"\
 \
-mkbundle -o repoTool.c RepositoryTool.exe RepositoryManifest.dll --deps --static\
-cc -arch i386 -g -o repoTool -Wall temp.c `pkg-config --cflags --libs mono-2` temp.o -framework CoreFoundation\
+mkbundle -o rt.c RepositoryTool.exe RepositoryManifest.dll --deps --static\
+cc -arch i386 -g -o rt -Wall temp.c `pkg-config --cflags --libs mono-2` temp.o -framework CoreFoundation\
 }

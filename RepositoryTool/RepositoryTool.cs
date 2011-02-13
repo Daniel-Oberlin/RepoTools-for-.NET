@@ -30,6 +30,7 @@ namespace RepositoryTool
             MissingFiles = new List<ManifestFileInfo>();
             DateModifiedFiles = new List<ManifestFileInfo>();
             ErrorFiles = new List<ManifestFileInfo>();
+            IgnoredFiles = new List<ManifestFileInfo>();
             MovedFiles = new Dictionary<ManifestFileInfo, ManifestFileInfo>();
 
             Clear();
@@ -38,7 +39,6 @@ namespace RepositoryTool
         public void Clear()
         {
             FileCheckedCount = 0;
-            FileIgnoredCount = 0;
 
             NewFiles.Clear();
             NewFilesForClean.Clear();
@@ -46,6 +46,7 @@ namespace RepositoryTool
             MissingFiles.Clear();
             DateModifiedFiles.Clear();
             ErrorFiles.Clear();
+            IgnoredFiles.Clear();
             MovedFiles.Clear();
         }
 
@@ -222,7 +223,7 @@ namespace RepositoryTool
 
                     if (IgnoreFile(MakePathString(newManFileInfo)))
                     {
-                        FileIgnoredCount++;
+                        IgnoredFiles.Add(newManFileInfo);
                         Write(" [IGNORED]");
                     }
                     else
@@ -486,7 +487,6 @@ namespace RepositoryTool
         public bool CheckMoves { set; get; }
 
         public int FileCheckedCount { private set; get; }
-        public int FileIgnoredCount { private set; get; }
 
         public Manifest Manifest { set; get; }
         public List<ManifestFileInfo> NewFiles { private set; get; }
@@ -495,6 +495,7 @@ namespace RepositoryTool
         public List<ManifestFileInfo> MissingFiles { private set; get; }
         public List<ManifestFileInfo> DateModifiedFiles { private set; get; }
         public List<ManifestFileInfo> ErrorFiles { private set; get; }
+        public List<ManifestFileInfo> IgnoredFiles { private set; get; }
         public Dictionary<ManifestFileInfo, ManifestFileInfo> MovedFiles { private set; get; }
 
 

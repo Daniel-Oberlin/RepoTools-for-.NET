@@ -8,7 +8,7 @@ the top level directory of the repository.
 
 SYNTAX:
 
-repoTool command [option] ...
+rt command [option] ...
 
 
 COMMANDS:
@@ -39,8 +39,8 @@ COMMANDS:
         Make changes to the manifest settings without scanning files.  A new
         copy of the manifest file will be written by this command.
 
-    clean
-        Delete any files that are not listed in the manifest(!)
+    groom
+        Remove any files that are not listed in the manifest(!)
 
     info
         Show manifest information.

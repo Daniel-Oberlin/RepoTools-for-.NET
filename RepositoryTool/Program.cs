@@ -159,7 +159,7 @@ namespace RepositoryTool
                 case "status":
                 case "update":
                 case "edit":
-                case "clean":
+                case "groom":
                     {
                         if (commandArg == "validate")
                         {
@@ -240,12 +240,14 @@ namespace RepositoryTool
                                 different = true;
                             }
 
-                            WriteLine(tool.FileCheckedCount.ToString() + " files were checked.");
-
-                            if (tool.FileIgnoredCount > 1)
+                            if (tool.IgnoredFiles.Count > 1)
                             {
-                                WriteLine(tool.FileIgnoredCount.ToString() + " files were ignored.");
+                                WriteLine(tool.IgnoredFiles.Count.ToString() + " files were ignored.");
+                                DetailFiles(tool.IgnoredFiles);
                             }
+
+
+                            WriteLine(tool.FileCheckedCount.ToString() + " files were checked.");
 
                             if (commandArg == "validate")
                             {
@@ -398,7 +400,7 @@ namespace RepositoryTool
                     }
                     break;
 
-                case "clean":
+                case "groom":
                     
                     if (tool.NewFilesForClean.Count > 0)
                     {
