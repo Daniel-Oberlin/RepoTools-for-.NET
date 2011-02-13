@@ -10,4 +10,5 @@
 *.FileListAbsolute.txt
 *.pidb
 *.userprefs
+*.config
 

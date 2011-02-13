@@ -48,7 +48,7 @@ namespace RepositoryTool
             List<String> ignoreList = new List<string>();
             List<String> dontIgnoreList = new List<string>();
 
-            while (argIndex < args.Count())
+            while (argIndex < args.Length)
             {
                 string nextArg = args[argIndex++];
 
@@ -294,18 +294,11 @@ namespace RepositoryTool
                         }
 
                         WriteLine("Date of creation:      " +
-                                (tool.Manifest.InceptionDateUtc.ToLocalTime()).ToString());
+					        (tool.Manifest.InceptionDateUtc.ToLocalTime()).ToString());
 
-                        if (tool.Manifest.LastUpdateDateUtc != null)
-                        {
-                            WriteLine("Date of last update:   " +
-                                (tool.Manifest.LastUpdateDateUtc.ToLocalTime()).ToString());
-                        }
-                        else
-                        {
-                            WriteLine("Date of last update:   Never.");
-                        }
-
+                        WriteLine("Date of last update:   " +
+                            (tool.Manifest.LastUpdateDateUtc.ToLocalTime()).ToString());
+					
                         NumberFormatInfo nfi = new CultureInfo("en-US", false).NumberFormat;
                         nfi.NumberDecimalDigits = 0;
 

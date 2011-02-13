@@ -428,12 +428,12 @@ namespace RepositoryTool
                 return false;
             }
 
-            if (hash1.Count() != hash2.Count())
+            if (hash1.Length != hash2.Length)
             {
                 return false;
             }
 
-            for (int i = 0; i < hash1.Count(); i++ )
+            for (int i = 0; i < hash1.Length; i++ )
             {
                 if (hash1[i] != hash2[i])
                 {

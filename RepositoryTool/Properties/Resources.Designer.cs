@@ -61,12 +61,26 @@ namespace RepositoryTool.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to BLAH BLAH BLAH
+        ///   Looks up a localized string similar to REPOTOOL - Repository Tool for Data Validation
         ///
-        ///BLah
+        ///This tool maintains a manifest of files in a repository along with their hash
+        ///values and last modified dates.  In this way, the data integrity of the
+        ///repository can be validated conveniently.  The manifest is stored in a file at
+        ///the top level directory of the repository.
         ///
-        ///blah...
-        ///.
+        ///
+        ///SYNTAX:
+        ///
+        ///repoTool command [option] ...
+        ///
+        ///
+        ///COMMANDS:
+        ///
+        ///    help
+        ///        Show this description of commands and options.
+        ///
+        ///    create
+        ///        Create an empty repository manifest [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string RepositoryToolHelp {
             get {

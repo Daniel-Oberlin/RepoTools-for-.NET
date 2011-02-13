@@ -153,13 +153,7 @@ namespace RepositoryManifest
 
         protected Int64 CountFilesRecursive(ManifestDirectoryInfo currentDir)
         {
-            Int64 fileCount = 0;
-
-            foreach (ManifestFileInfo nextFileInfo in
-                currentDir.Files.Values)
-            {
-                fileCount++;
-            }
+            Int64 fileCount = currentDir.Files.Count;
 
             foreach (ManifestDirectoryInfo nextDirInfo in
                 currentDir.Subdirectories.Values)
