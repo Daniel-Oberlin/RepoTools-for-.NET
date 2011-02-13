@@ -1,0 +1,10 @@
+TODO:
+
+Rename clean -> groom
+Add clear which removes all entries from the manifest
+Search upwards until you find the manifest file so that you can operate underneath
+
+shorten names:
+
+repoTool -> rt
+repoSync -> rs
