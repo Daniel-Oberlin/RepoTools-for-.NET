@@ -1,0 +1,23 @@
+REPOSYNC - Repository Sync for Validated Data
+
+This tool allows for synchronization between two repositories...
+
+
+SYNTAX:
+
+rs sourceRepository [+][-] destinationRepository [option] ...
+
+
+COMMANDS:
+
+    help
+        Show this description of commands and options.
+
+
+OPTIONS:
+
+    -silent
+        Don't output anything.  Exit code may still be checked by a script.
+
+	-bothWays
+		Also propage changes from desitination to source.
