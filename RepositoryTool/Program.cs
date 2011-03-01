@@ -48,6 +48,7 @@ namespace RepositoryTool
             bool time = false;
             bool all = false;
             bool force = false;
+            bool ignoreDefault = false;
 
             string repositoryName = null;
             string repositoryDescription = null;
@@ -135,6 +136,10 @@ namespace RepositoryTool
 
                     case "-force":
                         force = true;
+                        break;
+                        
+                    case "-ignoreDefault":
+                        ignoreDefault = true;
                         break;
 
                     default:
@@ -356,7 +361,6 @@ namespace RepositoryTool
                             WriteLine("Name:                  " + tool.Manifest.Name);
                         }
 
-
                         WriteLine("GUID:                  " + tool.Manifest.Guid.ToString());
 
                         if (tool.Manifest.DefaultHashMethod != null)
@@ -451,6 +455,17 @@ namespace RepositoryTool
                                 {
                                     tool.Manifest.IgnoreList.Remove(nextIgnore);
                                 }
+                            }
+                        }
+
+                        if (ignoreDefault == true)
+                        {
+                            tool.Manifest.IgnoreList.Clear();
+
+                            Manifest defaultPrototype = tool.MakeManifest();
+                            foreach (String nextIgnore in defaultPrototype.IgnoreList)
+                            {
+                                tool.Manifest.IgnoreList.Add(nextIgnore);
                             }
                         }
 

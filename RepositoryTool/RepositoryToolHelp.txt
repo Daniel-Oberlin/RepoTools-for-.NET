@@ -103,6 +103,11 @@ OPTIONS:
     -dontIgnore ignoreExpression
         Remove a regular expression which was added with -ignore.
 
+    -ignoreDefault
+        Replace the list of ignored filename expressions with the default list.
+        The default list is obtained from the prototype manifest if it is
+        available.
+
     -hashMethod method
         Specify the default hash method used by the manifest: MD5 or SHA256
 		
