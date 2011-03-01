@@ -45,14 +45,20 @@ COMMANDS:
     info
         Show manifest information.
 
+	clear
+		Clear the manifest.  Remove all file entries.
+
 
 OPTIONS:
 
     -silent
         Don't output anything.  Exit code may still be checked by a script.
 
-    -detailReport
+    -detail
         List the actual files that are different - not just the counts.
+
+	-all
+		Process ignored files as well.  For -detail and groom.
 
     -showProgress
         List each file as it is being scanned.
@@ -70,9 +76,7 @@ OPTIONS:
         validate commands.
 
     -force
-        Force the checking of all hash values.  Useful for update, which skips
-        the hash value check for files whose date and length match the
-        manifest information.
+        Don't stop to ask for anything - deleting files, etc.
 
     -time
         Measure and report the time of the operation.
@@ -101,6 +105,21 @@ OPTIONS:
 
     -hashMethod method
         Specify the default hash method used by the manifest: MD5 or SHA256
-
+		
     -newHash
-        Recompute all hash values using the default hash method.
+        Recompute all hash values using the default hash method.  Useful if
+        the default hash method has changed and you want all files to be using
+        the default hash method.  This is not required because each file has
+        its own hash method which was inherited from the default when it was
+        last computed.  This is expensive because the hash is checked twice -
+        first with the original method to check the status, and second with
+        the new method to change the hash.
+
+    -reHash
+        Recompute all hash values during an update.  Useful if a file has
+        changed somehow but you don't care.  Maybe you've lost the original
+        file and you dont' want to be bothered with error messages any more.
+
+    -manifestFile
+        Path to the manifest file.  Defaults to ".manifestPrototype" in the
+        current working directory.

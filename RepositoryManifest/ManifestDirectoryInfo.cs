@@ -44,6 +44,9 @@ namespace RepositoryManifest
             ManifestDirectoryInfo parentDirectory) :
             base(original.Name, parentDirectory)
         {
+            Files = new Dictionary<string, ManifestFileInfo>();
+            Subdirectories = new Dictionary<string, ManifestDirectoryInfo>();
+
             foreach (String nextDirName in original.Subdirectories.Keys)
             {
                 ManifestDirectoryInfo dirClone =

@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-
 using System.IO;
+using System.Linq;
+using System.Reflection;
 using System.Security.Cryptography;
+using System.Text;
 
 using RepositoryManifest;
 
@@ -20,17 +20,19 @@ namespace RepositoryTool
         {
             ShowProgress = false;
             Update = false;
-            Force = false;
+            AlwaysCheckHash = false;
             NewHash = false;
             BackDate = false;
 
             NewFiles = new List<ManifestFileInfo>();
-            NewFilesForClean = new List<FileInfo>();
+            NewFilesForGroom = new List<FileInfo>();
             ModifiedFiles = new List<ManifestFileInfo>();
             MissingFiles = new List<ManifestFileInfo>();
             DateModifiedFiles = new List<ManifestFileInfo>();
             ErrorFiles = new List<ManifestFileInfo>();
             IgnoredFiles = new List<ManifestFileInfo>();
+            NewlyIgnoredFiles = new List<ManifestFileInfo>();
+            IgnoredFilesForGroom = new List<FileInfo>();
             MovedFiles = new Dictionary<ManifestFileInfo, ManifestFileInfo>();
 
             Clear();
@@ -41,12 +43,14 @@ namespace RepositoryTool
             FileCheckedCount = 0;
 
             NewFiles.Clear();
-            NewFilesForClean.Clear();
+            NewFilesForGroom.Clear();
             ModifiedFiles.Clear();
             MissingFiles.Clear();
             DateModifiedFiles.Clear();
             ErrorFiles.Clear();
             IgnoredFiles.Clear();
+            NewlyIgnoredFiles.Clear();
+            IgnoredFilesForGroom.Clear();
             MovedFiles.Clear();
         }
 
@@ -106,7 +110,7 @@ namespace RepositoryTool
             {
                 if (ShowProgress)
                 {
-                    Write(MakePathString(nextManFileInfo));
+                    Write(MakeStandardPathString(nextManFileInfo));
                 }
 
                 if (fileDict.ContainsKey(nextManFileInfo.Name))
@@ -115,14 +119,23 @@ namespace RepositoryTool
 
                     FileInfo nextFileInfo = fileDict[nextManFileInfo.Name];
 
-                    if (nextFileInfo.Length != nextManFileInfo.FileLength &&
+                    if (IgnoreFile(MakeStandardPathString(nextManFileInfo)))
+                    {
+                        Write(" [NEWLY IGNORED]");
+
+                        currentManfestDirInfo.Files.Remove(
+                            nextManFileInfo.Name);
+
+                        NewlyIgnoredFiles.Add(nextManFileInfo);
+                    }
+                    else if (nextFileInfo.Length != nextManFileInfo.FileLength &&
                         Update == false &&
-                        Force == false)
+                        AlwaysCheckHash == false)
                     {
                         Write(" [DIFFERENT]");
                         ModifiedFiles.Add(nextManFileInfo);
                     }
-                    else if (Force == true ||
+                    else if (AlwaysCheckHash == true ||
                         nextFileInfo.LastWriteTimeUtc != nextManFileInfo.LastModifiedUtc ||
                         nextFileInfo.Length != nextManFileInfo.FileLength)
                     {
@@ -171,7 +184,7 @@ namespace RepositoryTool
                             checkHash = ComputeHash(
                                 nextFileInfo,
                                 newHashType);
-                        }                        
+                        }
 
                         nextManFileInfo.Hash = newHash;
                         nextManFileInfo.HashType = newHashType;
@@ -219,11 +232,19 @@ namespace RepositoryTool
                            nextFileInfo.Name,
                            currentManfestDirInfo);
 
-                    Write(MakePathString(newManFileInfo));
+                    Write(MakeStandardPathString(newManFileInfo));
 
-                    if (IgnoreFile(MakePathString(newManFileInfo)))
+                    if (IgnoreFile(MakeStandardPathString(newManFileInfo)))
                     {
                         IgnoredFiles.Add(newManFileInfo);
+
+                        // Don't groom the manifest file!
+                        if (MakeNativePathString(newManFileInfo) !=
+                            ManifestNativeFilePath)
+                        {
+                            IgnoredFilesForGroom.Add(nextFileInfo);
+                        }
+
                         Write(" [IGNORED]");
                     }
                     else
@@ -231,7 +252,7 @@ namespace RepositoryTool
                         FileCheckedCount++;
 
                         bool checkHash = false;
-                        if (Update == true || Force == true || CheckMoves == true)
+                        if (Update == true || AlwaysCheckHash == true || CheckMoves == true)
                         {
                             checkHash = true;
                         }
@@ -260,7 +281,7 @@ namespace RepositoryTool
                         else
                         {
                             NewFiles.Add(newManFileInfo);
-                            NewFilesForClean.Add(nextFileInfo);
+                            NewFilesForGroom.Add(nextFileInfo);
                             Write(" [NEW]");
                         }
 
@@ -302,35 +323,78 @@ namespace RepositoryTool
 
         protected void DoCheckMoves()
         {
-            // Clone because of iteration
-            List<ManifestFileInfo> missingFiles =
-                new List<ManifestFileInfo>(MissingFiles);
+            // For large number of moved files it's probably faster to
+            // rebuild these lists from scratch than to remove many
+            // individual items from them.
+            List<ManifestFileInfo> missingFilesUpdated =
+                new List<ManifestFileInfo>();
 
-            foreach (ManifestFileInfo checkMissingFile in missingFiles)
+            List<ManifestFileInfo> newFilesUpdated =
+                new List<ManifestFileInfo>();
+
+            // Make files easy to find by their hashcodes, and count the
+            // number of files with a given hashcode.
+            HashFileDict missingFileDict = new HashFileDict();
+            foreach (ManifestFileInfo missingFile in MissingFiles)
             {
-                int dupCount = 0;
-                ManifestFileInfo newFile = null;
+                missingFileDict.Add(missingFile);
+            }
 
-                // Clone because of iteration
-                List<ManifestFileInfo> newFiles =
-                    new List<ManifestFileInfo>(NewFiles);
+            HashFileDict newFileDict = new HashFileDict();
+            foreach (ManifestFileInfo newFile in NewFiles)
+            {
+                newFileDict.Add(newFile);
+            }
 
-                foreach (ManifestFileInfo checkNewFile in newFiles)
+            // Note which new files are really moved files for later when
+            // we rebuild the new files list.
+            HashSet<ManifestFileInfo> movedFiles =
+                new HashSet<ManifestFileInfo>();
+
+            foreach (ManifestFileInfo checkMissingFile in MissingFiles)
+            {
+                HashWrapper wrapper =
+                    new HashWrapper(checkMissingFile.Hash);
+
+                if (missingFileDict.Dict[wrapper].Count == 1 &&
+                    newFileDict.Dict.ContainsKey(wrapper) &&
+                    newFileDict.Dict[wrapper].Count == 1)
                 {
-                    if (CompareHash(checkMissingFile.Hash, checkNewFile.Hash) == true)
-                    {
-                        newFile = checkNewFile;
-                        dupCount++;
-                    }
-                }
+                    ManifestFileInfo newFile =
+                        newFileDict.Dict[wrapper][0];
 
-                if (dupCount == 1)
-                {
-                    MissingFiles.Remove(checkMissingFile);
-                    NewFiles.Remove(newFile);
                     MovedFiles.Add(checkMissingFile, newFile);
+
+                    // Remember for later rebuild
+                    movedFiles.Add(newFile);
+                }
+                else
+                {
+                    missingFilesUpdated.Add(checkMissingFile);
                 }
             }
+
+            // Rebuild new file list
+            NewFilesForGroom.Clear();
+            foreach (ManifestFileInfo checkNewFile in NewFiles)
+            {
+                if (movedFiles.Contains(checkNewFile) == false)
+                {
+                    newFilesUpdated.Add(checkNewFile);
+
+                    if (MakeNativePathString(checkNewFile) !=
+                        ManifestNativeFilePath)
+                    {
+                        NewFilesForGroom.Add(
+                            new FileInfo(
+                                MakeNativePathString(checkNewFile)));
+                    }
+                }
+            }
+
+            // Replace with updated lists
+            MissingFiles = missingFilesUpdated;
+            NewFiles = newFilesUpdated;
         }
 
 
@@ -338,13 +402,33 @@ namespace RepositoryTool
 
         public Manifest MakeManifest()
         {
-            Manifest manifest = new Manifest();
+            Manifest manifest = null;
 
-            manifest.DefaultHashMethod = NewHashType;
+            String appDirectoryPathName = Path.GetDirectoryName(
+                new Uri(Assembly.GetExecutingAssembly().GetName().CodeBase).LocalPath);
 
-            manifest.IgnoreList.Add(
-                System.Text.RegularExpressions.Regex.Escape(
-                    ManifestFilePath));
+            String manifestPrototypeFilePath = Path.Combine(
+                appDirectoryPathName, PrototypeManifestFileName);
+
+            if (File.Exists(manifestPrototypeFilePath))
+            {
+                Manifest prototype =
+                    Manifest.ReadManifestFile(manifestPrototypeFilePath);
+
+                manifest = prototype.CloneFromPrototype();
+            }
+            else
+            {
+                // Default implementation when there is no prototype
+                manifest = new Manifest();
+
+                manifest.DefaultHashMethod = NewHashType;
+
+                manifest.IgnoreList.Add(
+                    "^" +
+                    System.Text.RegularExpressions.Regex.Escape(ManifestStandardFilePath) +
+                    "$");
+            }
 
             return manifest;
         }
@@ -362,18 +446,39 @@ namespace RepositoryTool
             }
         }
 
-        public static String MakePathString(ManifestFileInfo fileInfo)
+        public static String MakeStandardPathString(ManifestFileInfo fileInfo)
         {
-            return MakePathString(fileInfo.ParentDirectory) + fileInfo.Name;
+            return MakeStandardPathString(fileInfo.ParentDirectory) + fileInfo.Name;
         }
 
-        public static String MakePathString(ManifestDirectoryInfo directoryInfo)
+        public static String MakeStandardPathString(ManifestDirectoryInfo directoryInfo)
         {
-            String pathString = directoryInfo.Name + PathDelimeterString;
+            String pathString = directoryInfo.Name + StandardPathDelimeterString;
 
             if (directoryInfo.ParentDirectory != null)
             {
-                pathString = MakePathString(directoryInfo.ParentDirectory) + pathString;
+                pathString = MakeStandardPathString(directoryInfo.ParentDirectory) + pathString;
+            }
+
+            return pathString;
+        }
+
+        public static String MakeNativePathString(ManifestFileInfo fileInfo)
+        {
+            return Path.Combine(
+                MakeNativePathString(fileInfo.ParentDirectory),
+                fileInfo.Name);
+        }
+
+        public static String MakeNativePathString(ManifestDirectoryInfo directoryInfo)
+        {
+            String pathString = directoryInfo.Name;
+
+            if (directoryInfo.ParentDirectory != null)
+            {
+                pathString = Path.Combine(
+                    MakeNativePathString(directoryInfo.ParentDirectory),
+                    pathString);
             }
 
             return pathString;
@@ -481,7 +586,7 @@ namespace RepositoryTool
 
         public bool ShowProgress { set; get; }
         public bool Update { set; get; }
-        public bool Force { set; get; }
+        public bool AlwaysCheckHash { set; get; }
         public bool NewHash { set; get; }
         public bool BackDate { set; get; }
         public bool CheckMoves { set; get; }
@@ -490,29 +595,117 @@ namespace RepositoryTool
 
         public Manifest Manifest { set; get; }
         public List<ManifestFileInfo> NewFiles { private set; get; }
-        public List<FileInfo> NewFilesForClean { private set; get; }
+        public List<FileInfo> NewFilesForGroom { private set; get; }
         public List<ManifestFileInfo> ModifiedFiles { private set; get; }
         public List<ManifestFileInfo> MissingFiles { private set; get; }
         public List<ManifestFileInfo> DateModifiedFiles { private set; get; }
         public List<ManifestFileInfo> ErrorFiles { private set; get; }
         public List<ManifestFileInfo> IgnoredFiles { private set; get; }
+        public List<ManifestFileInfo> NewlyIgnoredFiles { private set; get; }
+        public List<FileInfo> IgnoredFilesForGroom { private set; get; }
         public Dictionary<ManifestFileInfo, ManifestFileInfo> MovedFiles { private set; get; }
 
 
         // Static
 
-        public static String PathDelimeterString;
+        public static String StandardPathDelimeterString;
         public static String ManifestFileName;
-        public static String ManifestFilePath;
+        public static String ManifestNativeFilePath;
+        public static String ManifestStandardFilePath;
+        public static String PrototypeManifestFileName;
         public static String NewHashType;
 
         static RepositoryTool()
         {
             // TODO: Fix later for different platforms
+            StandardPathDelimeterString = "/";
+
             ManifestFileName = ".repositoryManifest";
-            PathDelimeterString = "/";
-            ManifestFilePath = "." + PathDelimeterString + ManifestFileName;
+
+            ManifestNativeFilePath =
+                Path.Combine(
+                    ".",
+                    ManifestFileName);
+
+            ManifestStandardFilePath =
+                "." +
+                StandardPathDelimeterString +
+                ManifestFileName;
+
+            PrototypeManifestFileName = ".manifestPrototype";
             NewHashType = "MD5";
         }
+    }
+
+
+
+    public class HashWrapper
+    {
+        public HashWrapper(byte[] hash)
+        {
+            Hash = hash;
+
+            for (int i = 0; i < 4; i++)
+            {
+                myHash <<= 8;
+                myHash |= hash[i];
+            }
+        }
+
+        public override int GetHashCode()
+        {
+            return myHash;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is HashWrapper)
+            {
+                HashWrapper other = (HashWrapper)obj;
+
+                if (other.Hash.Length != Hash.Length)
+                {
+                    return false;
+                }
+
+                for (int i = 0; i < Hash.Length; i++)
+                {
+                    if (other.Hash[i] != Hash[i])
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+
+        public byte[] Hash { private set; get; }
+
+        private int myHash;
+    }
+
+    public class HashFileDict
+    {
+        public HashFileDict()
+        {
+            Dict = new Dictionary<HashWrapper,List<ManifestFileInfo>>();
+        }
+
+        public void Add(ManifestFileInfo manFileInfo)
+        {
+            HashWrapper hash = new HashWrapper(manFileInfo.Hash);
+
+            if (Dict.ContainsKey(hash) == false)
+            {
+                Dict.Add(hash, new List<ManifestFileInfo>());
+            }
+
+            Dict[hash].Add(manFileInfo);
+        }
+
+        public Dictionary<HashWrapper, List<ManifestFileInfo>> Dict { private set; get; }
     }
 }

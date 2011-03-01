@@ -34,12 +34,20 @@ namespace RepositoryTool
                     Write(message);
                 };
 
+            // Default manifest file name located in current directory
             tool.RootDirectory =
                 new DirectoryInfo(Directory.GetCurrentDirectory());
+
+            String manifestFilePath =
+                Path.Combine(
+                    tool.RootDirectory.FullName,
+                    RepositoryTool.ManifestFileName);
 
             bool ignoreDate = false;
             bool ignoreNew = false;
             bool time = false;
+            bool all = false;
+            bool force = false;
 
             string repositoryName = null;
             string repositoryDescription = null;
@@ -54,13 +62,17 @@ namespace RepositoryTool
 
                 switch (nextArg)
                 {
+                    case "-all":
+                        all = true;
+                        break;
+
                     case "-silent":
                         silent = true;
                         tool.WriteLogDelegate = null;
                         break;
 
-                    case "-detailReport":
-                        detailReport = true;
+                    case "-detail":
+                        detail = true;
                         break;
 
                     case "-showProgress":
@@ -75,8 +87,8 @@ namespace RepositoryTool
                         ignoreNew = true;
                         break;
 
-                    case "-force":
-                        tool.Force = true;
+                    case "-reHash":
+                        tool.AlwaysCheckHash = true;
                         break;
 
                     case "-newHash":
@@ -115,6 +127,16 @@ namespace RepositoryTool
                         dontIgnoreList.Add(args[argIndex++]);
                         break;
 
+                    case "-manifestFile":
+                        manifestFilePath = args[argIndex++];
+                        FileInfo fileInfo = new FileInfo(manifestFilePath);
+                        tool.RootDirectory = fileInfo.Directory;
+                        break;
+
+                    case "-force":
+                        force = true;
+                        break;
+
                     default:
                         WriteLine("Unrecognized parameter \" " + nextArg + "\"");
                         commandArg = "";
@@ -123,27 +145,21 @@ namespace RepositoryTool
                 }
             }
 
-            String manifestFilePath =
-                tool.RootDirectory.FullName +
-                RepositoryTool.PathDelimeterString +
-                RepositoryTool.ManifestFileName;
-
             switch (commandArg)
             {
                 case "create":
                     {
                         bool doCreate = true;
 
-                        if (File.Exists(manifestFilePath))
+                        if (force == false)
                         {
-                            doCreate = false;
-                            Write("Replace existing manifest file? ");
-                            String confirmString = Console.ReadLine();
-
-                            if (confirmString.StartsWith("y") ||
-                                confirmString.StartsWith("Y"))
+                            if (File.Exists(manifestFilePath))
                             {
-                                doCreate = true;
+                                doCreate = false;
+                                Write("Replace existing manifest file? ");
+                                String confirmString = Console.ReadLine();
+
+                                doCreate = CheckConfirmString(confirmString);
                             }
                         }
 
@@ -163,7 +179,7 @@ namespace RepositoryTool
                     {
                         if (commandArg == "validate")
                         {
-                            tool.Force = true;
+                            tool.AlwaysCheckHash = true;
                         }
                         else if (commandArg == "update")
                         {
@@ -240,10 +256,20 @@ namespace RepositoryTool
                                 different = true;
                             }
 
+                            if (tool.NewlyIgnoredFiles.Count > 0)
+                            {
+                                WriteLine(tool.NewlyIgnoredFiles.Count.ToString() + " files are newly ignored.");
+                                DetailFiles(tool.NewlyIgnoredFiles);
+                            }
+
                             if (tool.IgnoredFiles.Count > 1)
                             {
                                 WriteLine(tool.IgnoredFiles.Count.ToString() + " files were ignored.");
-                                DetailFiles(tool.IgnoredFiles);
+
+                                if (all == true)
+                                {
+                                    DetailFiles(tool.IgnoredFiles);
+                                }
                             }
 
 
@@ -264,6 +290,49 @@ namespace RepositoryTool
                         }
                         break;
                     }
+
+                case "clear":
+
+                    try
+                    {
+                        tool.Manifest = Manifest.ReadManifestFile(manifestFilePath);
+                    }
+                    catch (Exception ex)
+                    {
+                        ReportException(ex);
+                        WriteLine("Could not read manifest.");
+                    }
+
+                    if (tool.Manifest != null)
+                    {
+                        bool doClear = true;
+
+                        if (force == false)
+                        {
+                            Write("Clear " +
+                                tool.Manifest.CountFiles().ToString() +
+                                " files from the manifest? ");
+
+                            String confirmString = Console.ReadLine();
+
+                            doClear = CheckConfirmString(confirmString);
+                        }
+
+                        if (doClear == true)
+                        {
+                            if (tool.Manifest == null)
+                            {
+                                exitCode = 1;
+                            }
+                            else
+                            {
+                                tool.Manifest.RootDirectory.Files.Clear();
+                                tool.Manifest.RootDirectory.Subdirectories.Clear();
+                            }
+                        }
+                    }
+
+                    break;
 
                 case "info":
                     try
@@ -334,7 +403,7 @@ namespace RepositoryTool
                     break;
                     
                 default:
-                    WriteLine("Unrecognized command \" " + commandArg + "\"");
+                    WriteLine("Unrecognized command \"" + commandArg + "\"");
                     exitCode = 1;
                     break;
             }
@@ -344,6 +413,7 @@ namespace RepositoryTool
                 case "create":
                 case "update":
                 case "edit":
+                case "clear":
 
                     if (tool.Manifest != null)
                     {
@@ -402,18 +472,48 @@ namespace RepositoryTool
 
                 case "groom":
                     
-                    if (tool.NewFilesForClean.Count > 0)
+                    if (tool.NewFilesForGroom.Count > 0)
                     {
-                        Write("Delete " +
-                            tool.NewFilesForClean.Count.ToString() +
-                            " new files? ");
+                        bool doGroom = true;
 
-                        String confirmString = Console.ReadLine();
-
-                        if (confirmString.StartsWith("y") ||
-                            confirmString.StartsWith("Y"))
+                        if (force == false)
                         {
-                            foreach (FileInfo delFile in tool.NewFilesForClean)
+                            Write("Delete " +
+                                tool.NewFilesForGroom.Count.ToString() +
+                                " new files? ");
+
+                            String confirmString = Console.ReadLine();
+
+                            doGroom = CheckConfirmString(confirmString);
+                        }
+
+                        if (doGroom == true)
+                        {
+                            foreach (FileInfo delFile in tool.NewFilesForGroom)
+                            {
+                                delFile.Delete();
+                            }
+                        }
+                    }
+
+                    if (all == true && tool.IgnoredFilesForGroom.Count > 0)
+                    {
+                        bool doGroomAll = true;
+
+                        if (force == false)
+                        {
+                            Write("Delete " +
+                                tool.IgnoredFilesForGroom.Count.ToString() +
+                                " ignored files? ");
+
+                            String confirmString = Console.ReadLine();
+
+                            doGroomAll = CheckConfirmString(confirmString);
+                        }
+
+                        if (doGroomAll == true)
+                        {
+                            foreach (FileInfo delFile in tool.IgnoredFilesForGroom)
                             {
                                 delFile.Delete();
                             }
@@ -435,7 +535,7 @@ namespace RepositoryTool
 
         // Helper methods
         static bool silent = false;
-        static bool detailReport = false;
+        static bool detail = false;
 
         static void Write(String message)
         {
@@ -460,13 +560,24 @@ namespace RepositoryTool
             WriteLine(ex.GetType().ToString() + ": " + ex.Message);
         }
 
+        static bool CheckConfirmString(String confirmString)
+        {
+            if (confirmString.StartsWith("y") ||
+                confirmString.StartsWith("Y"))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
         static void DetailFiles(List<ManifestFileInfo> files)
         {
-            if (detailReport)
+            if (detail)
             {
                 foreach (ManifestFileInfo nextManFileInfo in files)
                 {
-                    WriteLine("   " + RepositoryTool.MakePathString(nextManFileInfo));
+                    WriteLine("   " + RepositoryTool.MakeStandardPathString(nextManFileInfo));
                 }
 
                 WriteLine();
@@ -475,7 +586,7 @@ namespace RepositoryTool
 
         static void DetailFiles(Dictionary<ManifestFileInfo, ManifestFileInfo> files)
         {
-            if (detailReport)
+            if (detail)
             {
                 foreach (ManifestFileInfo missingFile in files.Keys)
                 {
@@ -483,9 +594,9 @@ namespace RepositoryTool
 
                     WriteLine(
                         "   " +
-                        RepositoryTool.MakePathString(missingFile) +
+                        RepositoryTool.MakeStandardPathString(missingFile) +
                         " -> " +
-                        RepositoryTool.MakePathString(newFile));
+                        RepositoryTool.MakeStandardPathString(newFile));
                 }
 
                 WriteLine();

@@ -1,6 +1,36 @@
 TODO:
 
-Add clear which removes all entries from the manifest
-Search upwards until you find the manifest file so that you can operate underneath (why?)
 
-Allow for mapping a local piece of a repository
+rt:
+
+add hash class for hashtable***@
+
+look for .manifestPrototype and clone for new manifests***@
+
+-detailReport***@
+	-> -detail (don't show ignored files by default)***@
+
+-all***@
+	for -detail and groom includes ignored files***@
+	DON'T DELETE MANIFEST FILE!***@
+
+clear***
+	removes all entries from the manifest***@
+
+-force***
+	don't ask permission for anything***
+
+ignore pattern - use begining and end of line in regexp***@
+
+look for newly ignored files & remove during update***@
+
+
+-ignoreDefault
+
+
+rs:
+
+	update
+	sync
+	mirror
+	repair

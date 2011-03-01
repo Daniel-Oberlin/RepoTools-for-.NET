@@ -18,7 +18,7 @@ namespace RepositoryManifest
         /// <summary>
         /// Default constructor
         /// </summary>
-       public Manifest()
+        public Manifest()
         {
             Guid = Guid.NewGuid();
             RootDirectory = new ManifestDirectoryInfo(".", null);
@@ -33,17 +33,41 @@ namespace RepositoryManifest
         /// <param name="original">
         /// The original object
         /// </param>
-       public Manifest(Manifest original)
-       {
-           Guid = original.Guid;
-           RootDirectory = new ManifestDirectoryInfo(RootDirectory, null);
-           Name = original.Name;
-           Description = original.Description;
-           InceptionDateUtc = original.InceptionDateUtc;
-           LastUpdateDateUtc = original.LastUpdateDateUtc;
-           IgnoreList = new List<string>(original.IgnoreList);
-           DefaultHashMethod = original.DefaultHashMethod;
-       }
+        public Manifest(Manifest original)
+        {
+            Guid = original.Guid;
+
+            RootDirectory = new ManifestDirectoryInfo(
+                original.RootDirectory, null);
+
+            Name = original.Name;
+            Description = original.Description;
+            InceptionDateUtc = original.InceptionDateUtc;
+            LastUpdateDateUtc = original.LastUpdateDateUtc;
+            IgnoreList = new List<string>(original.IgnoreList);
+            DefaultHashMethod = original.DefaultHashMethod;
+        }
+
+        /// <summary>
+        /// Make a new manifest, cloning some default properties in the
+        /// prototype
+        /// </summary>
+        /// <returns>
+        /// The new manifest.
+        /// </returns>
+        public Manifest CloneFromPrototype()
+        {
+            // Make a copy
+            Manifest clone = new Manifest(this);
+
+            // Except for...
+            clone.Guid = Guid.NewGuid();
+            clone.InceptionDateUtc = DateTime.UtcNow;
+            clone.LastUpdateDateUtc = new DateTime();
+
+            return clone;
+        }
+
 
         /// <summary>
         /// Unique identifier for this repository
