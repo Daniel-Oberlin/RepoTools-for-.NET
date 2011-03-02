@@ -257,7 +257,7 @@ namespace RepositoryTool
                             if (tool.MovedFiles.Count > 0)
                             {
                                 WriteLine(tool.MovedFiles.Count.ToString() + " files were moved.");
-                                DetailFiles(tool.MovedFiles);
+                                DetailFiles(tool.MovedFileOrder, tool.MovedFiles);
                                 different = true;
                             }
 
@@ -599,19 +599,31 @@ namespace RepositoryTool
             }
         }
 
-        static void DetailFiles(Dictionary<ManifestFileInfo, ManifestFileInfo> files)
+        static void DetailFiles(
+            List<HashWrapper> movedFileOrder,
+            Dictionary<HashWrapper, MovedFileSet> movedFileSets)
         {
             if (detail)
             {
-                foreach (ManifestFileInfo missingFile in files.Keys)
+                foreach (HashWrapper nextHash in movedFileOrder)
                 {
-                    ManifestFileInfo newFile = files[missingFile];
+                    Write(" ");
+                    MovedFileSet nextFileSet = movedFileSets[nextHash];
 
-                    WriteLine(
-                        "   " +
-                        RepositoryTool.MakeStandardPathString(missingFile) +
-                        " -> " +
-                        RepositoryTool.MakeStandardPathString(newFile));
+                    foreach (ManifestFileInfo nextOldFile in nextFileSet.OldFiles)
+                    {
+                        Write(RepositoryTool.MakeStandardPathString(nextOldFile));
+                        Write(" ");
+                    }
+
+                    Write("->");
+
+                    foreach (ManifestFileInfo nextNewFile in nextFileSet.NewFiles)
+                    {
+                        Write(" ");
+                        Write(RepositoryTool.MakeStandardPathString(nextNewFile));
+                    }
+                    WriteLine();
                 }
 
                 WriteLine();

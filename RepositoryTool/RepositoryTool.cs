@@ -33,7 +33,8 @@ namespace RepositoryTool
             IgnoredFiles = new List<ManifestFileInfo>();
             NewlyIgnoredFiles = new List<ManifestFileInfo>();
             IgnoredFilesForGroom = new List<FileInfo>();
-            MovedFiles = new Dictionary<ManifestFileInfo, ManifestFileInfo>();
+            MovedFiles = new Dictionary<HashWrapper,MovedFileSet>();
+            MovedFileOrder = new List<HashWrapper>();
 
             Clear();
         }
@@ -52,6 +53,7 @@ namespace RepositoryTool
             NewlyIgnoredFiles.Clear();
             IgnoredFilesForGroom.Clear();
             MovedFiles.Clear();
+            MovedFileOrder.Clear();
         }
 
         public void DoUpdate()
@@ -332,8 +334,7 @@ namespace RepositoryTool
             List<ManifestFileInfo> newFilesUpdated =
                 new List<ManifestFileInfo>();
 
-            // Make files easy to find by their hashcodes, and count the
-            // number of files with a given hashcode.
+            // Make files easy to find by their hashcodes
             HashFileDict missingFileDict = new HashFileDict();
             foreach (ManifestFileInfo missingFile in MissingFiles)
             {
@@ -356,17 +357,30 @@ namespace RepositoryTool
                 HashWrapper wrapper =
                     new HashWrapper(checkMissingFile.Hash);
 
-                if (missingFileDict.Dict[wrapper].Count == 1 &&
-                    newFileDict.Dict.ContainsKey(wrapper) &&
-                    newFileDict.Dict[wrapper].Count == 1)
+                if (newFileDict.Dict.ContainsKey(wrapper))
                 {
-                    ManifestFileInfo newFile =
-                        newFileDict.Dict[wrapper][0];
+                    if (MovedFiles.ContainsKey(wrapper) == false)
+                    {
+                        MovedFiles.Add(
+                            wrapper,
+                            new MovedFileSet());
 
-                    MovedFiles.Add(checkMissingFile, newFile);
+                        MovedFileOrder.Add(wrapper);
+                    }
 
-                    // Remember for later rebuild
-                    movedFiles.Add(newFile);
+                    MovedFiles[wrapper].OldFiles.Add(checkMissingFile);
+
+                    if (MovedFiles[wrapper].NewFiles.Count == 0)
+                    {
+                        // First time only
+                        foreach (ManifestFileInfo nextNewFile in newFileDict.Dict[wrapper])
+                        {
+                            MovedFiles[wrapper].NewFiles.Add(nextNewFile);
+
+                            // Remember for later rebuild
+                            movedFiles.Add(nextNewFile);
+                        }
+                    }
                 }
                 else
                 {
@@ -603,7 +617,8 @@ namespace RepositoryTool
         public List<ManifestFileInfo> IgnoredFiles { private set; get; }
         public List<ManifestFileInfo> NewlyIgnoredFiles { private set; get; }
         public List<FileInfo> IgnoredFilesForGroom { private set; get; }
-        public Dictionary<ManifestFileInfo, ManifestFileInfo> MovedFiles { private set; get; }
+        public Dictionary<HashWrapper, MovedFileSet> MovedFiles { private set; get; }
+        public List<HashWrapper> MovedFileOrder { private set; get; }
 
 
         // Static
@@ -707,5 +722,17 @@ namespace RepositoryTool
         }
 
         public Dictionary<HashWrapper, List<ManifestFileInfo>> Dict { private set; get; }
+    }
+
+    public class MovedFileSet
+    {
+        public MovedFileSet()
+        {
+            OldFiles = new List<ManifestFileInfo>();
+            NewFiles = new List<ManifestFileInfo>();
+        }
+
+        public List<ManifestFileInfo> OldFiles { private set; get; }
+        public List<ManifestFileInfo> NewFiles { private set; get; }
     }
 }
