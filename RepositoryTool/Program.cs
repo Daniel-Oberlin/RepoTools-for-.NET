@@ -592,7 +592,7 @@ namespace RepositoryTool
             {
                 foreach (ManifestFileInfo nextManFileInfo in files)
                 {
-                    WriteLine("   " + RepositoryTool.MakeStandardPathString(nextManFileInfo));
+                    WriteLine("   " + Manifest.MakeStandardPathString(nextManFileInfo));
                 }
 
                 WriteLine();
@@ -612,7 +612,7 @@ namespace RepositoryTool
 
                     foreach (ManifestFileInfo nextOldFile in nextFileSet.OldFiles)
                     {
-                        Write(RepositoryTool.MakeStandardPathString(nextOldFile));
+                        Write(Manifest.MakeStandardPathString(nextOldFile));
                         Write(" ");
                     }
 
@@ -621,7 +621,7 @@ namespace RepositoryTool
                     foreach (ManifestFileInfo nextNewFile in nextFileSet.NewFiles)
                     {
                         Write(" ");
-                        Write(RepositoryTool.MakeStandardPathString(nextNewFile));
+                        Write(Manifest.MakeStandardPathString(nextNewFile));
                     }
                     WriteLine();
                 }

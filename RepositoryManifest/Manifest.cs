@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
@@ -170,11 +171,92 @@ namespace RepositoryManifest
             }
         }
 
+        /// <summary>
+        /// Put an entry into this manifest corresponding to an entry in
+        /// another manifest.  Will replace an existing entry.
+        /// </summary>
+        /// <param name="otherManifestFile">
+        /// The other manifest file to be put into this ]manifest
+        /// </param>
+        /// <returns>
+        /// The new file in this manifest
+        /// </returns>
+        public ManifestFileInfo PutFileFromOtherManifest(
+            ManifestFileInfo otherManifestFile)
+        {
+            Stack<ManifestDirectoryInfo> stack =
+                new Stack<ManifestDirectoryInfo>();
+
+            ManifestDirectoryInfo nextParentOther =
+                otherManifestFile.ParentDirectory;
+
+            while (nextParentOther != null)
+            {
+                stack.Push(nextParentOther);
+                nextParentOther = nextParentOther.ParentDirectory;
+            }
+
+            // Start in root directory
+            ManifestDirectoryInfo currentParentThis = RootDirectory;
+
+            // Pop the root directory since we're starting there
+            stack.Pop();
+
+            while (stack.Count > 0)
+            {
+                nextParentOther = stack.Pop();
+
+                if (currentParentThis.Subdirectories.Keys.Contains(
+                    nextParentOther.Name))
+                {
+                    currentParentThis = currentParentThis.Subdirectories[
+                        nextParentOther.Name];
+                }
+                else
+                {
+                    ManifestDirectoryInfo newParent =
+                        new ManifestDirectoryInfo(
+                            nextParentOther.Name,
+                            currentParentThis);
+
+                    currentParentThis.Subdirectories[nextParentOther.Name] =
+                        newParent;
+
+                    currentParentThis = newParent;
+                }
+            }
+
+            ManifestFileInfo newManifestFile =
+                new ManifestFileInfo(
+                    otherManifestFile,
+                    currentParentThis);
+
+            currentParentThis.Files[newManifestFile.Name] =
+                newManifestFile;
+
+            return newManifestFile;
+        }
+
+        /// <summary>
+        /// Count the number of files in the manifest
+        /// </summary>
+        /// <returns>
+        /// The number of files in the manifest
+        /// </returns>
         public Int64 CountFiles()
         {
             return CountFilesRecursive(RootDirectory);
         }
 
+        /// <summary>
+        /// Recursive helper function to count the files
+        /// </summary>
+        /// <param name="currentDir">
+        /// Current directory in the recursion
+        /// </param>
+        /// <returns>
+        /// Number of files below the current directory
+        /// </returns>
         protected Int64 CountFilesRecursive(ManifestDirectoryInfo currentDir)
         {
             Int64 fileCount = currentDir.Files.Count;
@@ -188,11 +270,26 @@ namespace RepositoryManifest
             return fileCount;
         }
 
+        /// <summary>
+        /// Count the number of bytes stored in the repository
+        /// </summary>
+        /// <returns>
+        /// The number of bytes stored in the repository
+        /// </returns>
         public Int64 CountBytes()
         {
             return CountBytesRecursive(RootDirectory);
         }
 
+        /// <summary>
+        /// Recursive helper to count the number of bytes
+        /// </summary>
+        /// <param name="currentDir">
+        /// Current directory in the recursion
+        /// </param>
+        /// <returns>
+        /// The number of bytes stored in the current directory
+        /// </returns>
         protected Int64 CountBytesRecursive(ManifestDirectoryInfo currentDir)
         {
             Int64 byteCount = 0;
@@ -210,6 +307,124 @@ namespace RepositoryManifest
             }
 
             return byteCount;
+        }
+
+
+        // Static
+
+        /// <summary>
+        /// The default filename for a manifest
+        /// </summary>
+        public static String DefaultManifestFileName;
+
+        /// <summary>
+        /// The path delimeter string for standard pathnames
+        /// </summary>
+        public static String StandardPathDelimeterString;
+
+        /// <summary>
+        /// Static constructor
+        /// </summary>
+        static Manifest()
+        {
+            DefaultManifestFileName = ".repositoryManifest";
+            StandardPathDelimeterString = "/";
+        }
+
+        /// <summary>
+        /// Make a standard UNIX-style relative path, which will not vary
+        /// across platforms.
+        /// </summary>
+        /// <param name="fileInfo">
+        /// The file whose path will be generated
+        /// </param>
+        /// <returns>
+        /// The path
+        /// </returns>
+        public static String MakeStandardPathString(ManifestFileInfo fileInfo)
+        {
+            return MakeStandardPathString(fileInfo.ParentDirectory) + fileInfo.Name;
+        }
+
+        /// <summary>
+        /// Make a standard UNIX-style relative path, which will not vary
+        /// across platforms.
+        /// </summary>
+        /// <param name="directoryInfo">
+        /// The directory whose path will be generated
+        /// </param>
+        /// <returns>
+        /// The path
+        /// </returns>
+        public static String MakeStandardPathString(ManifestDirectoryInfo directoryInfo)
+        {
+            String pathString = directoryInfo.Name + StandardPathDelimeterString;
+
+            if (directoryInfo.ParentDirectory != null)
+            {
+                pathString = MakeStandardPathString(directoryInfo.ParentDirectory) + pathString;
+            }
+
+            return pathString;
+        }
+
+        /// <summary>
+        /// Make a platform-specific relative path
+        /// </summary>
+        /// <param name="fileInfo">
+        /// The file whose path will be generated
+        /// </param>
+        /// <returns>
+        /// The path
+        /// </returns>
+        public static String MakeNativePathString(ManifestFileInfo fileInfo)
+        {
+            return Path.Combine(
+                MakeNativePathString(fileInfo.ParentDirectory),
+                fileInfo.Name);
+        }
+
+        /// <summary>
+        /// Make a platform-specific relative path
+        /// </summary>
+        /// <param name="directoryInfo">
+        /// The directory whose path will be generated
+        /// </param>
+        /// <returns>
+        /// The path
+        /// </returns>
+        public static String MakeNativePathString(ManifestDirectoryInfo directoryInfo)
+        {
+            String pathString = directoryInfo.Name;
+
+            if (directoryInfo.ParentDirectory != null)
+            {
+                pathString = Path.Combine(
+                    MakeNativePathString(directoryInfo.ParentDirectory),
+                    pathString);
+            }
+
+            return pathString;
+        }
+
+        /// <summary>
+        /// Make a hexadecimal string representing a hashcode
+        /// </summary>
+        /// <param name="hash">
+        /// The hashcode
+        /// </param>
+        /// <returns>
+        /// The string
+        /// </returns>
+        public static String MakeHashString(byte[] hash)
+        {
+            String hashString = "";
+            foreach (Byte nextByte in hash)
+            {
+                hashString += String.Format("{0,2:X2}", nextByte);
+            }
+
+            return hashString;
         }
     }
 }

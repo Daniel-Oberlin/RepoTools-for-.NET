@@ -112,7 +112,7 @@ namespace RepositoryTool
             {
                 if (ShowProgress)
                 {
-                    Write(MakeStandardPathString(nextManFileInfo));
+                    Write(Manifest.MakeStandardPathString(nextManFileInfo));
                 }
 
                 if (fileDict.ContainsKey(nextManFileInfo.Name))
@@ -121,7 +121,7 @@ namespace RepositoryTool
 
                     FileInfo nextFileInfo = fileDict[nextManFileInfo.Name];
 
-                    if (IgnoreFile(MakeStandardPathString(nextManFileInfo)))
+                    if (IgnoreFile(Manifest.MakeStandardPathString(nextManFileInfo)))
                     {
                         Write(" [NEWLY IGNORED]");
 
@@ -234,14 +234,14 @@ namespace RepositoryTool
                            nextFileInfo.Name,
                            currentManfestDirInfo);
 
-                    Write(MakeStandardPathString(newManFileInfo));
+                    Write(Manifest.MakeStandardPathString(newManFileInfo));
 
-                    if (IgnoreFile(MakeStandardPathString(newManFileInfo)))
+                    if (IgnoreFile(Manifest.MakeStandardPathString(newManFileInfo)))
                     {
                         IgnoredFiles.Add(newManFileInfo);
 
                         // Don't groom the manifest file!
-                        if (MakeNativePathString(newManFileInfo) !=
+                        if (Manifest.MakeNativePathString(newManFileInfo) !=
                             ManifestNativeFilePath)
                         {
                             IgnoredFilesForGroom.Add(nextFileInfo);
@@ -396,12 +396,12 @@ namespace RepositoryTool
                 {
                     newFilesUpdated.Add(checkNewFile);
 
-                    if (MakeNativePathString(checkNewFile) !=
+                    if (Manifest.MakeNativePathString(checkNewFile) !=
                         ManifestNativeFilePath)
                     {
                         NewFilesForGroom.Add(
                             new FileInfo(
-                                MakeNativePathString(checkNewFile)));
+                                Manifest.MakeNativePathString(checkNewFile)));
                     }
                 }
             }
@@ -458,44 +458,6 @@ namespace RepositoryTool
             {
                 WriteLogDelegate.Invoke(message);
             }
-        }
-
-        public static String MakeStandardPathString(ManifestFileInfo fileInfo)
-        {
-            return MakeStandardPathString(fileInfo.ParentDirectory) + fileInfo.Name;
-        }
-
-        public static String MakeStandardPathString(ManifestDirectoryInfo directoryInfo)
-        {
-            String pathString = directoryInfo.Name + StandardPathDelimeterString;
-
-            if (directoryInfo.ParentDirectory != null)
-            {
-                pathString = MakeStandardPathString(directoryInfo.ParentDirectory) + pathString;
-            }
-
-            return pathString;
-        }
-
-        public static String MakeNativePathString(ManifestFileInfo fileInfo)
-        {
-            return Path.Combine(
-                MakeNativePathString(fileInfo.ParentDirectory),
-                fileInfo.Name);
-        }
-
-        public static String MakeNativePathString(ManifestDirectoryInfo directoryInfo)
-        {
-            String pathString = directoryInfo.Name;
-
-            if (directoryInfo.ParentDirectory != null)
-            {
-                pathString = Path.Combine(
-                    MakeNativePathString(directoryInfo.ParentDirectory),
-                    pathString);
-            }
-
-            return pathString;
         }
 
         protected String GetNewHashType(Manifest man)
@@ -564,17 +526,6 @@ namespace RepositoryTool
             return true;
         }
 
-        protected String MakeHashString(byte[] hash)
-        {
-            String hashString = "";
-            foreach (Byte nextByte in hash)
-            {
-                hashString += String.Format("{0,2:X2}", nextByte);
-            }
-
-            return hashString;
-        }
-
         protected bool IgnoreFile(String fileName)
         {
             foreach (String nextExpression in Manifest.IgnoreList)
@@ -623,7 +574,7 @@ namespace RepositoryTool
 
         // Static
 
-        public static String StandardPathDelimeterString;
+
         public static String ManifestFileName;
         public static String ManifestNativeFilePath;
         public static String ManifestStandardFilePath;
@@ -632,19 +583,14 @@ namespace RepositoryTool
 
         static RepositoryTool()
         {
-            // TODO: Fix later for different platforms
-            StandardPathDelimeterString = "/";
-
-            ManifestFileName = ".repositoryManifest";
-
             ManifestNativeFilePath =
                 Path.Combine(
                     ".",
-                    ManifestFileName);
+                    Manifest.DefaultManifestFileName);
 
             ManifestStandardFilePath =
                 "." +
-                StandardPathDelimeterString +
+                Manifest.StandardPathDelimeterString +
                 ManifestFileName;
 
             PrototypeManifestFileName = ".manifestPrototype";

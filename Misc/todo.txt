@@ -2,8 +2,10 @@ TODO:
 
 
 rt:
+	Find duplicates
+	Recursive
+	Ability to show file checksums
 
-	Track multi-moves.
 
 rs:
 

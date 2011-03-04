@@ -17,13 +17,13 @@ namespace RepositorySync
         /// <summary>
         /// The manifest for this repository
         /// </summary>
-        public abstract Manifest Manifest { protected set; public get; }
+        public abstract Manifest Manifest { protected set; get; }
 
 
         // Primary methods called by sync
 
         /// <summary>
-        /// Add a file to the repository
+        /// Put a file into the repository - possibly replacing an existing file
         /// </summary>
         /// <param name="sourceRepository">
         /// The source repository containing the file to be added
@@ -34,20 +34,7 @@ namespace RepositorySync
         /// <returns>
         /// The file that was added
         /// </returns>
-        public abstract ManifestFileInfo AddFile(
-            RepositoryProxy sourceRepository,
-            ManifestFileInfo sourceManifestFile);
-
-        /// <summary>
-        /// Replace an existing file in the repository
-        /// </summary>
-        /// <param name="sourceRepository">
-        /// The source repository containing the replacing file
-        /// </param>
-        /// <param name="sourceManifestFile">
-        /// The source file which will replace the existing file
-        /// </param>
-        public abstract void ReplaceFile(
+        public abstract ManifestFileInfo PutFile(
             RepositoryProxy sourceRepository,
             ManifestFileInfo sourceManifestFile);
 
@@ -61,6 +48,26 @@ namespace RepositorySync
             ManifestFileInfo removeManifestFile);
 
         /// <summary>
+        /// Copy a file in this repository
+        /// </summary>
+        /// <param name="fileToBeCopied">
+        /// File in this repository to be copied
+        /// </param>
+        /// <param name="otherRepositoryWithNewLocation">
+        /// Other repository where the file is in the new location
+        /// </param>
+        /// <param name="otherFileWithNewLocation">
+        /// File in the other repository which is residing in the new location
+        /// </param>
+        /// <returns>
+        /// The copied file
+        /// </returns>
+        public abstract ManifestFileInfo CopyFile(
+            ManifestFileInfo fileToBeCopied,
+            RepositoryProxy otherRepositoryWithNewLocation,
+            ManifestFileInfo otherFileWithNewLocation);
+
+        /// <summary>
         /// Move a file in this repository
         /// </summary>
         /// <param name="fileToBeMoved">
@@ -72,7 +79,10 @@ namespace RepositorySync
         /// <param name="otherFileWithNewLocation">
         /// File in the other repository which is residing in the new location
         /// </param>
-        public abstract void MoveFile(
+        /// <returns>
+        /// The moved file
+        /// </returns>
+        public abstract ManifestFileInfo MoveFile(
             ManifestFileInfo fileToBeMoved,
             RepositoryProxy otherRepositoryWithNewLocation,
             ManifestFileInfo otherFileWithNewLocation);
@@ -81,30 +91,30 @@ namespace RepositorySync
         // Secondary methods called by destination repository proxy
 
         /// <summary>
-        /// Get a file for purposes of opening and reading
+        /// Get a file (or a copy of the file) for purposes of reading
         /// </summary>
         /// <param name="readFile">
-        /// The manifest information for the file to be opened and read
+        /// The manifest information for the file
         /// </param>
         /// <returns>
-        /// The file to be opened and read
+        /// The file
         /// </returns>
-        public abstract FileInfo GetFileForRead(
+        public abstract FileInfo GetFile(
             ManifestFileInfo readFile);
 
         /// <summary>
-        /// Make a copy of a file
+        /// Clone a file for purposes of adding to another repository
         /// </summary>
         /// <param name="copyFile">
-        /// The manifest information for the file to be copied
+        /// The manifest information for the file to be cloned
         /// </param>
         /// <param name="copyToDirectory">
-        /// The directory to which the file will be copied
+        /// The directory which will contain the clone
         /// </param>
         /// <returns>
-        /// The copied file
+        /// The cloned file
         /// </returns>
-        public abstract FileInfo MakeFileCopy(
+        public abstract FileInfo CloneFile(
             ManifestFileInfo copyFile,
             DirectoryInfo copyToDirectory);
     }
