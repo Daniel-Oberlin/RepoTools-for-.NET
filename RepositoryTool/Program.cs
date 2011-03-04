@@ -20,10 +20,32 @@ namespace RepositoryTool
 
             int argIndex = 0;
 
+            // Give the user some help if they need it
             string commandArg = "help";
             if (args.Length > 0)
             {
                 commandArg = args[argIndex++];
+            }
+
+            // Initial screen for valid command
+            switch (commandArg)
+            {
+                case "create":
+                case "validate":
+                case "status":
+                case "update":
+                case "edit":
+                case "groom":
+                case "clear":
+                case "info":
+                case "help":
+                    break;
+
+                default:
+                    WriteLine("Unrecognized command \"" + commandArg + "\"");
+                    exitCode = 1;
+                    Environment.Exit(exitCode);
+                    break;
             }
 
             RepositoryTool tool = new RepositoryTool();
@@ -35,13 +57,10 @@ namespace RepositoryTool
                 };
 
             // Default manifest file name located in current directory
-            tool.RootDirectory =
-                new DirectoryInfo(Directory.GetCurrentDirectory());
-
-            String manifestFilePath =
+            String manifestFilePathNotRecursive =
                 Path.Combine(
-                    tool.RootDirectory.FullName,
-                    RepositoryTool.ManifestFileName);
+                    System.IO.Directory.GetCurrentDirectory(),
+                    Manifest.DefaultManifestFileName);
 
             bool ignoreDate = false;
             bool ignoreNew = false;
@@ -49,6 +68,7 @@ namespace RepositoryTool
             bool all = false;
             bool force = false;
             bool ignoreDefault = false;
+            bool recursive = false;
 
             string repositoryName = null;
             string repositoryDescription = null;
@@ -57,6 +77,7 @@ namespace RepositoryTool
             List<String> ignoreList = new List<string>();
             List<String> dontIgnoreList = new List<string>();
 
+            // Parse flags
             while (argIndex < args.Length)
             {
                 string nextArg = args[argIndex++];
@@ -129,9 +150,7 @@ namespace RepositoryTool
                         break;
 
                     case "-manifestFile":
-                        manifestFilePath = args[argIndex++];
-                        FileInfo fileInfo = new FileInfo(manifestFilePath);
-                        tool.RootDirectory = fileInfo.Directory;
+                        manifestFilePathNotRecursive = args[argIndex++];
                         break;
 
                     case "-force":
@@ -142,6 +161,10 @@ namespace RepositoryTool
                         ignoreDefault = true;
                         break;
 
+                    case "-recursive":
+                        recursive = true;
+                        break;
+
                     default:
                         WriteLine("Unrecognized parameter \" " + nextArg + "\"");
                         commandArg = "";
@@ -150,49 +173,223 @@ namespace RepositoryTool
                 }
             }
 
-            switch (commandArg)
+            // Prepare a list of paths to be processed
+            List<String> manifestFilePaths = new List<string>();
+            if (recursive)
             {
-                case "create":
-                    {
-                        bool doCreate = true;
+                FindManifests(
+                    new DirectoryInfo(Directory.GetCurrentDirectory()),
+                    manifestFilePaths);
+            }
+            else
+            {
+                manifestFilePaths.Add(manifestFilePathNotRecursive);
+            }
 
-                        if (force == false)
+            foreach (String manifestFilePath in manifestFilePaths)
+            {
+                if (recursive)
+                {
+                    WriteLine(Path.GetDirectoryName(manifestFilePath) + ":");
+                }
+
+                // Initialize the tool for this manifest
+                tool.Clear();
+                tool.Manifest = null;
+
+                FileInfo fileInfo = new FileInfo(manifestFilePath);
+                tool.RootDirectory = fileInfo.Directory;
+
+                switch (commandArg)
+                {
+                    case "create":
                         {
-                            if (File.Exists(manifestFilePath))
+                            bool doCreate = true;
+
+                            if (force == false)
                             {
-                                doCreate = false;
-                                Write("Replace existing manifest file? ");
+                                if (File.Exists(manifestFilePath))
+                                {
+                                    doCreate = false;
+                                    Write("Replace existing manifest file? ");
+                                    String confirmString = Console.ReadLine();
+
+                                    doCreate = CheckConfirmString(confirmString);
+                                }
+                            }
+
+                            if (doCreate == true)
+                            {
+                                tool.Manifest = tool.MakeManifest();
+                            }
+
+                            break;
+                        }
+
+                    case "validate":
+                    case "status":
+                    case "update":
+                    case "edit":
+                    case "groom":
+                        {
+                            if (commandArg == "validate")
+                            {
+                                tool.AlwaysCheckHash = true;
+                            }
+                            else if (commandArg == "update")
+                            {
+                                tool.Update = true;
+                            }
+
+                            bool different = false;
+
+                            try
+                            {
+                                tool.Manifest = Manifest.ReadManifestFile(manifestFilePath);
+                            }
+                            catch (Exception ex)
+                            {
+                                ReportException(ex);
+                                WriteLine("Could not read manifest.");
+                            }
+
+                            if (tool.Manifest == null)
+                            {
+                                exitCode = 1;
+                            }
+                            else if (commandArg != "edit")
+                            {
+                                tool.DoUpdate();
+
+                                if (tool.MissingFiles.Count > 0)
+                                {
+                                    WriteLine(tool.MissingFiles.Count.ToString() + " files are missing.");
+                                    DetailFiles(tool.MissingFiles);
+                                    different = true;
+                                }
+
+                                if (tool.ModifiedFiles.Count > 0)
+                                {
+                                    WriteLine(tool.ModifiedFiles.Count.ToString() + " files are different.");
+                                    DetailFiles(tool.ModifiedFiles);
+                                    different = true;
+                                }
+
+                                if (tool.NewFiles.Count > 0)
+                                {
+                                    WriteLine(tool.NewFiles.Count.ToString() + " files are new.");
+                                    DetailFiles(tool.NewFiles);
+
+                                    if (ignoreNew == false)
+                                    {
+                                        different = true;
+                                    }
+                                }
+
+                                if (tool.DateModifiedFiles.Count > 0)
+                                {
+                                    WriteLine(tool.DateModifiedFiles.Count.ToString() + " file dates are modified.");
+                                    DetailFiles(tool.DateModifiedFiles);
+
+                                    if (ignoreDate == false)
+                                    {
+                                        different = true;
+                                    }
+                                }
+
+                                if (tool.ErrorFiles.Count > 0)
+                                {
+                                    WriteLine(tool.ErrorFiles.Count.ToString() + " files have errors.");
+                                    DetailFiles(tool.ErrorFiles);
+                                    different = true;
+                                }
+
+                                if (tool.MovedFiles.Count > 0)
+                                {
+                                    WriteLine(tool.MovedFiles.Count.ToString() + " files were moved.");
+                                    DetailFiles(tool.MovedFileOrder, tool.MovedFiles);
+                                    different = true;
+                                }
+
+                                if (tool.NewlyIgnoredFiles.Count > 0)
+                                {
+                                    WriteLine(tool.NewlyIgnoredFiles.Count.ToString() + " files are newly ignored.");
+                                    DetailFiles(tool.NewlyIgnoredFiles);
+                                }
+
+                                if (tool.IgnoredFiles.Count > 1)
+                                {
+                                    WriteLine(tool.IgnoredFiles.Count.ToString() + " files were ignored.");
+
+                                    if (all == true)
+                                    {
+                                        DetailFiles(tool.IgnoredFiles);
+                                    }
+                                }
+
+
+                                WriteLine(tool.FileCheckedCount.ToString() + " files were checked.");
+
+                                if (commandArg == "validate")
+                                {
+                                    if (different)
+                                    {
+                                        WriteLine("Problems found.");
+                                        exitCode = 1;
+                                    }
+                                    else
+                                    {
+                                        WriteLine("No problems.");
+                                    }
+                                }
+                            }
+                            break;
+                        }
+
+                    case "clear":
+
+                        try
+                        {
+                            tool.Manifest = Manifest.ReadManifestFile(manifestFilePath);
+                        }
+                        catch (Exception ex)
+                        {
+                            ReportException(ex);
+                            WriteLine("Could not read manifest.");
+                        }
+
+                        if (tool.Manifest != null)
+                        {
+                            bool doClear = true;
+
+                            if (force == false)
+                            {
+                                Write("Clear " +
+                                    tool.Manifest.CountFiles().ToString() +
+                                    " files from the manifest? ");
+
                                 String confirmString = Console.ReadLine();
 
-                                doCreate = CheckConfirmString(confirmString);
+                                doClear = CheckConfirmString(confirmString);
+                            }
+
+                            if (doClear == true)
+                            {
+                                if (tool.Manifest == null)
+                                {
+                                    exitCode = 1;
+                                }
+                                else
+                                {
+                                    tool.Manifest.RootDirectory.Files.Clear();
+                                    tool.Manifest.RootDirectory.Subdirectories.Clear();
+                                }
                             }
                         }
 
-                        if (doCreate == true)
-                        {
-                            tool.Manifest = tool.MakeManifest();
-                        }
-
                         break;
-                    }
 
-                case "validate":
-                case "status":
-                case "update":
-                case "edit":
-                case "groom":
-                    {
-                        if (commandArg == "validate")
-                        {
-                            tool.AlwaysCheckHash = true;
-                        }
-                        else if (commandArg == "update")
-                        {
-                            tool.Update = true;
-                        }
-
-                        bool different = false;
-
+                    case "info":
                         try
                         {
                             tool.Manifest = Manifest.ReadManifestFile(manifestFilePath);
@@ -207,335 +404,194 @@ namespace RepositoryTool
                         {
                             exitCode = 1;
                         }
-                        else if (commandArg != "edit")
+                        else
                         {
-                            tool.DoUpdate();
-
-                            if (tool.MissingFiles.Count > 0)
+                            if (tool.Manifest.Name != null)
                             {
-                                WriteLine(tool.MissingFiles.Count.ToString() + " files are missing.");
-                                DetailFiles(tool.MissingFiles);
-                                different = true;
+                                WriteLine("Name:                  " + tool.Manifest.Name);
                             }
 
-                            if (tool.ModifiedFiles.Count > 0)
+                            WriteLine("GUID:                  " + tool.Manifest.Guid.ToString());
+
+                            if (tool.Manifest.DefaultHashMethod != null)
                             {
-                                WriteLine(tool.ModifiedFiles.Count.ToString() + " files are different.");
-                                DetailFiles(tool.ModifiedFiles);
-                                different = true;
+                                WriteLine("Default hash method:   " + tool.Manifest.DefaultHashMethod);
                             }
 
-                            if (tool.NewFiles.Count > 0)
-                            {
-                                WriteLine(tool.NewFiles.Count.ToString() + " files are new.");                                
-                                DetailFiles(tool.NewFiles);
+                            WriteLine("Date of creation:      " +
+                                (tool.Manifest.InceptionDateUtc.ToLocalTime()).ToString());
 
-                                if (ignoreNew == false)
+                            WriteLine("Date of last update:   " +
+                                (tool.Manifest.LastUpdateDateUtc.ToLocalTime()).ToString());
+
+                            NumberFormatInfo nfi = new CultureInfo("en-US", false).NumberFormat;
+                            nfi.NumberDecimalDigits = 0;
+
+
+                            WriteLine("Total number of files: " + tool.Manifest.CountFiles().ToString("N", nfi));
+                            WriteLine("Total number of bytes: " + tool.Manifest.CountBytes().ToString("N", nfi));
+                            WriteLine("Ignoring these file patterns:");
+                            if (tool.Manifest.IgnoreList.Count > 0)
+                            {
+                                foreach (String nextIgnore in tool.Manifest.IgnoreList)
                                 {
-                                    different = true;
-                                }
-                            }
-
-                            if (tool.DateModifiedFiles.Count > 0)
-                            {
-                                WriteLine(tool.DateModifiedFiles.Count.ToString() + " file dates are modified.");
-                                DetailFiles(tool.DateModifiedFiles);
-
-                                if (ignoreDate == false)
-                                {
-                                    different = true;
-                                }
-                            }
-
-                            if (tool.ErrorFiles.Count > 0)
-                            {
-                                WriteLine(tool.ErrorFiles.Count.ToString() + " files have errors.");
-                                DetailFiles(tool.ErrorFiles);
-                                different = true;
-                            }
-
-                            if (tool.MovedFiles.Count > 0)
-                            {
-                                WriteLine(tool.MovedFiles.Count.ToString() + " files were moved.");
-                                DetailFiles(tool.MovedFileOrder, tool.MovedFiles);
-                                different = true;
-                            }
-
-                            if (tool.NewlyIgnoredFiles.Count > 0)
-                            {
-                                WriteLine(tool.NewlyIgnoredFiles.Count.ToString() + " files are newly ignored.");
-                                DetailFiles(tool.NewlyIgnoredFiles);
-                            }
-
-                            if (tool.IgnoredFiles.Count > 1)
-                            {
-                                WriteLine(tool.IgnoredFiles.Count.ToString() + " files were ignored.");
-
-                                if (all == true)
-                                {
-                                    DetailFiles(tool.IgnoredFiles);
-                                }
-                            }
-
-
-                            WriteLine(tool.FileCheckedCount.ToString() + " files were checked.");
-
-                            if (commandArg == "validate")
-                            {
-                                if (different)
-                                {
-                                    WriteLine("Problems found.");
-                                    exitCode = 1;
-                                }
-                                else
-                                {
-                                    WriteLine("No problems.");
+                                    WriteLine("   " + nextIgnore);
                                 }
                             }
                         }
+
+                        if (tool.Manifest.Description != null)
+                        {
+                            WriteLine();
+                            WriteLine("Description: ");
+                            WriteLine(tool.Manifest.Description);
+                        }
+
                         break;
-                    }
 
-                case "clear":
+                    case "help":
+                        Write(Properties.Resources.RepositoryToolHelp);
+                        break;
 
-                    try
-                    {
-                        tool.Manifest = Manifest.ReadManifestFile(manifestFilePath);
-                    }
-                    catch (Exception ex)
-                    {
-                        ReportException(ex);
-                        WriteLine("Could not read manifest.");
-                    }
+                    case "":
+                        break;
 
-                    if (tool.Manifest != null)
-                    {
-                        bool doClear = true;
-
-                        if (force == false)
-                        {
-                            Write("Clear " +
-                                tool.Manifest.CountFiles().ToString() +
-                                " files from the manifest? ");
-
-                            String confirmString = Console.ReadLine();
-
-                            doClear = CheckConfirmString(confirmString);
-                        }
-
-                        if (doClear == true)
-                        {
-                            if (tool.Manifest == null)
-                            {
-                                exitCode = 1;
-                            }
-                            else
-                            {
-                                tool.Manifest.RootDirectory.Files.Clear();
-                                tool.Manifest.RootDirectory.Subdirectories.Clear();
-                            }
-                        }
-                    }
-
-                    break;
-
-                case "info":
-                    try
-                    {
-                        tool.Manifest = Manifest.ReadManifestFile(manifestFilePath);
-                    }
-                    catch (Exception ex)
-                    {
-                        ReportException(ex);
-                        WriteLine("Could not read manifest.");
-                    }
-
-                    if (tool.Manifest == null)
-                    {
+                    default:
+                        WriteLine("Unrecognized command \"" + commandArg + "\"");
                         exitCode = 1;
-                    }
-                    else
-                    {
-                        if (tool.Manifest.Name != null)
+                        break;
+                }
+
+                switch (commandArg)
+                {
+                    case "create":
+                    case "update":
+                    case "edit":
+                    case "clear":
+
+                        if (tool.Manifest != null)
                         {
-                            WriteLine("Name:                  " + tool.Manifest.Name);
-                        }
-
-                        WriteLine("GUID:                  " + tool.Manifest.Guid.ToString());
-
-                        if (tool.Manifest.DefaultHashMethod != null)
-                        {
-                            WriteLine("Default hash method:   " + tool.Manifest.DefaultHashMethod);
-                        }
-
-                        WriteLine("Date of creation:      " +
-					        (tool.Manifest.InceptionDateUtc.ToLocalTime()).ToString());
-
-                        WriteLine("Date of last update:   " +
-                            (tool.Manifest.LastUpdateDateUtc.ToLocalTime()).ToString());
-					
-                        NumberFormatInfo nfi = new CultureInfo("en-US", false).NumberFormat;
-                        nfi.NumberDecimalDigits = 0;
-
-
-                        WriteLine("Total number of files: " + tool.Manifest.CountFiles().ToString("N", nfi));
-                        WriteLine("Total number of bytes: " + tool.Manifest.CountBytes().ToString("N", nfi));
-                        WriteLine("Ignoring these file patterns:");
-                        if (tool.Manifest.IgnoreList.Count > 0)
-                        {
-                            foreach (String nextIgnore in tool.Manifest.IgnoreList)
+                            if (repositoryName != null)
                             {
-                                WriteLine("   " + nextIgnore);
+                                tool.Manifest.Name = repositoryName;
                             }
-                        }
-                    }
 
-                    if (tool.Manifest.Description != null)
-                    {
-                        WriteLine();
-                        WriteLine("Description: ");
-                        WriteLine(tool.Manifest.Description);
-                    }
-
-                    break;
-
-                case "help":
-                    Write(Properties.Resources.RepositoryToolHelp);
-                    break;
-
-                case "":
-                    break;
-                    
-                default:
-                    WriteLine("Unrecognized command \"" + commandArg + "\"");
-                    exitCode = 1;
-                    break;
-            }
-
-            switch (commandArg)
-            {
-                case "create":
-                case "update":
-                case "edit":
-                case "clear":
-
-                    if (tool.Manifest != null)
-                    {
-                        if (repositoryName != null)
-                        {
-                            tool.Manifest.Name = repositoryName;
-                        }
-
-                        if (repositoryDescription != null)
-                        {
-                            tool.Manifest.Description = repositoryDescription;
-                        }
-
-                        if (hashMethod != null)
-                        {
-                            tool.Manifest.DefaultHashMethod = hashMethod;
-                        }
-
-                        if (ignoreList.Count > 0)
-                        {
-                            foreach (String nextIgnore in ignoreList)
+                            if (repositoryDescription != null)
                             {
-                                if (tool.Manifest.IgnoreList.Contains(nextIgnore) == false)
+                                tool.Manifest.Description = repositoryDescription;
+                            }
+
+                            if (hashMethod != null)
+                            {
+                                tool.Manifest.DefaultHashMethod = hashMethod;
+                            }
+
+                            if (ignoreList.Count > 0)
+                            {
+                                foreach (String nextIgnore in ignoreList)
+                                {
+                                    if (tool.Manifest.IgnoreList.Contains(nextIgnore) == false)
+                                    {
+                                        tool.Manifest.IgnoreList.Add(nextIgnore);
+                                    }
+                                }
+                            }
+
+                            if (dontIgnoreList.Count > 0)
+                            {
+                                foreach (String nextIgnore in dontIgnoreList)
+                                {
+                                    if (tool.Manifest.IgnoreList.Contains(nextIgnore) == true)
+                                    {
+                                        tool.Manifest.IgnoreList.Remove(nextIgnore);
+                                    }
+                                }
+                            }
+
+                            if (ignoreDefault == true)
+                            {
+                                tool.Manifest.IgnoreList.Clear();
+
+                                Manifest defaultPrototype = tool.MakeManifest();
+                                foreach (String nextIgnore in defaultPrototype.IgnoreList)
                                 {
                                     tool.Manifest.IgnoreList.Add(nextIgnore);
                                 }
                             }
-                        }
 
-                        if (dontIgnoreList.Count > 0)
-                        {
-                            foreach (String nextIgnore in dontIgnoreList)
+                            if (tool.Manifest != null)
                             {
-                                if (tool.Manifest.IgnoreList.Contains(nextIgnore) == true)
+                                try
                                 {
-                                    tool.Manifest.IgnoreList.Remove(nextIgnore);
+                                    tool.Manifest.WriteManifestFile(manifestFilePath);
+                                }
+                                catch (Exception ex)
+                                {
+                                    ReportException(ex);
+                                    WriteLine("Could not write manifest.");
+                                    exitCode = 1;
+                                }
+                            }
+                        }
+                        break;
+
+                    case "groom":
+
+                        if (tool.NewFilesForGroom.Count > 0)
+                        {
+                            bool doGroom = true;
+
+                            if (force == false)
+                            {
+                                Write("Delete " +
+                                    tool.NewFilesForGroom.Count.ToString() +
+                                    " new files? ");
+
+                                String confirmString = Console.ReadLine();
+
+                                doGroom = CheckConfirmString(confirmString);
+                            }
+
+                            if (doGroom == true)
+                            {
+                                foreach (FileInfo delFile in tool.NewFilesForGroom)
+                                {
+                                    delFile.Delete();
                                 }
                             }
                         }
 
-                        if (ignoreDefault == true)
+                        if (all == true && tool.IgnoredFilesForGroom.Count > 0)
                         {
-                            tool.Manifest.IgnoreList.Clear();
+                            bool doGroomAll = true;
 
-                            Manifest defaultPrototype = tool.MakeManifest();
-                            foreach (String nextIgnore in defaultPrototype.IgnoreList)
+                            if (force == false)
                             {
-                                tool.Manifest.IgnoreList.Add(nextIgnore);
+                                Write("Delete " +
+                                    tool.IgnoredFilesForGroom.Count.ToString() +
+                                    " ignored files? ");
+
+                                String confirmString = Console.ReadLine();
+
+                                doGroomAll = CheckConfirmString(confirmString);
+                            }
+
+                            if (doGroomAll == true)
+                            {
+                                foreach (FileInfo delFile in tool.IgnoredFilesForGroom)
+                                {
+                                    delFile.Delete();
+                                }
                             }
                         }
 
-                        if (tool.Manifest != null)
-                        {
-                            try
-                            {
-                                tool.Manifest.WriteManifestFile(manifestFilePath);
-                            }
-                            catch (Exception ex)
-                            {
-                                ReportException(ex);
-                                WriteLine("Could not write manifest.");
-                                exitCode = 1;
-                            }
-                        }
-                    }
-                    break;
+                        break;
+                }
 
-                case "groom":
-                    
-                    if (tool.NewFilesForGroom.Count > 0)
-                    {
-                        bool doGroom = true;
-
-                        if (force == false)
-                        {
-                            Write("Delete " +
-                                tool.NewFilesForGroom.Count.ToString() +
-                                " new files? ");
-
-                            String confirmString = Console.ReadLine();
-
-                            doGroom = CheckConfirmString(confirmString);
-                        }
-
-                        if (doGroom == true)
-                        {
-                            foreach (FileInfo delFile in tool.NewFilesForGroom)
-                            {
-                                delFile.Delete();
-                            }
-                        }
-                    }
-
-                    if (all == true && tool.IgnoredFilesForGroom.Count > 0)
-                    {
-                        bool doGroomAll = true;
-
-                        if (force == false)
-                        {
-                            Write("Delete " +
-                                tool.IgnoredFilesForGroom.Count.ToString() +
-                                " ignored files? ");
-
-                            String confirmString = Console.ReadLine();
-
-                            doGroomAll = CheckConfirmString(confirmString);
-                        }
-
-                        if (doGroomAll == true)
-                        {
-                            foreach (FileInfo delFile in tool.IgnoredFilesForGroom)
-                            {
-                                delFile.Delete();
-                            }
-                        }
-                    }
-
-                    break;
+                if (recursive)
+                {
+                    WriteLine();
+                }
             }
 
             if (time)
@@ -627,6 +683,26 @@ namespace RepositoryTool
                 }
 
                 WriteLine();
+            }
+        }
+
+        static void FindManifests(
+            DirectoryInfo nextDirectory,
+            List<String> filePaths)
+        {
+            String checkManifestPath =
+                Path.Combine(
+                    nextDirectory.FullName,
+                    Manifest.DefaultManifestFileName);
+
+            if (File.Exists(checkManifestPath))
+            {
+                filePaths.Add(checkManifestPath);
+            }
+
+            foreach (DirectoryInfo nextSubDirectory in nextDirectory.GetDirectories())
+            {
+                FindManifests(nextSubDirectory, filePaths);
             }
         }
     }

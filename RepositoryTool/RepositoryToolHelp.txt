@@ -128,3 +128,7 @@ OPTIONS:
     -manifestFile
         Path to the manifest file.  Defaults to ".manifestPrototype" in the
         current working directory.
+
+    -recursive
+        Start in working directory and recursively search for and handle any
+        manifests in lower subdirectories.
