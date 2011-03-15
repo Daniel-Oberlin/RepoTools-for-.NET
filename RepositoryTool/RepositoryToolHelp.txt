@@ -45,8 +45,8 @@ COMMANDS:
     info
         Show manifest information.
 
-	clear
-		Clear the manifest.  Remove all file entries.
+    clear
+        Clear the manifest.  Remove all file entries.
 
 
 OPTIONS:
@@ -57,8 +57,8 @@ OPTIONS:
     -detail
         List the actual files that are different - not just the counts.
 
-	-all
-		Process ignored files as well.  For -detail and groom.
+    -all
+        Process ignored files as well.  For -detail and groom.
 
     -showProgress
         List each file as it is being scanned.
@@ -92,9 +92,12 @@ OPTIONS:
         identical, this option will set the dates back to their values which
         were stored in the manifest.
 
-    -checkMoves
+    -trackMoves
         Try to identify files that have been renamed or moved based on their
         hash values.
+
+    -trackDuplicates
+        Try to identify duplicate files based on their hash values.
 
     -ignore ignoreExpression
         Add a regular expression which matches filename paths which should be

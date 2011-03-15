@@ -58,9 +58,16 @@ namespace RepositoryManifest
         public DateTime LastModifiedUtc { set; get; }
 
         /// <summary>
-        /// The SHA256 hash of the file data
+        /// The hash of the file data.
+        /// *** DEPRECATED
         /// </summary>
         public byte[] Hash { set; get; }
+
+        /// <summary>
+        /// The hash of the file data
+        /// *** TODO
+        /// </summary>
+        //public FileHash FileHash { set; get; }
 
         /// <summary>
         /// The name of the hash algorithm used

@@ -77,5 +77,18 @@ namespace RepositoryManifest
         /// The directories contained by this directory
         /// </summary>
         public Dictionary<String, ManifestDirectoryInfo> Subdirectories { private set; get; }
+
+        /// <summary>
+        /// Is the subdirectory empty?
+        /// </summary>
+        public bool Empty
+        {
+            get
+            {
+                return
+                    Files.Count == 0 &&
+                    Subdirectories.Count == 0;
+            }
+        }
     }
 }

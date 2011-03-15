@@ -5,7 +5,7 @@ This tool allows for synchronization between two repositories...
 
 SYNTAX:
 
-rs sourceRepository [+][-] destinationRepository [option] ...
+rs command sourceRepository destinationRepository [option] ...
 
 
 COMMANDS:
@@ -13,11 +13,21 @@ COMMANDS:
     help
         Show this description of commands and options.
 
+    diff
+        Show differences bewtween two repository manifests.
+
+    *update
+    *sync
+    *mirror
+    *repair
 
 OPTIONS:
 
     -silent
         Don't output anything.  Exit code may still be checked by a script.
 
-	-bothWays
-		Also propage changes from desitination to source.
+    -detail
+        List the actual files that are different - not just the counts.
+
+    *-bothWays
+        Also propage changes from desitination to source.

@@ -16,6 +16,8 @@ namespace RepositoryTool
         static void Main(string[] args)
         {
             int exitCode = 0;
+            Utilities.Console console = new Utilities.Console();
+
             DateTime startTime = DateTime.Now;
 
             int argIndex = 0;
@@ -42,7 +44,7 @@ namespace RepositoryTool
                     break;
 
                 default:
-                    WriteLine("Unrecognized command \"" + commandArg + "\"");
+                    console.WriteLine("Unrecognized command \"" + commandArg + "\"");
                     exitCode = 1;
                     Environment.Exit(exitCode);
                     break;
@@ -53,7 +55,7 @@ namespace RepositoryTool
             tool.WriteLogDelegate =
                 delegate(String message)
                 {
-                    Write(message);
+                    console.Write(message);
                 };
 
             // Default manifest file name located in current directory
@@ -89,12 +91,12 @@ namespace RepositoryTool
                         break;
 
                     case "-silent":
-                        silent = true;
+                        console.Silent = true;
                         tool.WriteLogDelegate = null;
                         break;
 
                     case "-detail":
-                        detail = true;
+                        console.Detail = true;
                         break;
 
                     case "-showProgress":
@@ -114,7 +116,7 @@ namespace RepositoryTool
                         break;
 
                     case "-newHash":
-                        tool.NewHash = true;
+                        tool.MakeNewHash = true;
                         break;
 
                     case "-time":
@@ -137,8 +139,12 @@ namespace RepositoryTool
                         tool.BackDate = true;
                         break;
                         
-                    case "-checkMoves":
-                        tool.CheckMoves = true;
+                    case "-trackMoves":
+                        tool.TrackMoves = true;
+                        break;
+
+                    case "-trackDuplicates":
+                        tool.TrackDuplicates = true;
                         break;
 
                     case "-ignore":
@@ -166,7 +172,7 @@ namespace RepositoryTool
                         break;
 
                     default:
-                        WriteLine("Unrecognized parameter \" " + nextArg + "\"");
+                        console.WriteLine("Unrecognized parameter \" " + nextArg + "\"");
                         commandArg = "";
                         exitCode = 1;
                         break;
@@ -190,7 +196,7 @@ namespace RepositoryTool
             {
                 if (recursive)
                 {
-                    WriteLine(Path.GetDirectoryName(manifestFilePath) + ":");
+                    console.WriteLine(Path.GetDirectoryName(manifestFilePath) + ":");
                 }
 
                 // Initialize the tool for this manifest
@@ -211,10 +217,8 @@ namespace RepositoryTool
                                 if (File.Exists(manifestFilePath))
                                 {
                                     doCreate = false;
-                                    Write("Replace existing manifest file? ");
-                                    String confirmString = Console.ReadLine();
-
-                                    doCreate = CheckConfirmString(confirmString);
+                                    console.Write("Replace existing manifest file? ");
+                                    doCreate = console.CheckConfirm();
                                 }
                             }
 
@@ -249,8 +253,8 @@ namespace RepositoryTool
                             }
                             catch (Exception ex)
                             {
-                                ReportException(ex);
-                                WriteLine("Could not read manifest.");
+                                console.ReportException(ex);
+                                console.WriteLine("Could not read manifest.");
                             }
 
                             if (tool.Manifest == null)
@@ -263,22 +267,22 @@ namespace RepositoryTool
 
                                 if (tool.MissingFiles.Count > 0)
                                 {
-                                    WriteLine(tool.MissingFiles.Count.ToString() + " files are missing.");
-                                    DetailFiles(tool.MissingFiles);
+                                    console.WriteLine(tool.MissingFiles.Count.ToString() + " files are missing.");
+                                    console.DetailFiles(tool.MissingFiles);
                                     different = true;
                                 }
 
                                 if (tool.ModifiedFiles.Count > 0)
                                 {
-                                    WriteLine(tool.ModifiedFiles.Count.ToString() + " files are different.");
-                                    DetailFiles(tool.ModifiedFiles);
+                                    console.WriteLine(tool.ModifiedFiles.Count.ToString() + " files are different.");
+                                    console.DetailFiles(tool.ModifiedFiles);
                                     different = true;
                                 }
 
                                 if (tool.NewFiles.Count > 0)
                                 {
-                                    WriteLine(tool.NewFiles.Count.ToString() + " files are new.");
-                                    DetailFiles(tool.NewFiles);
+                                    console.WriteLine(tool.NewFiles.Count.ToString() + " files are new.");
+                                    console.DetailFiles(tool.NewFiles);
 
                                     if (ignoreNew == false)
                                     {
@@ -288,8 +292,8 @@ namespace RepositoryTool
 
                                 if (tool.DateModifiedFiles.Count > 0)
                                 {
-                                    WriteLine(tool.DateModifiedFiles.Count.ToString() + " file dates are modified.");
-                                    DetailFiles(tool.DateModifiedFiles);
+                                    console.WriteLine(tool.DateModifiedFiles.Count.ToString() + " file dates are modified.");
+                                    console.DetailFiles(tool.DateModifiedFiles);
 
                                     if (ignoreDate == false)
                                     {
@@ -299,47 +303,53 @@ namespace RepositoryTool
 
                                 if (tool.ErrorFiles.Count > 0)
                                 {
-                                    WriteLine(tool.ErrorFiles.Count.ToString() + " files have errors.");
-                                    DetailFiles(tool.ErrorFiles);
+                                    console.WriteLine(tool.ErrorFiles.Count.ToString() + " files have errors.");
+                                    console.DetailFiles(tool.ErrorFiles);
                                     different = true;
                                 }
 
                                 if (tool.MovedFiles.Count > 0)
                                 {
-                                    WriteLine(tool.MovedFiles.Count.ToString() + " files were moved.");
-                                    DetailFiles(tool.MovedFileOrder, tool.MovedFiles);
+                                    console.WriteLine(tool.MovedFiles.Count.ToString() + " files were moved.");
+                                    console.DetailFiles(tool.MovedFileOrder, tool.MovedFiles);
                                     different = true;
+                                }
+
+                                if (tool.DuplicateFiles.Keys.Count > 0)
+                                {
+                                    console.WriteLine(tool.DuplicateFiles.Keys.Count.ToString() + " file hashes were duplicates.");
+                                    console.DetailFiles(tool.DuplicateFiles);
                                 }
 
                                 if (tool.NewlyIgnoredFiles.Count > 0)
                                 {
-                                    WriteLine(tool.NewlyIgnoredFiles.Count.ToString() + " files are newly ignored.");
-                                    DetailFiles(tool.NewlyIgnoredFiles);
+                                    console.WriteLine(tool.NewlyIgnoredFiles.Count.ToString() + " files are newly ignored.");
+                                    console.DetailFiles(tool.NewlyIgnoredFiles);
                                 }
 
                                 if (tool.IgnoredFiles.Count > 1)
                                 {
-                                    WriteLine(tool.IgnoredFiles.Count.ToString() + " files were ignored.");
+                                    console.WriteLine(tool.IgnoredFiles.Count.ToString() + " files were ignored.");
 
                                     if (all == true)
                                     {
-                                        DetailFiles(tool.IgnoredFiles);
+                                        console.DetailFiles(tool.IgnoredFiles);
                                     }
                                 }
 
 
-                                WriteLine(tool.FileCheckedCount.ToString() + " files were checked.");
+                                console.WriteLine(tool.FileCheckedCount.ToString() + " files were checked.");
 
                                 if (commandArg == "validate")
                                 {
                                     if (different)
                                     {
-                                        WriteLine("Problems found.");
+                                        console.WriteLine("Problems found.");
                                         exitCode = 1;
                                     }
                                     else
                                     {
-                                        WriteLine("No problems.");
+                                        console.WriteLine("No problems.");
                                     }
                                 }
                             }
@@ -354,8 +364,8 @@ namespace RepositoryTool
                         }
                         catch (Exception ex)
                         {
-                            ReportException(ex);
-                            WriteLine("Could not read manifest.");
+                            console.ReportException(ex);
+                            console.WriteLine("Could not read manifest.");
                         }
 
                         if (tool.Manifest != null)
@@ -364,13 +374,11 @@ namespace RepositoryTool
 
                             if (force == false)
                             {
-                                Write("Clear " +
+                                console.Write("Clear " +
                                     tool.Manifest.CountFiles().ToString() +
                                     " files from the manifest? ");
 
-                                String confirmString = Console.ReadLine();
-
-                                doClear = CheckConfirmString(confirmString);
+                                doClear = console.CheckConfirm();
                             }
 
                             if (doClear == true)
@@ -396,8 +404,8 @@ namespace RepositoryTool
                         }
                         catch (Exception ex)
                         {
-                            ReportException(ex);
-                            WriteLine("Could not read manifest.");
+                            console.ReportException(ex);
+                            console.WriteLine("Could not read manifest.");
                         }
 
                         if (tool.Manifest == null)
@@ -408,57 +416,52 @@ namespace RepositoryTool
                         {
                             if (tool.Manifest.Name != null)
                             {
-                                WriteLine("Name:                  " + tool.Manifest.Name);
+                                console.WriteLine("Name:                  " + tool.Manifest.Name);
                             }
 
-                            WriteLine("GUID:                  " + tool.Manifest.Guid.ToString());
+                            console.WriteLine("GUID:                  " + tool.Manifest.Guid.ToString());
 
                             if (tool.Manifest.DefaultHashMethod != null)
                             {
-                                WriteLine("Default hash method:   " + tool.Manifest.DefaultHashMethod);
+                                console.WriteLine("Default hash method:   " + tool.Manifest.DefaultHashMethod);
                             }
 
-                            WriteLine("Date of creation:      " +
+                            console.WriteLine("Date of creation:      " +
                                 (tool.Manifest.InceptionDateUtc.ToLocalTime()).ToString());
 
-                            WriteLine("Date of last update:   " +
+                            console.WriteLine("Date of last update:   " +
                                 (tool.Manifest.LastUpdateDateUtc.ToLocalTime()).ToString());
 
                             NumberFormatInfo nfi = new CultureInfo("en-US", false).NumberFormat;
                             nfi.NumberDecimalDigits = 0;
 
 
-                            WriteLine("Total number of files: " + tool.Manifest.CountFiles().ToString("N", nfi));
-                            WriteLine("Total number of bytes: " + tool.Manifest.CountBytes().ToString("N", nfi));
-                            WriteLine("Ignoring these file patterns:");
+                            console.WriteLine("Total number of files: " + tool.Manifest.CountFiles().ToString("N", nfi));
+                            console.WriteLine("Total number of bytes: " + tool.Manifest.CountBytes().ToString("N", nfi));
+                            console.WriteLine("Ignoring these file patterns:");
                             if (tool.Manifest.IgnoreList.Count > 0)
                             {
                                 foreach (String nextIgnore in tool.Manifest.IgnoreList)
                                 {
-                                    WriteLine("   " + nextIgnore);
+                                    console.WriteLine("   " + nextIgnore);
                                 }
                             }
                         }
 
                         if (tool.Manifest.Description != null)
                         {
-                            WriteLine();
-                            WriteLine("Description: ");
-                            WriteLine(tool.Manifest.Description);
+                            console.WriteLine();
+                            console.WriteLine("Description: ");
+                            console.WriteLine(tool.Manifest.Description);
                         }
 
                         break;
 
                     case "help":
-                        Write(Properties.Resources.RepositoryToolHelp);
+                        console.Write(Properties.Resources.RepositoryToolHelp);
                         break;
 
                     case "":
-                        break;
-
-                    default:
-                        WriteLine("Unrecognized command \"" + commandArg + "\"");
-                        exitCode = 1;
                         break;
                 }
 
@@ -527,8 +530,8 @@ namespace RepositoryTool
                                 }
                                 catch (Exception ex)
                                 {
-                                    ReportException(ex);
-                                    WriteLine("Could not write manifest.");
+                                    console.ReportException(ex);
+                                    console.WriteLine("Could not write manifest.");
                                     exitCode = 1;
                                 }
                             }
@@ -543,13 +546,11 @@ namespace RepositoryTool
 
                             if (force == false)
                             {
-                                Write("Delete " +
+                                console.Write("Delete " +
                                     tool.NewFilesForGroom.Count.ToString() +
                                     " new files? ");
 
-                                String confirmString = Console.ReadLine();
-
-                                doGroom = CheckConfirmString(confirmString);
+                                doGroom = console.CheckConfirm();
                             }
 
                             if (doGroom == true)
@@ -567,13 +568,11 @@ namespace RepositoryTool
 
                             if (force == false)
                             {
-                                Write("Delete " +
+                                console.Write("Delete " +
                                     tool.IgnoredFilesForGroom.Count.ToString() +
                                     " ignored files? ");
 
-                                String confirmString = Console.ReadLine();
-
-                                doGroomAll = CheckConfirmString(confirmString);
+                                doGroomAll = console.CheckConfirm();
                             }
 
                             if (doGroomAll == true)
@@ -590,13 +589,13 @@ namespace RepositoryTool
 
                 if (recursive)
                 {
-                    WriteLine();
+                    console.WriteLine();
                 }
             }
 
             if (time)
             {
-                WriteLine("Duration: " + (DateTime.Now - startTime).ToString());
+                console.WriteLine("Duration: " + (DateTime.Now - startTime).ToString());
             }
 
             Environment.Exit(exitCode);
@@ -605,87 +604,7 @@ namespace RepositoryTool
 
 
         // Helper methods
-        static bool silent = false;
-        static bool detail = false;
-
-        static void Write(String message)
-        {
-            if (silent == false)
-            {
-                Console.Write(message);
-            }
-        }
-
-        static void WriteLine(String message)
-        {
-            Write(message + "\r\n");
-        }
-
-        static void WriteLine()
-        {
-            WriteLine("");
-        }
-
-        static void ReportException(Exception ex)
-        {
-            WriteLine(ex.GetType().ToString() + ": " + ex.Message);
-        }
-
-        static bool CheckConfirmString(String confirmString)
-        {
-            if (confirmString.StartsWith("y") ||
-                confirmString.StartsWith("Y"))
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        static void DetailFiles(List<ManifestFileInfo> files)
-        {
-            if (detail)
-            {
-                foreach (ManifestFileInfo nextManFileInfo in files)
-                {
-                    WriteLine("   " + Manifest.MakeStandardPathString(nextManFileInfo));
-                }
-
-                WriteLine();
-            }
-        }
-
-        static void DetailFiles(
-            List<HashWrapper> movedFileOrder,
-            Dictionary<HashWrapper, MovedFileSet> movedFileSets)
-        {
-            if (detail)
-            {
-                foreach (HashWrapper nextHash in movedFileOrder)
-                {
-                    Write(" ");
-                    MovedFileSet nextFileSet = movedFileSets[nextHash];
-
-                    foreach (ManifestFileInfo nextOldFile in nextFileSet.OldFiles)
-                    {
-                        Write(Manifest.MakeStandardPathString(nextOldFile));
-                        Write(" ");
-                    }
-
-                    Write("->");
-
-                    foreach (ManifestFileInfo nextNewFile in nextFileSet.NewFiles)
-                    {
-                        Write(" ");
-                        Write(Manifest.MakeStandardPathString(nextNewFile));
-                    }
-                    WriteLine();
-                }
-
-                WriteLine();
-            }
-        }
-
+        
         static void FindManifests(
             DirectoryInfo nextDirectory,
             List<String> filePaths)

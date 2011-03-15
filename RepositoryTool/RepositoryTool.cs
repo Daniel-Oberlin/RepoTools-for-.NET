@@ -8,6 +8,7 @@ using System.Security.Cryptography;
 using System.Text;
 
 using RepositoryManifest;
+using Utilities;
 
 
 namespace RepositoryTool
@@ -18,11 +19,15 @@ namespace RepositoryTool
     {
         public RepositoryTool()
         {
+            FileCheckedCount = 0;
+
             ShowProgress = false;
             Update = false;
             AlwaysCheckHash = false;
-            NewHash = false;
+            MakeNewHash = false;
             BackDate = false;
+            TrackMoves = false;
+            TrackDuplicates = false;
 
             NewFiles = new List<ManifestFileInfo>();
             NewFilesForGroom = new List<FileInfo>();
@@ -33,10 +38,9 @@ namespace RepositoryTool
             IgnoredFiles = new List<ManifestFileInfo>();
             NewlyIgnoredFiles = new List<ManifestFileInfo>();
             IgnoredFilesForGroom = new List<FileInfo>();
-            MovedFiles = new Dictionary<HashWrapper,MovedFileSet>();
-            MovedFileOrder = new List<HashWrapper>();
-
-            Clear();
+            MovedFiles = new Dictionary<FileHash,MovedFileSet>();
+            MovedFileOrder = new List<FileHash>();
+            DuplicateFiles = new Dictionary<FileHash, List<ManifestFileInfo>>();
         }
 
         public void Clear()
@@ -54,6 +58,7 @@ namespace RepositoryTool
             IgnoredFilesForGroom.Clear();
             MovedFiles.Clear();
             MovedFileOrder.Clear();
+            DuplicateFiles.Clear();
         }
 
         public void DoUpdate()
@@ -64,9 +69,14 @@ namespace RepositoryTool
                 RootDirectory,
                 Manifest.RootDirectory);
 
-            if (CheckMoves == true)
+            if (TrackMoves == true)
             {
-                DoCheckMoves();
+                DoTrackMoves();
+            }
+
+            if (TrackDuplicates == true)
+            {
+                DoTrackDuplicates();
             }
 
             Manifest.LastUpdateDateUtc =
@@ -103,12 +113,12 @@ namespace RepositoryTool
                 }
             }
 
-
-            // Iterate through existing manifest entries
-            List<ManifestFileInfo> listClone =
+            // Clone in case we modify during iteration
+            List<ManifestFileInfo> fileListClone =
                 new List<ManifestFileInfo>(currentManfestDirInfo.Files.Values);
 
-            foreach (ManifestFileInfo nextManFileInfo in listClone)
+            // Iterate through existing manifest entries
+            foreach (ManifestFileInfo nextManFileInfo in fileListClone)
             {
                 if (ShowProgress)
                 {
@@ -143,21 +153,24 @@ namespace RepositoryTool
                     {
                         byte[] checkHash = null;
 
+                        Exception exception = null;
                         try
                         {
                             checkHash = ComputeHash(
                                 nextFileInfo,
                                 nextManFileInfo.HashType);
                         }
-                        catch (Exception)
+                        catch (Exception ex)
                         {
-                            // TODO: More detail?
+                            exception = ex;
                         }
 
-                        if (checkHash == null)
+                        if (exception != null)
                         {
-                            Write(" [ERROR]");
+                            WriteLine(" [ERROR]");
                             ErrorFiles.Add(nextManFileInfo);
+
+                            Write(exception.ToString());
                         }
                         else if (CompareHash(checkHash, nextManFileInfo.Hash) == false)
                         {
@@ -179,7 +192,7 @@ namespace RepositoryTool
                         byte[] newHash = checkHash;
                         string newHashType = nextManFileInfo.HashType;
 
-                        if (NewHash)
+                        if (MakeNewHash)
                         {
                             newHashType = GetNewHashType(Manifest);
 
@@ -188,6 +201,7 @@ namespace RepositoryTool
                                 newHashType);
                         }
 
+                        // Update hash and last modified date accordingly
                         nextManFileInfo.Hash = newHash;
                         nextManFileInfo.HashType = newHashType;
 
@@ -209,8 +223,13 @@ namespace RepositoryTool
                 WriteLine("");
             }
 
+            // Clone in case we modify during iteration
+            List<ManifestDirectoryInfo> directoryListClone =
+                new List<ManifestDirectoryInfo>(
+                    currentManfestDirInfo.Subdirectories.Values);
+
             foreach (ManifestDirectoryInfo nextManDirInfo in
-                currentManfestDirInfo.Subdirectories.Values)
+                directoryListClone)
             {
                 DirectoryInfo nextDirInfo = null;
                 if (dirDict.ContainsKey(nextManDirInfo.Name))
@@ -221,6 +240,12 @@ namespace RepositoryTool
                 UpdateRecursive(
                     nextDirInfo,
                     nextManDirInfo);
+
+                if (nextManDirInfo.Empty)
+                {
+                    currentManfestDirInfo.Subdirectories.Remove(
+                        nextManDirInfo.Name);
+                }
             }
 
 
@@ -254,11 +279,15 @@ namespace RepositoryTool
                         FileCheckedCount++;
 
                         bool checkHash = false;
-                        if (Update == true || AlwaysCheckHash == true || CheckMoves == true)
+                        if (Update == true ||
+                            AlwaysCheckHash == true ||
+                            TrackMoves == true)
                         {
                             checkHash = true;
                         }
 
+                        
+                        Exception exception = null;
                         if (checkHash)
                         {
                             try
@@ -269,16 +298,18 @@ namespace RepositoryTool
                                 newManFileInfo.HashType =
                                     GetNewHashType(Manifest);
                             }
-                            catch (Exception)
+                            catch (Exception ex)
                             {
-                                // TODO: More detail?
+                                exception = ex;
                             }
                         }
 
                         if (checkHash && newManFileInfo.Hash == null)
                         {
+                            WriteLine(" [ERROR]");
                             ErrorFiles.Add(newManFileInfo);
-                            Write(" [ERROR]");
+
+                            Write(exception.ToString());
                         }
                         else
                         {
@@ -319,11 +350,17 @@ namespace RepositoryTool
                     UpdateRecursive(
                         nextDirInfo,
                         nextManDirInfo);
+
+                    if (nextManDirInfo.Empty)
+                    {
+                        currentManfestDirInfo.Subdirectories.Remove(
+                            nextManDirInfo.Name);
+                    }
                 }
             }
         }
 
-        protected void DoCheckMoves()
+        protected void DoTrackMoves()
         {
             // For large number of moved files it's probably faster to
             // rebuild these lists from scratch than to remove many
@@ -354,8 +391,8 @@ namespace RepositoryTool
 
             foreach (ManifestFileInfo checkMissingFile in MissingFiles)
             {
-                HashWrapper wrapper =
-                    new HashWrapper(checkMissingFile.Hash);
+                FileHash wrapper =
+                    new FileHash(checkMissingFile.Hash);
 
                 if (newFileDict.Dict.ContainsKey(wrapper))
                 {
@@ -409,6 +446,57 @@ namespace RepositoryTool
             // Replace with updated lists
             MissingFiles = missingFilesUpdated;
             NewFiles = newFilesUpdated;
+        }
+
+        protected void DoTrackDuplicates()
+        {
+            DuplicateFiles.Clear();
+
+            Dictionary<FileHash, List<ManifestFileInfo>> fileDict =
+                new Dictionary<FileHash, List<ManifestFileInfo>>();
+
+            CheckDuplicatesRecursive(
+                Manifest.RootDirectory,
+                fileDict);
+
+            foreach (FileHash nextHash in fileDict.Keys)
+            {
+                List<ManifestFileInfo> nextList =
+                    fileDict[nextHash];
+
+                if (nextList.Count > 1)
+                {
+                    DuplicateFiles.Add(nextHash, nextList);
+                }
+            }
+        }
+
+        protected void CheckDuplicatesRecursive(
+            ManifestDirectoryInfo currentDirectory,
+            Dictionary<FileHash, List<ManifestFileInfo>> fileDict)
+        {
+            foreach (ManifestFileInfo nextFileInfo in
+                currentDirectory.Files.Values)
+            {
+                FileHash hashWrapper = new FileHash(nextFileInfo.Hash);
+
+                if (fileDict.ContainsKey(hashWrapper) == false)
+                {
+                    fileDict.Add(
+                        hashWrapper,
+                        new List<ManifestFileInfo>());
+                }
+
+                fileDict[hashWrapper].Add(nextFileInfo);
+            }
+
+            foreach (ManifestDirectoryInfo nextDirInfo in
+                currentDirectory.Subdirectories.Values)
+            {
+                CheckDuplicatesRecursive(
+                    nextDirInfo,
+                    fileDict);
+            }
         }
 
 
@@ -552,9 +640,10 @@ namespace RepositoryTool
         public bool ShowProgress { set; get; }
         public bool Update { set; get; }
         public bool AlwaysCheckHash { set; get; }
-        public bool NewHash { set; get; }
+        public bool MakeNewHash { set; get; }
         public bool BackDate { set; get; }
-        public bool CheckMoves { set; get; }
+        public bool TrackMoves { set; get; }
+        public bool TrackDuplicates { set; get; }
 
         public int FileCheckedCount { private set; get; }
 
@@ -568,12 +657,12 @@ namespace RepositoryTool
         public List<ManifestFileInfo> IgnoredFiles { private set; get; }
         public List<ManifestFileInfo> NewlyIgnoredFiles { private set; get; }
         public List<FileInfo> IgnoredFilesForGroom { private set; get; }
-        public Dictionary<HashWrapper, MovedFileSet> MovedFiles { private set; get; }
-        public List<HashWrapper> MovedFileOrder { private set; get; }
+        public Dictionary<FileHash, MovedFileSet> MovedFiles { private set; get; }
+        public List<FileHash> MovedFileOrder { private set; get; }
+        public Dictionary<FileHash, List<ManifestFileInfo>> DuplicateFiles { private set; get; }
 
 
         // Static
-
 
         public static String ManifestFileName;
         public static String ManifestNativeFilePath;
@@ -596,89 +685,5 @@ namespace RepositoryTool
             PrototypeManifestFileName = ".manifestPrototype";
             NewHashType = "MD5";
         }
-    }
-
-
-
-    public class HashWrapper
-    {
-        public HashWrapper(byte[] hash)
-        {
-            Hash = hash;
-
-            for (int i = 0; i < 4; i++)
-            {
-                myHash <<= 8;
-                myHash |= hash[i];
-            }
-        }
-
-        public override int GetHashCode()
-        {
-            return myHash;
-        }
-
-        public override bool Equals(object obj)
-        {
-            if (obj is HashWrapper)
-            {
-                HashWrapper other = (HashWrapper)obj;
-
-                if (other.Hash.Length != Hash.Length)
-                {
-                    return false;
-                }
-
-                for (int i = 0; i < Hash.Length; i++)
-                {
-                    if (other.Hash[i] != Hash[i])
-                    {
-                        return false;
-                    }
-                }
-
-                return true;
-            }
-
-            return false;
-        }
-
-        public byte[] Hash { private set; get; }
-
-        private int myHash;
-    }
-
-    public class HashFileDict
-    {
-        public HashFileDict()
-        {
-            Dict = new Dictionary<HashWrapper,List<ManifestFileInfo>>();
-        }
-
-        public void Add(ManifestFileInfo manFileInfo)
-        {
-            HashWrapper hash = new HashWrapper(manFileInfo.Hash);
-
-            if (Dict.ContainsKey(hash) == false)
-            {
-                Dict.Add(hash, new List<ManifestFileInfo>());
-            }
-
-            Dict[hash].Add(manFileInfo);
-        }
-
-        public Dictionary<HashWrapper, List<ManifestFileInfo>> Dict { private set; get; }
-    }
-
-    public class MovedFileSet
-    {
-        public MovedFileSet()
-        {
-            OldFiles = new List<ManifestFileInfo>();
-            NewFiles = new List<ManifestFileInfo>();
-        }
-
-        public List<ManifestFileInfo> OldFiles { private set; get; }
-        public List<ManifestFileInfo> NewFiles { private set; get; }
     }
 }

@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RepositoryTool", "Repositor
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RepositorySync", "RepositorySync\RepositorySync.csproj", "{B943150D-9520-4FDB-A0CB-6954AE298CFA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Utilities", "Utilities\Utilities.csproj", "{544F2895-5BCE-4325-8F79-E6552AAF50F6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -50,6 +52,16 @@ Global
 		{B943150D-9520-4FDB-A0CB-6954AE298CFA}.Release|Mixed Platforms.Build.0 = Release|x86
 		{B943150D-9520-4FDB-A0CB-6954AE298CFA}.Release|x86.ActiveCfg = Release|x86
 		{B943150D-9520-4FDB-A0CB-6954AE298CFA}.Release|x86.Build.0 = Release|x86
+		{544F2895-5BCE-4325-8F79-E6552AAF50F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{544F2895-5BCE-4325-8F79-E6552AAF50F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{544F2895-5BCE-4325-8F79-E6552AAF50F6}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{544F2895-5BCE-4325-8F79-E6552AAF50F6}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{544F2895-5BCE-4325-8F79-E6552AAF50F6}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{544F2895-5BCE-4325-8F79-E6552AAF50F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{544F2895-5BCE-4325-8F79-E6552AAF50F6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{544F2895-5BCE-4325-8F79-E6552AAF50F6}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{544F2895-5BCE-4325-8F79-E6552AAF50F6}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{544F2895-5BCE-4325-8F79-E6552AAF50F6}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

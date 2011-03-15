@@ -1,0 +1,3 @@
+#!/bin/sh
+/usr/bin/mono /Users/doberlin/Dropbox/Personal/bin/rs.exe "$@"
+

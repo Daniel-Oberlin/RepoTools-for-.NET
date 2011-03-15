@@ -84,11 +84,16 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="RepositorySync.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\RepositoryManifest\RepositoryManifest.csproj">
       <Project>{6ED3D09D-916A-4030-B61F-2F16E0B12144}</Project>
       <Name>RepositoryManifest</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Utilities\Utilities.csproj">
+      <Project>{544F2895-5BCE-4325-8F79-E6552AAF50F6}</Project>
+      <Name>Utilities</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
@@ -101,6 +106,9 @@
     <None Include="RepositorySyncHelp.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>copy RepositorySync.exe rs.exe</PostBuildEvent>
+  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
