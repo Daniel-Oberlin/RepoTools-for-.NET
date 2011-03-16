@@ -5,18 +5,15 @@ rt:
 	Ability to check a single file or directory
 	Don't change root directory when specifying manifest
 	-deep option for -recursive, or -deepRecursive
-	*Automatically remove empty directories from manifest
-	*Find duplicates
 	Ability to show file checksums
-	Add date of last modification of manifest information
-	Move from byte array to hash class in manifest
+	*Add date of last modification of manifest information
+	*Move from byte array to hash class in manifest
 	Search upwards for manifest to allow narrow update, validate, etc.
+	Utilize manifest information modified date
+	Remove deprecated fields from ManifestFileInfo
 
 
 rs:
-	diff
-		Moved files.
-
 	update
 	sync
 	mirror

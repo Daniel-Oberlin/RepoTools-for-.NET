@@ -151,14 +151,14 @@ namespace RepositoryTool
                         nextFileInfo.LastWriteTimeUtc != nextManFileInfo.LastModifiedUtc ||
                         nextFileInfo.Length != nextManFileInfo.FileLength)
                     {
-                        byte[] checkHash = null;
+                        FileHash checkHash = null;
 
                         Exception exception = null;
                         try
                         {
                             checkHash = ComputeHash(
                                 nextFileInfo,
-                                nextManFileInfo.HashType);
+                                nextManFileInfo.FileHash.HashType);
                         }
                         catch (Exception ex)
                         {
@@ -172,7 +172,7 @@ namespace RepositoryTool
 
                             Write(exception.ToString());
                         }
-                        else if (CompareHash(checkHash, nextManFileInfo.Hash) == false)
+                        else if (checkHash.Equals(nextManFileInfo.FileHash) == false)
                         {
                             Write(" [DIFFERENT]");
                             ModifiedFiles.Add(nextManFileInfo);
@@ -189,21 +189,16 @@ namespace RepositoryTool
                             }
                         }
 
-                        byte[] newHash = checkHash;
-                        string newHashType = nextManFileInfo.HashType;
-
+                        FileHash newHash = checkHash;
                         if (MakeNewHash)
                         {
-                            newHashType = GetNewHashType(Manifest);
-
                             checkHash = ComputeHash(
                                 nextFileInfo,
-                                newHashType);
+                                GetNewHashType(Manifest));
                         }
 
                         // Update hash and last modified date accordingly
-                        nextManFileInfo.Hash = newHash;
-                        nextManFileInfo.HashType = newHashType;
+                        nextManFileInfo.FileHash = newHash;
 
                         nextManFileInfo.LastModifiedUtc = nextFileInfo.LastWriteTimeUtc;
                         nextManFileInfo.FileLength = nextFileInfo.Length;
@@ -292,11 +287,8 @@ namespace RepositoryTool
                         {
                             try
                             {
-                                newManFileInfo.Hash =
+                                newManFileInfo.FileHash =
                                     ComputeHash(nextFileInfo, NewHashType);
-
-                                newManFileInfo.HashType =
-                                    GetNewHashType(Manifest);
                             }
                             catch (Exception ex)
                             {
@@ -304,7 +296,7 @@ namespace RepositoryTool
                             }
                         }
 
-                        if (checkHash && newManFileInfo.Hash == null)
+                        if (checkHash && newManFileInfo.FileHash == null)
                         {
                             WriteLine(" [ERROR]");
                             ErrorFiles.Add(newManFileInfo);
@@ -391,28 +383,26 @@ namespace RepositoryTool
 
             foreach (ManifestFileInfo checkMissingFile in MissingFiles)
             {
-                FileHash wrapper =
-                    new FileHash(checkMissingFile.Hash);
-
-                if (newFileDict.Dict.ContainsKey(wrapper))
+                if (newFileDict.Dict.ContainsKey(checkMissingFile.FileHash))
                 {
-                    if (MovedFiles.ContainsKey(wrapper) == false)
+                    if (MovedFiles.ContainsKey(checkMissingFile.FileHash) == false)
                     {
                         MovedFiles.Add(
-                            wrapper,
+                            checkMissingFile.FileHash,
                             new MovedFileSet());
 
-                        MovedFileOrder.Add(wrapper);
+                        MovedFileOrder.Add(checkMissingFile.FileHash);
                     }
 
-                    MovedFiles[wrapper].OldFiles.Add(checkMissingFile);
+                    MovedFiles[checkMissingFile.FileHash].OldFiles.Add(checkMissingFile);
 
-                    if (MovedFiles[wrapper].NewFiles.Count == 0)
+                    if (MovedFiles[checkMissingFile.FileHash].NewFiles.Count == 0)
                     {
                         // First time only
-                        foreach (ManifestFileInfo nextNewFile in newFileDict.Dict[wrapper])
+                        foreach (ManifestFileInfo nextNewFile in
+                            newFileDict.Dict[checkMissingFile.FileHash])
                         {
-                            MovedFiles[wrapper].NewFiles.Add(nextNewFile);
+                            MovedFiles[checkMissingFile.FileHash].NewFiles.Add(nextNewFile);
 
                             // Remember for later rebuild
                             movedFiles.Add(nextNewFile);
@@ -478,16 +468,14 @@ namespace RepositoryTool
             foreach (ManifestFileInfo nextFileInfo in
                 currentDirectory.Files.Values)
             {
-                FileHash hashWrapper = new FileHash(nextFileInfo.Hash);
-
-                if (fileDict.ContainsKey(hashWrapper) == false)
+                if (fileDict.ContainsKey(nextFileInfo.FileHash) == false)
                 {
                     fileDict.Add(
-                        hashWrapper,
+                        nextFileInfo.FileHash,
                         new List<ManifestFileInfo>());
                 }
 
-                fileDict[hashWrapper].Add(nextFileInfo);
+                fileDict[nextFileInfo.FileHash].Add(nextFileInfo);
             }
 
             foreach (ManifestDirectoryInfo nextDirInfo in
@@ -563,7 +551,7 @@ namespace RepositoryTool
             return NewHashType;
         }
 
-        protected byte[] ComputeHash(
+        protected FileHash ComputeHash(
             FileInfo file,
             string hashType)
         {
@@ -588,30 +576,7 @@ namespace RepositoryTool
 
             fileStream.Close();
 
-            return hash;
-        }
-
-        protected bool CompareHash(byte[] hash1, byte[] hash2)
-        {
-            if (hash1 == null || hash2 == null)
-            {
-                return false;
-            }
-
-            if (hash1.Length != hash2.Length)
-            {
-                return false;
-            }
-
-            for (int i = 0; i < hash1.Length; i++ )
-            {
-                if (hash1[i] != hash2[i])
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            return new FileHash(hash, hashType);
         }
 
         protected bool IgnoreFile(String fileName)

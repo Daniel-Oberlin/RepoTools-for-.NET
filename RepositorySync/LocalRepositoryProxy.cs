@@ -149,8 +149,7 @@ namespace RepositorySync
             String copyFilePath =
                 Path.Combine(
                     copyToDirectory.FullName,
-                    Manifest.MakeHashString(
-                        copyFile.Hash));
+                    copyFile.FileHash.ToString());
 
             File.Copy(originalFilePath, copyFilePath);
 

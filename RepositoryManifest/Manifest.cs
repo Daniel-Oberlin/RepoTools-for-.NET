@@ -45,6 +45,7 @@ namespace RepositoryManifest
             Description = original.Description;
             InceptionDateUtc = original.InceptionDateUtc;
             LastUpdateDateUtc = original.LastUpdateDateUtc;
+            ManifestInfoLastModifiedUtc = original.ManifestInfoLastModifiedUtc;
             IgnoreList = new List<string>(original.IgnoreList);
             DefaultHashMethod = original.DefaultHashMethod;
         }
@@ -101,6 +102,12 @@ namespace RepositoryManifest
         public DateTime LastUpdateDateUtc { set; get; }
 
         /// <summary>
+        /// The last time that the manifest information - name, description,
+        /// ignores, etc. - was modified.
+        /// </summary>
+        public DateTime ManifestInfoLastModifiedUtc { set; get; }
+
+        /// <summary>
         /// A list of regular expressions for filenames to ignore
         /// </summary>
         public List<String> IgnoreList { private set; get; }
@@ -138,6 +145,8 @@ namespace RepositoryManifest
             {
                 fileStream.Close();
             }
+
+            manifest.DoAnyUpgradeMaintenance();
 
             return manifest;
         }
@@ -309,6 +318,50 @@ namespace RepositoryManifest
             return byteCount;
         }
 
+        protected void DoAnyUpgradeMaintenance()
+        {
+            // Move from using byte array to FileHash class
+            Stack<ManifestDirectoryInfo> dirStack =
+                new Stack<ManifestDirectoryInfo>();
+
+            dirStack.Push(RootDirectory);
+
+            bool upgraded = false;
+            while (dirStack.Count > 0)
+            {
+                ManifestDirectoryInfo currentDir =
+                    dirStack.Pop();
+
+                foreach (ManifestFileInfo nextFileInfo in
+                    currentDir.Files.Values)
+                {
+                    if (nextFileInfo.FileHash == null)
+                    {
+                        nextFileInfo.FileHash =
+                            new FileHash(
+                                nextFileInfo.Hash,
+                                nextFileInfo.HashType);
+
+                        nextFileInfo.Hash = null;
+                        nextFileInfo.HashType = null;
+
+                        upgraded = true;
+                    }
+                }
+
+                foreach (ManifestDirectoryInfo nextDir in
+                    currentDir.Subdirectories.Values)
+                {
+                    dirStack.Push(nextDir);
+                }
+            }
+
+            if (upgraded)
+            {
+                Console.WriteLine("Manifest upgraded.");
+            }
+        }
+
 
         // Static
 
@@ -405,26 +458,6 @@ namespace RepositoryManifest
             }
 
             return pathString;
-        }
-
-        /// <summary>
-        /// Make a hexadecimal string representing a hashcode
-        /// </summary>
-        /// <param name="hash">
-        /// The hashcode
-        /// </param>
-        /// <returns>
-        /// The string
-        /// </returns>
-        public static String MakeHashString(byte[] hash)
-        {
-            String hashString = "";
-            foreach (Byte nextByte in hash)
-            {
-                hashString += String.Format("{0,2:X2}", nextByte);
-            }
-
-            return hashString;
         }
     }
 }

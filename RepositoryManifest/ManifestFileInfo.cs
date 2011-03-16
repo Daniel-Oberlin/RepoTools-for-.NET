@@ -25,7 +25,9 @@ namespace RepositoryManifest
             ManifestDirectoryInfo parentDirectory) :
             base(name, parentDirectory)
         {
-            Hash = null;
+            Hash = null; // DEPRECATED
+
+            FileHash = null;
         }
 
         /// <summary>
@@ -44,7 +46,11 @@ namespace RepositoryManifest
         {
             FileLength = original.FileLength;
             LastModifiedUtc = original.LastModifiedUtc;
-            Hash = (byte[]) original.Hash.Clone();
+
+            // DEPRECATED
+            // Hash = (byte[]) original.Hash.Clone();
+
+            FileHash = original.FileHash;
         }
 
         /// <summary>
@@ -61,17 +67,17 @@ namespace RepositoryManifest
         /// The hash of the file data.
         /// *** DEPRECATED
         /// </summary>
-        public byte[] Hash { set; get; }
+        internal byte[] Hash { set; get; }
 
         /// <summary>
         /// The hash of the file data
-        /// *** TODO
         /// </summary>
-        //public FileHash FileHash { set; get; }
+        public FileHash FileHash { set; get; }
 
         /// <summary>
         /// The name of the hash algorithm used
+        /// *** DEPRECATED
         /// </summary>
-        public String HashType { set; get; }
+        internal String HashType { set; get; }
     }
 }

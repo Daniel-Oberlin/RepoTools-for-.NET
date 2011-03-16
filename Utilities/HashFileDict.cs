@@ -17,14 +17,12 @@ namespace Utilities
 
         public void Add(ManifestFileInfo manFileInfo)
         {
-            FileHash hash = new FileHash(manFileInfo.Hash);
-
-            if (Dict.ContainsKey(hash) == false)
+            if (Dict.ContainsKey(manFileInfo.FileHash) == false)
             {
-                Dict.Add(hash, new List<ManifestFileInfo>());
+                Dict.Add(manFileInfo.FileHash, new List<ManifestFileInfo>());
             }
 
-            Dict[hash].Add(manFileInfo);
+            Dict[manFileInfo.FileHash].Add(manFileInfo);
         }
 
         public Dictionary<FileHash, List<ManifestFileInfo>> Dict { private set; get; }

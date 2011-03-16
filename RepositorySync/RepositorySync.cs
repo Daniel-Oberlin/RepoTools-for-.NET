@@ -70,10 +70,7 @@ namespace RepositorySync
                     ManifestFileInfo destFile = destDir.Files[sourceFile.Name];
                     destFileMatch.Add(destFile);
 
-                    FileHash sourceHash = new FileHash(sourceFile.Hash);
-                    FileHash destHash = new FileHash(destFile.Hash);
-
-                    if (sourceHash.Equals(destHash) == false)
+                    if (sourceFile.FileHash.Equals(destFile.FileHash) == false)
                     {
                         ChangedFiles.Add(sourceFile);
                     }
@@ -160,28 +157,25 @@ namespace RepositorySync
 
             foreach (ManifestFileInfo checkSourceFile in SourceOnlyFiles)
             {
-                FileHash wrapper =
-                    new FileHash(checkSourceFile.Hash);
-
-                if (destFileDict.Dict.ContainsKey(wrapper))
+                if (destFileDict.Dict.ContainsKey(checkSourceFile.FileHash))
                 {
-                    if (MovedFiles.ContainsKey(wrapper) == false)
+                    if (MovedFiles.ContainsKey(checkSourceFile.FileHash) == false)
                     {
                         MovedFiles.Add(
-                            wrapper,
+                            checkSourceFile.FileHash,
                             new MovedFileSet());
 
-                        MovedFileOrder.Add(wrapper);
+                        MovedFileOrder.Add(checkSourceFile.FileHash);
                     }
 
-                    MovedFiles[wrapper].OldFiles.Add(checkSourceFile);
+                    MovedFiles[checkSourceFile.FileHash].OldFiles.Add(checkSourceFile);
 
-                    if (MovedFiles[wrapper].NewFiles.Count == 0)
+                    if (MovedFiles[checkSourceFile.FileHash].NewFiles.Count == 0)
                     {
                         // First time only
-                        foreach (ManifestFileInfo nextNewFile in destFileDict.Dict[wrapper])
+                        foreach (ManifestFileInfo nextNewFile in destFileDict.Dict[checkSourceFile.FileHash])
                         {
-                            MovedFiles[wrapper].NewFiles.Add(nextNewFile);
+                            MovedFiles[checkSourceFile.FileHash].NewFiles.Add(nextNewFile);
 
                             // Remember for later rebuild
                             movedFiles.Add(nextNewFile);
