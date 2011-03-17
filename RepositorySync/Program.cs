@@ -91,61 +91,7 @@ namespace RepositorySync
             switch (commandArg)
             {
                 case "diff":
-
-                    bool different = false;
-
-                    if (syncTool.SourceOnlyFiles.Count != 0)
-                    {
-                        console.WriteLine(
-                            syncTool.SourceOnlyFiles.Count.ToString() +
-                            " files are only in source.");
-
-                        console.DetailFiles(syncTool.SourceOnlyFiles);
-                        different = true;
-                    }
-
-                    if (syncTool.DestOnlyFiles.Count != 0)
-                    {
-                        console.WriteLine(
-                            syncTool.DestOnlyFiles.Count.ToString() +
-                            " files are only in destination.");
-
-                        console.DetailFiles(syncTool.DestOnlyFiles);
-                        different = true;
-                    }
-
-                    if (syncTool.ChangedFiles.Count != 0)
-                    {
-                        console.WriteLine(
-                            syncTool.ChangedFiles.Count.ToString() +
-                            " files are different.");
-
-                        console.DetailFiles(syncTool.ChangedFiles);
-                        different = true;
-                    }
-
-                    if (syncTool.DateChangedFiles.Count != 0)
-                    {
-                        console.WriteLine(
-                            syncTool.DateChangedFiles.Count.ToString() +
-                            " files have different dates.");
-
-                        console.DetailFiles(syncTool.DateChangedFiles);
-                        different = true;
-                    }
-
-                    if (syncTool.MovedFiles.Count > 0)
-                    {
-                        console.WriteLine(syncTool.MovedFiles.Count.ToString() + " files were moved.");
-                        console.DetailFiles(syncTool.MovedFileOrder, syncTool.MovedFiles);
-                        different = true;
-                    }
-
-                    if (different == false)
-                    {
-                        console.WriteLine("No differences.");
-                    }
-
+                    ShowDiff(syncTool, console);
                     break;
 
                 case "update":
@@ -160,6 +106,232 @@ namespace RepositorySync
             }
 
             Environment.Exit(exitCode);
+        }
+
+        static void ShowDiff(
+            RepositorySync syncTool,
+            Utilities.Console console)
+        {
+            bool different = false;
+
+            Manifest sourceMan = syncTool.SourceRep.Manifest;
+            Manifest destMan = syncTool.DestRep.Manifest;
+
+            if (sourceMan.Name != destMan.Name)
+            {
+                console.WriteLine("Manifest names are different.");
+                if (console.Detail)
+                {
+                    console.WriteLine(
+                        "   Source name: " +
+                        sourceMan.Name);
+
+                    console.WriteLine(
+                        "     Dest name: " +
+                        destMan.Name);
+
+                    console.WriteLine();
+                }
+                different = true;
+            }
+
+            if (sourceMan.Guid.Equals(destMan.Guid) == false)
+            {
+                console.WriteLine("Manifest GUIDs are different.");
+                if (console.Detail)
+                {
+                    console.WriteLine(
+                        "   Source GUID: " +
+                        sourceMan.Guid.ToString());
+
+                    console.WriteLine(
+                        "     Dest GUID: " +
+                        destMan.Guid.ToString());
+
+                    console.WriteLine();
+                }
+                different = true;
+            }
+
+            if (sourceMan.DefaultHashMethod != destMan.DefaultHashMethod)
+            {
+                console.WriteLine("Manifest default hash methods are different.");
+                if (console.Detail)
+                {
+                    console.WriteLine(
+                        "   Source method: " +
+                        sourceMan.DefaultHashMethod);
+
+                    console.WriteLine(
+                        "     Dest method: " +
+                        destMan.DefaultHashMethod);
+
+                    console.WriteLine();
+                }
+                different = true;
+            }
+
+            if (sourceMan.Description != destMan.Description)
+            {
+                console.WriteLine("Manifest descriptions are different.");
+                if (console.Detail)
+                {
+                    console.WriteLine("Source description:");
+                    console.WriteLine(sourceMan.Description);
+                    console.WriteLine();
+
+                    console.WriteLine("Dest description:");
+                    console.WriteLine(destMan.Description);
+                    console.WriteLine();
+                }
+                different = true;
+            }
+
+            if (sourceMan.InceptionDateUtc != destMan.InceptionDateUtc)
+            {
+                console.WriteLine("Manifest creation dates are different.");
+                if (console.Detail)
+                {
+                    console.WriteLine(
+                        "   Source date: " +
+                        sourceMan.InceptionDateUtc.ToLocalTime().ToString());
+
+                    console.WriteLine(
+                        "     Dest date: " +
+                        destMan.InceptionDateUtc.ToLocalTime().ToString());
+
+                    console.WriteLine();
+                }
+                different = true;
+            }
+
+            if (sourceMan.LastUpdateDateUtc != destMan.LastUpdateDateUtc)
+            {
+                console.WriteLine("Manifest last update dates are different.");
+                if (console.Detail)
+                {
+                    console.WriteLine(
+                        "   Source date: " +
+                        sourceMan.LastUpdateDateUtc.ToLocalTime().ToString());
+
+                    console.WriteLine(
+                        "     Dest date: " +
+                        destMan.LastUpdateDateUtc.ToLocalTime().ToString());
+
+                    console.WriteLine();
+                }
+                different = true;
+            }
+
+            if (sourceMan.ManifestInfoLastModifiedUtc !=
+                destMan.ManifestInfoLastModifiedUtc)
+            {
+                console.WriteLine("Last change to manifest information dates are different.");
+                if (console.Detail)
+                {
+                    console.WriteLine(
+                        "   Source date: " +
+                        sourceMan.ManifestInfoLastModifiedUtc.ToLocalTime().ToString());
+
+                    console.WriteLine(
+                        "     Dest date: " +
+                        destMan.ManifestInfoLastModifiedUtc.ToLocalTime().ToString());
+
+                    console.WriteLine();
+                }
+                different = true;
+            }
+
+            bool ignoreListDifferent = false;
+            if (sourceMan.IgnoreList.Count != destMan.IgnoreList.Count)
+            {
+                ignoreListDifferent = true;
+            }
+            else
+            {
+                for (int i = 0; i < sourceMan.IgnoreList.Count; i++)
+                {
+                    if (sourceMan.IgnoreList[i] != destMan.IgnoreList[i])
+                    {
+                        ignoreListDifferent = true;
+                        break;
+                    }
+                }
+            }
+
+            if (ignoreListDifferent)
+            {
+                console.WriteLine("Manifest ignore lists are different.");
+                if (console.Detail)
+                {
+                    console.WriteLine("Source list:");
+                    foreach (string ignoreString in sourceMan.IgnoreList)
+                    {
+                        console.WriteLine("   " + ignoreString);
+                    }
+                    console.WriteLine();
+
+                    console.WriteLine("Dest list: ");
+                    foreach (string ignoreString in destMan.IgnoreList)
+                    {
+                        console.WriteLine("   " + ignoreString);
+                    }
+                    console.WriteLine();
+                }
+                different = true;
+            }
+
+            if (syncTool.SourceOnlyFiles.Count != 0)
+            {
+                console.WriteLine(
+                    syncTool.SourceOnlyFiles.Count.ToString() +
+                    " files are only in source.");
+
+                console.DetailFiles(syncTool.SourceOnlyFiles);
+                different = true;
+            }
+
+            if (syncTool.DestOnlyFiles.Count != 0)
+            {
+                console.WriteLine(
+                    syncTool.DestOnlyFiles.Count.ToString() +
+                    " files are only in destination.");
+
+                console.DetailFiles(syncTool.DestOnlyFiles);
+                different = true;
+            }
+
+            if (syncTool.ChangedFiles.Count != 0)
+            {
+                console.WriteLine(
+                    syncTool.ChangedFiles.Count.ToString() +
+                    " files are different.");
+
+                console.DetailFiles(syncTool.ChangedFiles);
+                different = true;
+            }
+
+            if (syncTool.DateChangedFiles.Count != 0)
+            {
+                console.WriteLine(
+                    syncTool.DateChangedFiles.Count.ToString() +
+                    " files have different dates.");
+
+                console.DetailFiles(syncTool.DateChangedFiles);
+                different = true;
+            }
+
+            if (syncTool.MovedFiles.Count > 0)
+            {
+                console.WriteLine(syncTool.MovedFiles.Count.ToString() + " files were moved.");
+                console.DetailFiles(syncTool.MovedFileOrder, syncTool.MovedFiles);
+                different = true;
+            }
+
+            if (different == false)
+            {
+                console.WriteLine("No differences.");
+            }
         }
     }
 }

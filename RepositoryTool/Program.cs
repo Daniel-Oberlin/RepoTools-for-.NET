@@ -416,28 +416,31 @@ namespace RepositoryTool
                         {
                             if (tool.Manifest.Name != null)
                             {
-                                console.WriteLine("Name:                  " + tool.Manifest.Name);
+                                console.WriteLine("Name:                          " + tool.Manifest.Name);
                             }
 
-                            console.WriteLine("GUID:                  " + tool.Manifest.Guid.ToString());
+                            console.WriteLine("GUID:                          " + tool.Manifest.Guid.ToString());
 
                             if (tool.Manifest.DefaultHashMethod != null)
                             {
-                                console.WriteLine("Default hash method:   " + tool.Manifest.DefaultHashMethod);
+                                console.WriteLine("Default hash method:           " + tool.Manifest.DefaultHashMethod);
                             }
 
-                            console.WriteLine("Date of creation:      " +
+                            console.WriteLine("Date of creation:              " +
                                 (tool.Manifest.InceptionDateUtc.ToLocalTime()).ToString());
 
-                            console.WriteLine("Date of last update:   " +
+                            console.WriteLine("Date of last update:           " +
                                 (tool.Manifest.LastUpdateDateUtc.ToLocalTime()).ToString());
+
+                            console.WriteLine("Last change of manifest info:  " +
+                            (tool.Manifest.ManifestInfoLastModifiedUtc.ToLocalTime()).ToString());
 
                             NumberFormatInfo nfi = new CultureInfo("en-US", false).NumberFormat;
                             nfi.NumberDecimalDigits = 0;
 
 
-                            console.WriteLine("Total number of files: " + tool.Manifest.CountFiles().ToString("N", nfi));
-                            console.WriteLine("Total number of bytes: " + tool.Manifest.CountBytes().ToString("N", nfi));
+                            console.WriteLine("Total number of files:         " + tool.Manifest.CountFiles().ToString("N", nfi));
+                            console.WriteLine("Total number of bytes:         " + tool.Manifest.CountBytes().ToString("N", nfi));
                             console.WriteLine("Ignoring these file patterns:");
                             if (tool.Manifest.IgnoreList.Count > 0)
                             {
