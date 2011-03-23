@@ -16,10 +16,30 @@ COMMANDS:
     diff
         Show differences bewtween two repository manifests.
 
-    *update
-    *sync
-    *mirror
-    *repair
+    update
+        Update dest with anything new in source.  No changes to source.
+        For any files in source that aren't in dest, copy them to dest.
+        For any files in source and dest, copy any more recently modified
+        versions from source to dest, replacing the old versions in dest.
+        For any files in dest that were renamed or moved, propagate these
+        changes to dest.
+
+    sync
+        Update source and dest with anything new from the other side.
+        For any files in source that aren't in dest, copy them to dest.
+        For any files in dest that aren't in source, copy them to source.
+        For any files in source and dest, copy any more recently modified
+        versions so that both sides have the most recent version.
+        For any files that were renamed or moved, propagate these changes
+		to the other side.
+
+    mirror
+        Make dest match source, replacing or removing files in dest as
+        necessary.  No changes are made to source.
+
+    repair
+        TODO: Fix any corrupt files in dest with files from source where possible.
+
 
 OPTIONS:
 
@@ -29,5 +49,6 @@ OPTIONS:
     -detail
         List the actual files that are different - not just the counts.
 
-    *-bothWays
-        Also propage changes from desitination to source.
+    -preview
+        Show what would happen but don't change anything.
+

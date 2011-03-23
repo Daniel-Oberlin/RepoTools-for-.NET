@@ -71,6 +71,7 @@ namespace RepositoryTool
             bool force = false;
             bool ignoreDefault = false;
             bool recursive = false;
+            bool manifestInfoChanged = false;
 
             string repositoryName = null;
             string repositoryDescription = null;
@@ -272,10 +273,10 @@ namespace RepositoryTool
                                     different = true;
                                 }
 
-                                if (tool.ModifiedFiles.Count > 0)
+                                if (tool.ChangedFiles.Count > 0)
                                 {
-                                    console.WriteLine(tool.ModifiedFiles.Count.ToString() + " files are different.");
-                                    console.DetailFiles(tool.ModifiedFiles);
+                                    console.WriteLine(tool.ChangedFiles.Count.ToString() + " files have changed content.");
+                                    console.DetailFiles(tool.ChangedFiles);
                                     different = true;
                                 }
 
@@ -290,10 +291,21 @@ namespace RepositoryTool
                                     }
                                 }
 
-                                if (tool.DateModifiedFiles.Count > 0)
+                                if (tool.LastModifiedDateFiles.Count > 0)
                                 {
-                                    console.WriteLine(tool.DateModifiedFiles.Count.ToString() + " file dates are modified.");
-                                    console.DetailFiles(tool.DateModifiedFiles);
+                                    console.WriteLine(tool.LastModifiedDateFiles.Count.ToString() + " files have last-modified dates which are different.");
+                                    console.DetailFiles(tool.LastModifiedDateFiles);
+
+                                    if (ignoreDate == false)
+                                    {
+                                        different = true;
+                                    }
+                                }
+
+                                if (tool.CreationDateFiles.Count > 0)
+                                {
+                                    console.WriteLine(tool.CreationDateFiles.Count.ToString() + " files have creation dates which are different.");
+                                    console.DetailFiles(tool.CreationDateFiles);
 
                                     if (ignoreDate == false)
                                     {
@@ -480,16 +492,19 @@ namespace RepositoryTool
                             if (repositoryName != null)
                             {
                                 tool.Manifest.Name = repositoryName;
+                                manifestInfoChanged = true;
                             }
 
                             if (repositoryDescription != null)
                             {
                                 tool.Manifest.Description = repositoryDescription;
+                                manifestInfoChanged = true;
                             }
 
                             if (hashMethod != null)
                             {
                                 tool.Manifest.DefaultHashMethod = hashMethod;
+                                manifestInfoChanged = true;
                             }
 
                             if (ignoreList.Count > 0)
@@ -501,6 +516,7 @@ namespace RepositoryTool
                                         tool.Manifest.IgnoreList.Add(nextIgnore);
                                     }
                                 }
+                                manifestInfoChanged = true;
                             }
 
                             if (dontIgnoreList.Count > 0)
@@ -512,6 +528,7 @@ namespace RepositoryTool
                                         tool.Manifest.IgnoreList.Remove(nextIgnore);
                                     }
                                 }
+                                manifestInfoChanged = true;
                             }
 
                             if (ignoreDefault == true)
@@ -523,6 +540,13 @@ namespace RepositoryTool
                                 {
                                     tool.Manifest.IgnoreList.Add(nextIgnore);
                                 }
+                                manifestInfoChanged = true;
+                            }
+
+                            if (manifestInfoChanged)
+                            {
+                                tool.Manifest.ManifestInfoLastModifiedUtc =
+                                    DateTime.Now.ToUniversalTime();
                             }
 
                             if (tool.Manifest != null)

@@ -37,17 +37,28 @@ namespace RepositoryManifest
         public Manifest(Manifest original)
         {
             Guid = original.Guid;
+            InceptionDateUtc = original.InceptionDateUtc;
+            LastUpdateDateUtc = original.LastUpdateDateUtc;
 
             RootDirectory = new ManifestDirectoryInfo(
                 original.RootDirectory, null);
 
-            Name = original.Name;
-            Description = original.Description;
-            InceptionDateUtc = original.InceptionDateUtc;
-            LastUpdateDateUtc = original.LastUpdateDateUtc;
-            ManifestInfoLastModifiedUtc = original.ManifestInfoLastModifiedUtc;
-            IgnoreList = new List<string>(original.IgnoreList);
-            DefaultHashMethod = original.DefaultHashMethod;
+            CopyManifestInfoFrom(original);
+        }
+
+        /// <summary>
+        /// Copy changeable parts of the manifest information
+        /// </summary>
+        /// <param name="other">
+        /// The manifest to copy from
+        /// </param>
+        public void CopyManifestInfoFrom(Manifest other)
+        {
+            Name = other.Name;
+            Description = other.Description;
+            ManifestInfoLastModifiedUtc = other.ManifestInfoLastModifiedUtc;
+            IgnoreList = new List<string>(other.IgnoreList);
+            DefaultHashMethod = other.DefaultHashMethod;
         }
 
         /// <summary>
@@ -159,24 +170,45 @@ namespace RepositoryManifest
         /// </param>
         public void WriteManifestFile(string manifestFilePath)
         {
-            FileStream fileStream =
-                new FileStream(manifestFilePath, FileMode.Create);
-
-            BinaryFormatter formatter =
-                new BinaryFormatter();
+            Exception exception = null;
+            FileStream fileStream = null;
 
             try
             {
+                fileStream = new FileStream(
+                    manifestFilePath,
+                    FileMode.Create);
+
+                BinaryFormatter formatter =
+                    new BinaryFormatter();
+
                 formatter.Serialize(fileStream, this);
             }
             catch (Exception ex)
             {
-                File.Delete(manifestFilePath);
-                throw ex;
+                exception = ex;
             }
             finally
             {
-                fileStream.Close();
+                if (fileStream != null)
+                {
+                    fileStream.Close();
+                }
+
+                if (exception != null)
+                {
+                    try
+                    {
+                        File.Delete(manifestFilePath);
+                    }
+                    catch (Exception)
+                    {
+                        // Ignore - the file may not exist, and anyways
+                        // the previous exception is more informative.
+                    }
+
+                    throw exception;
+                }
             }
         }
 
@@ -185,7 +217,7 @@ namespace RepositoryManifest
         /// another manifest.  Will replace an existing entry.
         /// </summary>
         /// <param name="otherManifestFile">
-        /// The other manifest file to be put into this ]manifest
+        /// The other manifest file to be put into this manifest
         /// </param>
         /// <returns>
         /// The new file in this manifest
@@ -320,6 +352,8 @@ namespace RepositoryManifest
 
         protected void DoAnyUpgradeMaintenance()
         {
+            DateTime blankTime = new DateTime();
+
             // Move from using byte array to FileHash class
             Stack<ManifestDirectoryInfo> dirStack =
                 new Stack<ManifestDirectoryInfo>();
@@ -344,6 +378,28 @@ namespace RepositoryManifest
 
                         nextFileInfo.Hash = null;
                         nextFileInfo.HashType = null;
+
+                        upgraded = true;
+                    }
+
+                    if (nextFileInfo.CreationUtc == blankTime)
+                    {
+                        FileInfo file = new FileInfo(
+                            MakeNativePathString(nextFileInfo));
+
+                        nextFileInfo.CreationUtc =
+                            file.CreationTimeUtc;
+
+                        upgraded = true;
+                    }
+
+                    if (nextFileInfo.ManifestCreationUtc == blankTime)
+                    {
+                        FileInfo file = new FileInfo(
+                            MakeNativePathString(nextFileInfo));
+
+                        nextFileInfo.ManifestCreationUtc =
+                            file.CreationTimeUtc;
 
                         upgraded = true;
                     }

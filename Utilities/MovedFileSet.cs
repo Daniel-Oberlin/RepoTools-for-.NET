@@ -18,5 +18,8 @@ namespace Utilities
 
         public List<ManifestFileInfo> OldFiles { private set; get; }
         public List<ManifestFileInfo> NewFiles { private set; get; }
+
+        public List<ManifestFileInfo> SourceFiles { get { return OldFiles; } }
+        public List<ManifestFileInfo> DestFiles { get { return NewFiles; } }
     }
 }

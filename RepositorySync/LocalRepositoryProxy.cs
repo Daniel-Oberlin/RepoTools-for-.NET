@@ -24,14 +24,15 @@ namespace RepositorySync
             DirectoryInfo rootDirectory)
         {
             RootDirectory = rootDirectory;
+            ManifestChanged = false;
 
-            string manifestFilePath =
+            ManifestFilePath =
                 Path.Combine(
                     RootDirectory.FullName,
                     Manifest.DefaultManifestFileName);
             try
             {
-                Manifest = Manifest.ReadManifestFile(manifestFilePath);
+                Manifest = Manifest.ReadManifestFile(ManifestFilePath);
             }
             catch (Exception ex)
             {
@@ -53,8 +54,47 @@ namespace RepositorySync
             }
         }
 
-        // TODO: DISPOSE of temp directory!
+        /// <summary>
+        /// Finalizer removes temp directory and writes manifest
+        /// </summary>
+        ~LocalRepositoryProxy()
+        {
+            Exception exception = null;
 
+            try
+            {
+                TempDirectory.Delete(true);
+            }
+            catch (Exception ex)
+            {
+                if (exception == null)
+                {
+                    exception = ex;
+                }
+            }
+
+            if (ManifestChanged)
+            {
+                Manifest.LastUpdateDateUtc = DateTime.UtcNow;
+                try
+                {
+                    Manifest.WriteManifestFile(ManifestFilePath);
+                }
+                catch (Exception ex)
+                {
+                    // This exception overrides previous
+                    exception = new Exception(
+                     "Could not write manifest.",
+                     ex);
+                }
+            }
+
+            if (exception != null)
+            {
+                throw exception;
+            }
+        }
+        
         public override Manifest Manifest { protected set; get; }
 
         public override ManifestFileInfo PutFile(
@@ -75,11 +115,13 @@ namespace RepositorySync
 
             fileCopy.MoveTo(newFilePath);
 
-            // TODO: Check hashcode?
-
             ManifestFileInfo newFileInfo =
                 Manifest.PutFileFromOtherManifest(
                     sourceManifestFile);
+
+            SetFileDates(newFileInfo);
+
+            ManifestChanged = true;
 
             return newFileInfo;
         }
@@ -93,6 +135,8 @@ namespace RepositorySync
 
             removeManifestFile.ParentDirectory.Files.Remove(
                 removeManifestFile.Name);
+
+            ManifestChanged = true;
         }
 
         public override ManifestFileInfo MoveFile(
@@ -112,6 +156,10 @@ namespace RepositorySync
                 Manifest.PutFileFromOtherManifest(
                     otherFileWithNewLocation);
 
+            SetFileDates(newFileInfo);
+
+            ManifestChanged = true;
+
             return newFileInfo;
         }
 
@@ -129,8 +177,15 @@ namespace RepositorySync
                 Manifest.PutFileFromOtherManifest(
                     otherFileWithNewLocation);
 
+            SetFileDates(newFileInfo);
+
+            ManifestChanged = true;
+
             return newFileInfo;
         }
+
+
+        // Secondary methods called by destination repository proxy
 
         public override FileInfo GetFile(
             ManifestFileInfo readFile)
@@ -156,6 +211,9 @@ namespace RepositorySync
             return new FileInfo(copyFilePath);
         }
 
+
+        // Helper methods
+
         protected String MakeNativePath(ManifestFileInfo file)
         {
             return Path.Combine(
@@ -163,7 +221,19 @@ namespace RepositorySync
                 Manifest.MakeNativePathString(file));
         }
 
-        protected DirectoryInfo RootDirectory { private set; get; }
-        protected DirectoryInfo TempDirectory { private set; get; }
+        protected void SetFileDates(ManifestFileInfo file)
+        {
+            FileInfo fileInfo =
+                new FileInfo(MakeNativePath(file));
+
+            fileInfo.CreationTimeUtc = file.CreationUtc;
+            fileInfo.LastWriteTimeUtc = file.LastModifiedUtc;
+        }
+
+        protected string ManifestFilePath { set; get; }
+        protected DirectoryInfo RootDirectory { set; get; }
+        protected DirectoryInfo TempDirectory { set; get; }
+
+        protected bool ManifestChanged { set; get; }
     }
 }

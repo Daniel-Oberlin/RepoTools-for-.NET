@@ -46,6 +46,8 @@ namespace RepositoryManifest
         {
             FileLength = original.FileLength;
             LastModifiedUtc = original.LastModifiedUtc;
+            CreationUtc = original.CreationUtc;
+            ManifestCreationUtc = original.ManifestCreationUtc;
 
             // DEPRECATED
             // Hash = (byte[]) original.Hash.Clone();
@@ -62,6 +64,16 @@ namespace RepositoryManifest
         /// The time that this file was last mofified according to the filesystem
         /// </summary>
         public DateTime LastModifiedUtc { set; get; }
+
+        /// <summary>
+        /// The time that this file was created according to the filesystem
+        /// </summary>
+        public DateTime CreationUtc { set; get; }
+
+        /// <summary>
+        /// The time that this file was first entered into the manifest
+        /// </summary>
+        public DateTime ManifestCreationUtc { set; get; }
 
         /// <summary>
         /// The hash of the file data.

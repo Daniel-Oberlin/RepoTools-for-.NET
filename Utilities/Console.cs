@@ -52,7 +52,7 @@ namespace Utilities
             return false;
         }
 
-        public void DetailFiles(List<ManifestFileInfo> files)
+        public void DetailFiles(IEnumerable<ManifestFileInfo> files)
         {
             if (Detail)
             {
@@ -67,7 +67,8 @@ namespace Utilities
 
         public void DetailFiles(
             List<FileHash> movedFileOrder,
-            Dictionary<FileHash, MovedFileSet> movedFileSets)
+            Dictionary<FileHash, MovedFileSet> movedFileSets,
+            bool reverseOrder = false)
         {
             if (Detail)
             {
@@ -76,7 +77,20 @@ namespace Utilities
                     Write("   ");
                     MovedFileSet nextFileSet = movedFileSets[nextHash];
 
-                    foreach (ManifestFileInfo nextOldFile in nextFileSet.OldFiles)
+                    List<ManifestFileInfo> leftSide =
+                        nextFileSet.OldFiles;
+
+                    List<ManifestFileInfo> rightSide =
+                        nextFileSet.NewFiles;
+
+                    if (reverseOrder)
+                    {
+                        List<ManifestFileInfo> temp = leftSide;
+                        leftSide = rightSide;
+                        rightSide = temp;
+                    }
+
+                    foreach (ManifestFileInfo nextOldFile in leftSide)
                     {
                         Write(Manifest.MakeStandardPathString(nextOldFile));
                         Write(" ");
@@ -84,7 +98,7 @@ namespace Utilities
 
                     Write("->");
 
-                    foreach (ManifestFileInfo nextNewFile in nextFileSet.NewFiles)
+                    foreach (ManifestFileInfo nextNewFile in rightSide)
                     {
                         Write(" ");
                         Write(Manifest.MakeStandardPathString(nextNewFile));

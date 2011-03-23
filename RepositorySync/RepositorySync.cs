@@ -20,12 +20,17 @@ namespace RepositorySync
             SourceRep = source;
             DestRep = dest;
 
+            Preview = false;
+
             SourceOnlyFiles = new List<ManifestFileInfo>();
             DestOnlyFiles = new List<ManifestFileInfo>();
-            ChangedFiles = new List<ManifestFileInfo>();
-            DateChangedFiles = new List<ManifestFileInfo>();
+            ChangedFiles = new Dictionary<ManifestFileInfo, ManifestFileInfo>();
+            LastModifiedDateFiles = new List<ManifestFileInfo>();
+            CreationDateFiles = new List<ManifestFileInfo>();
+            ManifestCreationDateFiles = new List<ManifestFileInfo>();
             MovedFiles = new Dictionary<FileHash, MovedFileSet>();
             MovedFileOrder = new List<FileHash>();
+            ErrorFiles = new List<ManifestFileInfo>();
         }
 
         public void Clear()
@@ -33,9 +38,12 @@ namespace RepositorySync
             SourceOnlyFiles.Clear();
             DestOnlyFiles.Clear();
             ChangedFiles.Clear();
-            DateChangedFiles.Clear();
+            LastModifiedDateFiles.Clear();
+            CreationDateFiles.Clear();
+            ManifestCreationDateFiles.Clear();
             MovedFiles.Clear();
             MovedFileOrder.Clear();
+            ErrorFiles.Clear();
         }
 
         public void CompareManifests()
@@ -72,13 +80,27 @@ namespace RepositorySync
 
                     if (sourceFile.FileHash.Equals(destFile.FileHash) == false)
                     {
-                        ChangedFiles.Add(sourceFile);
+                        ChangedFiles.Add(sourceFile, destFile);
                     }
-                    else if (
-                        sourceFile.LastModifiedUtc !=
-                        destFile.LastModifiedUtc)
+                    else
                     {
-                        DateChangedFiles.Add(sourceFile);
+                        if (sourceFile.LastModifiedUtc !=
+                            destFile.LastModifiedUtc)
+                        {
+                            LastModifiedDateFiles.Add(sourceFile);
+                        }
+
+                        if (sourceFile.CreationUtc !=
+                            destFile.CreationUtc)
+                        {
+                            CreationDateFiles.Add(sourceFile);
+                        }
+
+                        if (sourceFile.ManifestCreationUtc !=
+                            destFile.ManifestCreationUtc)
+                        {
+                            ManifestCreationDateFiles.Add(sourceFile);
+                        }
                     }
                 }
                 else
@@ -168,14 +190,15 @@ namespace RepositorySync
                         MovedFileOrder.Add(checkSourceFile.FileHash);
                     }
 
-                    MovedFiles[checkSourceFile.FileHash].OldFiles.Add(checkSourceFile);
+                    MovedFiles[checkSourceFile.FileHash].SourceFiles.Add(checkSourceFile);
 
-                    if (MovedFiles[checkSourceFile.FileHash].NewFiles.Count == 0)
+                    if (MovedFiles[checkSourceFile.FileHash].DestFiles.Count == 0)
                     {
                         // First time only
-                        foreach (ManifestFileInfo nextNewFile in destFileDict.Dict[checkSourceFile.FileHash])
+                        foreach (ManifestFileInfo nextNewFile in
+                            destFileDict.Dict[checkSourceFile.FileHash])
                         {
-                            MovedFiles[checkSourceFile.FileHash].NewFiles.Add(nextNewFile);
+                            MovedFiles[checkSourceFile.FileHash].DestFiles.Add(nextNewFile);
 
                             // Remember for later rebuild
                             movedFiles.Add(nextNewFile);
@@ -202,6 +225,237 @@ namespace RepositorySync
             DestOnlyFiles = destOnlyFilesUpdated;
         }
 
+        public void DoUpdate()
+        {
+            if (SourceRep.Manifest.ManifestInfoLastModifiedUtc >
+                DestRep.Manifest.ManifestInfoLastModifiedUtc)
+            {
+                WriteLine("Updating source manifest information.");
+                SourceRep.Manifest.CopyManifestInfoFrom(DestRep.Manifest);
+            }
+
+            // Add any files that are not in dest
+            foreach (ManifestFileInfo nextSourceFile in SourceOnlyFiles)
+            {
+                Write(
+                    "Adding: " +
+                    Manifest.MakeStandardPathString(nextSourceFile));
+
+                PutFileHelper(nextSourceFile);
+
+                WriteLine();
+            }
+
+            // Update any files in dest that are older than source
+            foreach (ManifestFileInfo nextSourceFile in ChangedFiles.Keys)
+            {
+                ManifestFileInfo nextDestFile = ChangedFiles[nextSourceFile];
+
+                if (nextSourceFile.LastModifiedUtc >
+                    nextDestFile.LastModifiedUtc)
+                {
+                    Write(
+                        "Updating: " +
+                        Manifest.MakeStandardPathString(nextSourceFile));
+
+                    PutFileHelper(nextSourceFile);
+
+                    WriteLine();
+                }
+            }
+
+            // Move any files in dest that were moved in source
+            foreach (FileHash nextHash in MovedFileOrder)
+            {
+                MovedFileSet fileSet = MovedFiles[nextHash];
+
+                // Determine if dest is newer than source.
+                // Note that moved files can be a group of source files and a
+                // group of dest files.  We check for the definitive case
+                // where all source files are more recently modified than all
+                // dest files.  So we compare the earliest source modification
+                // against the latest dest modification.
+                DateTime earliestSourceTime = DateTime.MaxValue;
+                foreach (ManifestFileInfo nextSourceFile in fileSet.SourceFiles)
+                {
+                    if (nextSourceFile.LastModifiedUtc < earliestSourceTime)
+                    {
+                        earliestSourceTime = nextSourceFile.ManifestCreationUtc;
+                    }
+                }
+
+                DateTime latestDestTime = DateTime.MinValue;
+                foreach (ManifestFileInfo nextDestFile in fileSet.DestFiles)
+                {
+                    if (nextDestFile.LastModifiedUtc > latestDestTime)
+                    {
+                        latestDestTime = nextDestFile.ManifestCreationUtc;
+                    }
+                }
+
+                // Only handle the definitive case
+                if (earliestSourceTime > latestDestTime)
+                {
+                    // Move the existing dest files when possible to avoid
+                    // a copy which could be much slower.
+                    Stack<ManifestFileInfo> existingDestFiles =
+                        new Stack<ManifestFileInfo>();
+
+                    foreach (ManifestFileInfo destFile in fileSet.DestFiles)
+                    {
+                        existingDestFiles.Push(destFile);
+                    }
+
+                    foreach (ManifestFileInfo nextSourceFile in fileSet.SourceFiles)
+                    {
+                        ManifestFileInfo lastMovedFile = null;
+
+                        if (existingDestFiles.Count > 0)
+                        {
+                            ManifestFileInfo moveDestFile =
+                                existingDestFiles.Pop();
+
+                            Write(
+                                "Moving: " +
+                                Manifest.MakeStandardPathString(moveDestFile) +
+                                " -> " +
+                                Manifest.MakeStandardPathString(nextSourceFile));
+
+                            lastMovedFile = MoveFileHelper(nextSourceFile, moveDestFile);
+
+                            WriteLine();
+                        }
+                        else
+                        {
+                            Write(
+                                "Copying: " +
+                                Manifest.MakeStandardPathString(lastMovedFile) +
+                                " -> " +
+                                Manifest.MakeStandardPathString(nextSourceFile));
+
+                            CopyFileHelper(nextSourceFile, lastMovedFile);
+
+                            WriteLine();
+                        }
+                    }
+                }
+                else
+                {
+                    WriteLine("Ambiguous - files were moved on both sides:");
+
+                    foreach (ManifestFileInfo nextSourceFile in
+                        fileSet.SourceFiles)
+                    {
+                        Write(
+                            "   Source: " +
+                            Manifest.MakeStandardPathString(nextSourceFile));                          
+                    }
+
+                    foreach (ManifestFileInfo nextDestFile in
+                        fileSet.DestFiles)
+                    {
+                        Write(
+                            "   Dest:   " +
+                            Manifest.MakeStandardPathString(nextDestFile));
+                    }
+
+                    WriteLine();
+                }
+            }
+        }
+
+
+        // Helper methods
+        
+        protected void WriteLine(String message = "")
+        {
+            Write(message + "\r\n");
+        }
+
+        protected void Write(String message)
+        {
+            if (WriteLogDelegate != null)
+            {
+                WriteLogDelegate.Invoke(message);
+            }
+        }
+
+        protected void PutFileHelper(
+            ManifestFileInfo sourceFile)
+        {
+            if (Preview == false)
+            {
+                try
+                {
+                    DestRep.PutFile(
+                        SourceRep,
+                        sourceFile);
+                }
+                catch (Exception ex)
+                {
+                    ErrorFiles.Add(sourceFile);
+
+                    WriteLine(" [ERROR]");
+                    Write(ex.ToString());
+                }
+            }
+        }
+
+        protected ManifestFileInfo MoveFileHelper(
+            ManifestFileInfo sourceFileWithNewLocation,
+            ManifestFileInfo destFileToBeMoved)
+        {
+            ManifestFileInfo movedFile = null;
+
+            if (Preview == false)
+            {
+                try
+                {
+                    movedFile = DestRep.MoveFile(
+                        destFileToBeMoved,
+                        SourceRep,
+                        sourceFileWithNewLocation);
+                }
+                catch (Exception ex)
+                {
+                    ErrorFiles.Add(sourceFileWithNewLocation);
+
+                    WriteLine(" [ERROR]");
+                    Write(ex.ToString());
+                }
+            }
+
+            return movedFile;
+        }
+
+        protected ManifestFileInfo CopyFileHelper(
+            ManifestFileInfo sourceFileWithNewLocation,
+            ManifestFileInfo destFileToBeCopied)
+        {
+            ManifestFileInfo copiedFile = null;
+
+            if (Preview == false)
+            {
+                try
+                {
+                    copiedFile = DestRep.CopyFile(
+                        destFileToBeCopied,
+                        SourceRep,
+                        sourceFileWithNewLocation);
+
+                }
+                catch (Exception ex)
+                {
+                    ErrorFiles.Add(sourceFileWithNewLocation);
+
+                    WriteLine(" [ERROR]");
+                    Write(ex.ToString());
+                }
+            }
+
+            return copiedFile;
+        }
+
 
         // Data members and accessors
 
@@ -210,11 +464,16 @@ namespace RepositorySync
         public RepositoryProxy SourceRep { private set; get; }
         public RepositoryProxy DestRep { private set; get; }
 
+        public bool Preview { set; get; }
+
         public List<ManifestFileInfo> SourceOnlyFiles { private set; get; }
         public List<ManifestFileInfo> DestOnlyFiles { private set; get; }
-        public List<ManifestFileInfo> ChangedFiles { private set; get; }
-        public List<ManifestFileInfo> DateChangedFiles { private set; get; }
+        public Dictionary<ManifestFileInfo, ManifestFileInfo> ChangedFiles { private set; get; }
+        public List<ManifestFileInfo> LastModifiedDateFiles { private set; get; }
+        public List<ManifestFileInfo> CreationDateFiles { private set; get; }
+        public List<ManifestFileInfo> ManifestCreationDateFiles { private set; get; }
         public Dictionary<FileHash, MovedFileSet> MovedFiles { private set; get; }
         public List<FileHash> MovedFileOrder { private set; get; }
+        public List<ManifestFileInfo> ErrorFiles { private set; get; }
     }
 }

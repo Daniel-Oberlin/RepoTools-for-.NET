@@ -49,6 +49,12 @@ namespace RepositorySync
             RepositorySync syncTool =
                 new RepositorySync(sourceRep, destRep);
 
+            syncTool.WriteLogDelegate =
+                delegate(String message)
+                {
+                    console.Write(message);
+                };
+
             if (sourceRep != null && destRep != null)
             {
                 syncTool.CompareManifests();
@@ -95,6 +101,9 @@ namespace RepositorySync
                     break;
 
                 case "update":
+                    syncTool.DoUpdate();
+                    break;
+
                 case "sync":
                 case "mirror":
                 case "repair":
@@ -305,26 +314,46 @@ namespace RepositorySync
             {
                 console.WriteLine(
                     syncTool.ChangedFiles.Count.ToString() +
-                    " files are different.");
+                    " files have changed content.");
 
-                console.DetailFiles(syncTool.ChangedFiles);
+                console.DetailFiles(syncTool.ChangedFiles.Keys);
                 different = true;
             }
 
-            if (syncTool.DateChangedFiles.Count != 0)
+            if (syncTool.LastModifiedDateFiles.Count != 0)
             {
                 console.WriteLine(
-                    syncTool.DateChangedFiles.Count.ToString() +
-                    " files have different dates.");
+                    syncTool.LastModifiedDateFiles.Count.ToString() +
+                    " files have last-modified dates which are different.");
 
-                console.DetailFiles(syncTool.DateChangedFiles);
+                console.DetailFiles(syncTool.LastModifiedDateFiles);
+                different = true;
+            }
+
+            if (syncTool.CreationDateFiles.Count != 0)
+            {
+                console.WriteLine(
+                    syncTool.CreationDateFiles.Count.ToString() +
+                    " files have creation dates which are different.");
+
+                console.DetailFiles(syncTool.CreationDateFiles);
+                different = true;
+            }
+
+            if (syncTool.ManifestCreationDateFiles.Count != 0)
+            {
+                console.WriteLine(
+                    syncTool.ManifestCreationDateFiles.Count.ToString() +
+                    " files have manifest creation dates which are different.");
+
+                console.DetailFiles(syncTool.ManifestCreationDateFiles);
                 different = true;
             }
 
             if (syncTool.MovedFiles.Count > 0)
             {
                 console.WriteLine(syncTool.MovedFiles.Count.ToString() + " files were moved.");
-                console.DetailFiles(syncTool.MovedFileOrder, syncTool.MovedFiles);
+                console.DetailFiles(syncTool.MovedFileOrder, syncTool.MovedFiles, true);
                 different = true;
             }
 

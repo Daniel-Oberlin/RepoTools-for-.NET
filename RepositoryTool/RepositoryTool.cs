@@ -31,9 +31,10 @@ namespace RepositoryTool
 
             NewFiles = new List<ManifestFileInfo>();
             NewFilesForGroom = new List<FileInfo>();
-            ModifiedFiles = new List<ManifestFileInfo>();
+            ChangedFiles = new List<ManifestFileInfo>();
             MissingFiles = new List<ManifestFileInfo>();
-            DateModifiedFiles = new List<ManifestFileInfo>();
+            LastModifiedDateFiles = new List<ManifestFileInfo>();
+            CreationDateFiles = new List<ManifestFileInfo>();
             ErrorFiles = new List<ManifestFileInfo>();
             IgnoredFiles = new List<ManifestFileInfo>();
             NewlyIgnoredFiles = new List<ManifestFileInfo>();
@@ -49,9 +50,10 @@ namespace RepositoryTool
 
             NewFiles.Clear();
             NewFilesForGroom.Clear();
-            ModifiedFiles.Clear();
+            ChangedFiles.Clear();
             MissingFiles.Clear();
-            DateModifiedFiles.Clear();
+            LastModifiedDateFiles.Clear();
+            CreationDateFiles.Clear();
             ErrorFiles.Clear();
             IgnoredFiles.Clear();
             NewlyIgnoredFiles.Clear();
@@ -145,7 +147,7 @@ namespace RepositoryTool
                         AlwaysCheckHash == false)
                     {
                         Write(" [DIFFERENT]");
-                        ModifiedFiles.Add(nextManFileInfo);
+                        ChangedFiles.Add(nextManFileInfo);
                     }
                     else if (AlwaysCheckHash == true ||
                         nextFileInfo.LastWriteTimeUtc != nextManFileInfo.LastModifiedUtc ||
@@ -172,20 +174,38 @@ namespace RepositoryTool
 
                             Write(exception.ToString());
                         }
-                        else if (checkHash.Equals(nextManFileInfo.FileHash) == false)
+                        else
                         {
-                            Write(" [DIFFERENT]");
-                            ModifiedFiles.Add(nextManFileInfo);
-                        }
-                        else if (nextFileInfo.LastWriteTimeUtc != nextManFileInfo.LastModifiedUtc)
-                        {
-                            Write(" [DATE]");
-                            DateModifiedFiles.Add(nextManFileInfo);
-
-                            if (BackDate == true)
+                            if (checkHash.Equals(nextManFileInfo.FileHash) == false)
                             {
-                                nextFileInfo.LastWriteTimeUtc =
-                                    nextManFileInfo.LastModifiedUtc;
+                                Write(" [DIFFERENT]");
+                                ChangedFiles.Add(nextManFileInfo);
+                            }
+                            else
+                            {
+                                if (nextFileInfo.LastWriteTimeUtc != nextManFileInfo.LastModifiedUtc)
+                                {
+                                    Write(" [LAST MODIFIED DATE]");
+                                    LastModifiedDateFiles.Add(nextManFileInfo);
+
+                                    if (BackDate == true)
+                                    {
+                                        nextFileInfo.LastWriteTimeUtc =
+                                            nextManFileInfo.LastModifiedUtc;
+                                    }
+                                }
+
+                                if (nextFileInfo.CreationTimeUtc != nextManFileInfo.CreationUtc)
+                                {
+                                    Write(" [CREATION DATE]");
+                                    CreationDateFiles.Add(nextManFileInfo);
+
+                                    if (BackDate == true)
+                                    {
+                                        nextFileInfo.CreationTimeUtc =
+                                            nextManFileInfo.CreationUtc;
+                                    }
+                                }
                             }
                         }
 
@@ -201,6 +221,7 @@ namespace RepositoryTool
                         nextManFileInfo.FileHash = newHash;
 
                         nextManFileInfo.LastModifiedUtc = nextFileInfo.LastWriteTimeUtc;
+                        nextManFileInfo.CreationUtc = nextFileInfo.CreationTimeUtc;
                         nextManFileInfo.FileLength = nextFileInfo.Length;
                     }
                     else
@@ -298,9 +319,9 @@ namespace RepositoryTool
 
                         if (checkHash && newManFileInfo.FileHash == null)
                         {
-                            WriteLine(" [ERROR]");
                             ErrorFiles.Add(newManFileInfo);
 
+                            WriteLine(" [ERROR]");
                             Write(exception.ToString());
                         }
                         else
@@ -315,6 +336,12 @@ namespace RepositoryTool
 
                         newManFileInfo.LastModifiedUtc =
                             nextFileInfo.LastWriteTimeUtc;
+
+                        newManFileInfo.CreationUtc =
+                            nextFileInfo.CreationTimeUtc;
+
+                        newManFileInfo.ManifestCreationUtc =
+                            DateTime.Now.ToUniversalTime();
 
                         currentManfestDirInfo.Files.Add(
                             nextFileInfo.Name,
@@ -523,12 +550,12 @@ namespace RepositoryTool
             return manifest;
         }
 
-        public void WriteLine(String message)
+        protected void WriteLine(String message)
         {
             Write(message + "\r\n");
         }
 
-        public void Write(String message)
+        protected void Write(String message)
         {
             if (ShowProgress && WriteLogDelegate != null)
             {
@@ -615,9 +642,10 @@ namespace RepositoryTool
         public Manifest Manifest { set; get; }
         public List<ManifestFileInfo> NewFiles { private set; get; }
         public List<FileInfo> NewFilesForGroom { private set; get; }
-        public List<ManifestFileInfo> ModifiedFiles { private set; get; }
+        public List<ManifestFileInfo> ChangedFiles { private set; get; }
         public List<ManifestFileInfo> MissingFiles { private set; get; }
-        public List<ManifestFileInfo> DateModifiedFiles { private set; get; }
+        public List<ManifestFileInfo> LastModifiedDateFiles { private set; get; }
+        public List<ManifestFileInfo> CreationDateFiles { private set; get; }
         public List<ManifestFileInfo> ErrorFiles { private set; get; }
         public List<ManifestFileInfo> IgnoredFiles { private set; get; }
         public List<ManifestFileInfo> NewlyIgnoredFiles { private set; get; }
