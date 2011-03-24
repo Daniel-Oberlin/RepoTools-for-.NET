@@ -19,9 +19,7 @@ namespace RepositorySync
             DateTime startTime = DateTime.Now;
 
             int argIndex = 0;
-
-            // Give the user some help if they need it
-            string commandArg = "help";
+            string commandArg = "";
 
             LocalRepositoryProxy sourceRep = null;
             LocalRepositoryProxy destRep = null;
@@ -44,6 +42,12 @@ namespace RepositorySync
                 destRep = new LocalRepositoryProxy(
                     new System.IO.DirectoryInfo(
                         args[argIndex++]));
+            }
+
+            if (sourceRep == null || destRep == null)
+            {
+                // Give the user some help if they need it
+                commandArg = "help";
             }
 
             RepositorySync syncTool =
@@ -105,8 +109,17 @@ namespace RepositorySync
                     break;
 
                 case "sync":
+                    syncTool.BothWays = true;
+                    syncTool.DoUpdate();
+                    break;
+
                 case "mirror":
+                    syncTool.Mirror = true;
+                    syncTool.DoUpdate();
+                    break;
+
                 case "repair":
+                    console.WriteLine("TODO: repair is unimplemented.");
                     break;
 
                 case "help":
@@ -214,23 +227,25 @@ namespace RepositorySync
                 different = true;
             }
 
-            if (sourceMan.LastUpdateDateUtc != destMan.LastUpdateDateUtc)
-            {
-                console.WriteLine("Manifest last update dates are different.");
-                if (console.Detail)
-                {
-                    console.WriteLine(
-                        "   Source date: " +
-                        sourceMan.LastUpdateDateUtc.ToLocalTime().ToString());
+            // Not sure if this is really useful
 
-                    console.WriteLine(
-                        "     Dest date: " +
-                        destMan.LastUpdateDateUtc.ToLocalTime().ToString());
+            //if (sourceMan.LastUpdateDateUtc != destMan.LastUpdateDateUtc)
+            //{
+            //    console.WriteLine("Manifest last update dates are different.");
+            //    if (console.Detail)
+            //    {
+            //        console.WriteLine(
+            //            "   Source date: " +
+            //            sourceMan.LastUpdateDateUtc.ToLocalTime().ToString());
 
-                    console.WriteLine();
-                }
-                different = true;
-            }
+            //        console.WriteLine(
+            //            "     Dest date: " +
+            //            destMan.LastUpdateDateUtc.ToLocalTime().ToString());
+
+            //        console.WriteLine();
+            //    }
+            //    different = true;
+            //}
 
             if (sourceMan.ManifestInfoLastModifiedUtc !=
                 destMan.ManifestInfoLastModifiedUtc)

@@ -21,6 +21,8 @@ namespace RepositorySync
             DestRep = dest;
 
             Preview = false;
+            BothWays = false;
+            Mirror = false;
 
             SourceOnlyFiles = new List<ManifestFileInfo>();
             DestOnlyFiles = new List<ManifestFileInfo>();
@@ -227,26 +229,88 @@ namespace RepositorySync
 
         public void DoUpdate()
         {
-            if (SourceRep.Manifest.ManifestInfoLastModifiedUtc >
+            // Update manifest information
+            if (Mirror)
+            {
+                if (SourceRep.Manifest.ManifestInfoLastModifiedUtc !=
+                    DestRep.Manifest.ManifestInfoLastModifiedUtc)
+                {
+                    WriteLine("Updating destination manifest information.");
+                    if (Preview == false)
+                    {
+                        DestRep.CopyManifestInformation(SourceRep);
+                    }
+                }
+            }
+            else if (SourceRep.Manifest.ManifestInfoLastModifiedUtc >
+                DestRep.Manifest.ManifestInfoLastModifiedUtc)
+            {
+                WriteLine("Updating destination manifest information.");
+                if (Preview == false)
+                {
+                    DestRep.CopyManifestInformation(SourceRep);
+                }
+            }
+            else if (BothWays &&
+                SourceRep.Manifest.ManifestInfoLastModifiedUtc <
                 DestRep.Manifest.ManifestInfoLastModifiedUtc)
             {
                 WriteLine("Updating source manifest information.");
-                SourceRep.Manifest.CopyManifestInfoFrom(DestRep.Manifest);
+                if (Preview == false)
+                {
+                    SourceRep.CopyManifestInformation(DestRep);
+                }
             }
 
-            // Add any files that are not in dest
+            // Add any new files that are only in source
             foreach (ManifestFileInfo nextSourceFile in SourceOnlyFiles)
             {
                 Write(
-                    "Adding: " +
+                    "Adding to dest: " +
                     Manifest.MakeStandardPathString(nextSourceFile));
 
-                PutFileHelper(nextSourceFile);
+                PutFileHelper(
+                    SourceRep,
+                    DestRep,
+                    nextSourceFile);
 
                 WriteLine();
             }
 
-            // Update any files in dest that are older than source
+            // Deal with files that are only in dest
+            if (Mirror)
+            {
+                foreach (ManifestFileInfo nextDestFile in DestOnlyFiles)
+                {
+                    Write(
+                        "Removing from dest: " +
+                        Manifest.MakeStandardPathString(nextDestFile));
+
+                    RemoveFileHelper(
+                        DestRep,
+                        nextDestFile);
+
+                    WriteLine();
+                }
+            }
+            else if (BothWays)
+            {
+                foreach (ManifestFileInfo nextDestFile in DestOnlyFiles)
+                {
+                    Write(
+                        "Adding to source: " +
+                        Manifest.MakeStandardPathString(nextDestFile));
+
+                    PutFileHelper(
+                        DestRep,
+                        SourceRep,
+                        nextDestFile);
+
+                    WriteLine();
+                }
+            }
+
+            // Update files as needed
             foreach (ManifestFileInfo nextSourceFile in ChangedFiles.Keys)
             {
                 ManifestFileInfo nextDestFile = ChangedFiles[nextSourceFile];
@@ -255,12 +319,46 @@ namespace RepositorySync
                     nextDestFile.LastModifiedUtc)
                 {
                     Write(
-                        "Updating: " +
+                        "Updating dest: " +
                         Manifest.MakeStandardPathString(nextSourceFile));
 
-                    PutFileHelper(nextSourceFile);
+                    PutFileHelper(
+                        SourceRep,
+                        DestRep,
+                        nextSourceFile);
 
                     WriteLine();
+                }
+                else if (
+                    nextSourceFile.LastModifiedUtc <
+                    nextDestFile.LastModifiedUtc)
+                {
+                    if (Mirror)
+                    {
+                        Write(
+                            "Updating dest: " +
+                            Manifest.MakeStandardPathString(nextSourceFile));
+
+                        PutFileHelper(
+                            SourceRep,
+                            DestRep,
+                            nextSourceFile);
+
+                        WriteLine();
+                    }
+                    else if (BothWays)
+                    {
+                        Write(
+                            "Updating source: " +
+                            Manifest.MakeStandardPathString(nextSourceFile));
+
+                        PutFileHelper(
+                            DestRep,
+                            SourceRep,
+                            nextDestFile);
+
+                        WriteLine();
+                    }
                 }
             }
 
@@ -276,70 +374,60 @@ namespace RepositorySync
                 // dest files.  So we compare the earliest source modification
                 // against the latest dest modification.
                 DateTime earliestSourceTime = DateTime.MaxValue;
+                DateTime latestSourceTime = DateTime.MinValue;
                 foreach (ManifestFileInfo nextSourceFile in fileSet.SourceFiles)
                 {
-                    if (nextSourceFile.LastModifiedUtc < earliestSourceTime)
+                    if (nextSourceFile.ManifestCreationUtc < earliestSourceTime)
                     {
                         earliestSourceTime = nextSourceFile.ManifestCreationUtc;
                     }
+                    if (nextSourceFile.ManifestCreationUtc > latestSourceTime)
+                    {
+                        latestSourceTime = nextSourceFile.ManifestCreationUtc;
+                    }
                 }
 
+                DateTime earliestDestTime = DateTime.MaxValue;
                 DateTime latestDestTime = DateTime.MinValue;
                 foreach (ManifestFileInfo nextDestFile in fileSet.DestFiles)
                 {
-                    if (nextDestFile.LastModifiedUtc > latestDestTime)
+                    if (nextDestFile.ManifestCreationUtc < earliestDestTime)
+                    {
+                        earliestDestTime = nextDestFile.ManifestCreationUtc;
+                    }
+                    if (nextDestFile.ManifestCreationUtc > latestDestTime)
                     {
                         latestDestTime = nextDestFile.ManifestCreationUtc;
                     }
                 }
 
-                // Only handle the definitive case
-                if (earliestSourceTime > latestDestTime)
+                // Only handle the definitive cases
+                bool ambiguousSet = true;
+                if (Mirror || earliestSourceTime > latestDestTime)
                 {
-                    // Move the existing dest files when possible to avoid
-                    // a copy which could be much slower.
-                    Stack<ManifestFileInfo> existingDestFiles =
-                        new Stack<ManifestFileInfo>();
+                    ambiguousSet = false;
 
-                    foreach (ManifestFileInfo destFile in fileSet.DestFiles)
+                    MoveFileSet(
+                        SourceRep,
+                        fileSet.SourceFiles,
+                        DestRep,
+                        fileSet.DestFiles);
+                }
+                else if (earliestDestTime > latestSourceTime)
+                {
+                    ambiguousSet = false;
+
+                    if (BothWays)
                     {
-                        existingDestFiles.Push(destFile);
-                    }
-
-                    foreach (ManifestFileInfo nextSourceFile in fileSet.SourceFiles)
-                    {
-                        ManifestFileInfo lastMovedFile = null;
-
-                        if (existingDestFiles.Count > 0)
-                        {
-                            ManifestFileInfo moveDestFile =
-                                existingDestFiles.Pop();
-
-                            Write(
-                                "Moving: " +
-                                Manifest.MakeStandardPathString(moveDestFile) +
-                                " -> " +
-                                Manifest.MakeStandardPathString(nextSourceFile));
-
-                            lastMovedFile = MoveFileHelper(nextSourceFile, moveDestFile);
-
-                            WriteLine();
-                        }
-                        else
-                        {
-                            Write(
-                                "Copying: " +
-                                Manifest.MakeStandardPathString(lastMovedFile) +
-                                " -> " +
-                                Manifest.MakeStandardPathString(nextSourceFile));
-
-                            CopyFileHelper(nextSourceFile, lastMovedFile);
-
-                            WriteLine();
-                        }
+                        MoveFileSet(
+                            DestRep,
+                            fileSet.DestFiles,
+                            SourceRep,
+                            fileSet.SourceFiles);
                     }
                 }
-                else
+                
+                if (ambiguousSet == true)
                 {
                     WriteLine("Ambiguous - files were moved on both sides:");
 
@@ -364,6 +452,63 @@ namespace RepositorySync
             }
         }
 
+        protected void MoveFileSet(
+            RepositoryProxy sourceRep,
+            List<ManifestFileInfo> sourceFiles,
+            RepositoryProxy destRep,
+            List<ManifestFileInfo> destFiles)
+        {
+            // Move the existing dest files when possible to avoid
+            // a copy which could be much slower.
+            Stack<ManifestFileInfo> existingDestFiles =
+                new Stack<ManifestFileInfo>();
+
+            foreach (ManifestFileInfo destFile in destFiles)
+            {
+                existingDestFiles.Push(destFile);
+            }
+
+            foreach (ManifestFileInfo nextSourceFile in sourceFiles)
+            {
+                ManifestFileInfo lastMovedFile = null;
+
+                if (existingDestFiles.Count > 0)
+                {
+                    ManifestFileInfo moveDestFile =
+                        existingDestFiles.Pop();
+
+                    Write(
+                        "Moving: " +
+                        Manifest.MakeStandardPathString(moveDestFile) +
+                        " -> " +
+                        Manifest.MakeStandardPathString(nextSourceFile));
+
+                    lastMovedFile = MoveFileHelper(
+                        sourceRep,
+                        destRep,
+                        nextSourceFile,
+                        moveDestFile);
+
+                    WriteLine();
+                }
+                else
+                {
+                    Write(
+                        "Copying: " +
+                        Manifest.MakeStandardPathString(lastMovedFile) +
+                        " -> " +
+                        Manifest.MakeStandardPathString(nextSourceFile));
+
+                    CopyFileHelper(
+                        sourceRep,
+                        destRep,
+                        nextSourceFile,
+                        lastMovedFile);
+
+                    WriteLine();
+                }
+            }
+        }
 
         // Helper methods
         
@@ -381,14 +526,16 @@ namespace RepositorySync
         }
 
         protected void PutFileHelper(
+            RepositoryProxy sourceRepository,
+            RepositoryProxy destRepository,
             ManifestFileInfo sourceFile)
         {
             if (Preview == false)
             {
                 try
                 {
-                    DestRep.PutFile(
-                        SourceRep,
+                    destRepository.PutFile(
+                        sourceRepository,
                         sourceFile);
                 }
                 catch (Exception ex)
@@ -402,6 +549,8 @@ namespace RepositorySync
         }
 
         protected ManifestFileInfo MoveFileHelper(
+            RepositoryProxy sourceRepository,
+            RepositoryProxy destRepository,
             ManifestFileInfo sourceFileWithNewLocation,
             ManifestFileInfo destFileToBeMoved)
         {
@@ -411,9 +560,9 @@ namespace RepositorySync
             {
                 try
                 {
-                    movedFile = DestRep.MoveFile(
+                    movedFile = destRepository.MoveFile(
                         destFileToBeMoved,
-                        SourceRep,
+                        sourceRepository,
                         sourceFileWithNewLocation);
                 }
                 catch (Exception ex)
@@ -429,6 +578,8 @@ namespace RepositorySync
         }
 
         protected ManifestFileInfo CopyFileHelper(
+            RepositoryProxy sourceRepository,
+            RepositoryProxy destRepository,
             ManifestFileInfo sourceFileWithNewLocation,
             ManifestFileInfo destFileToBeCopied)
         {
@@ -438,9 +589,9 @@ namespace RepositorySync
             {
                 try
                 {
-                    copiedFile = DestRep.CopyFile(
+                    copiedFile = destRepository.CopyFile(
                         destFileToBeCopied,
-                        SourceRep,
+                        sourceRepository,
                         sourceFileWithNewLocation);
 
                 }
@@ -456,6 +607,26 @@ namespace RepositorySync
             return copiedFile;
         }
 
+        protected void RemoveFileHelper(
+            RepositoryProxy destRepository,
+            ManifestFileInfo destFile)
+        {
+            if (Preview == false)
+            {
+                try
+                {
+                    destRepository.RemoveFile(destFile);
+                }
+                catch (Exception ex)
+                {
+                    ErrorFiles.Add(destFile);
+
+                    WriteLine(" [ERROR]");
+                    Write(ex.ToString());
+                }
+            }
+        }
+
 
         // Data members and accessors
 
@@ -465,6 +636,8 @@ namespace RepositorySync
         public RepositoryProxy DestRep { private set; get; }
 
         public bool Preview { set; get; }
+        public bool BothWays { set; get; }
+        public bool Mirror { set; get; }
 
         public List<ManifestFileInfo> SourceOnlyFiles { private set; get; }
         public List<ManifestFileInfo> DestOnlyFiles { private set; get; }

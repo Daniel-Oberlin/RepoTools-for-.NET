@@ -151,6 +151,7 @@ namespace RepositoryTool
                     }
                     else if (AlwaysCheckHash == true ||
                         nextFileInfo.LastWriteTimeUtc != nextManFileInfo.LastModifiedUtc ||
+                        nextFileInfo.CreationTimeUtc != nextManFileInfo.CreationUtc ||
                         nextFileInfo.Length != nextManFileInfo.FileLength)
                     {
                         FileHash checkHash = null;

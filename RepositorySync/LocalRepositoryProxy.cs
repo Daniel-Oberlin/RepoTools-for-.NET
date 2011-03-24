@@ -184,6 +184,15 @@ namespace RepositorySync
             return newFileInfo;
         }
 
+        public override void CopyManifestInformation(
+            RepositoryProxy otherRepository)
+        {
+            Manifest.CopyManifestInfoFrom(
+                otherRepository.Manifest);
+
+            ManifestChanged = true;
+        }
+
 
         // Secondary methods called by destination repository proxy
 

@@ -87,6 +87,14 @@ namespace RepositorySync
             RepositoryProxy otherRepositoryWithNewLocation,
             ManifestFileInfo otherFileWithNewLocation);
 
+        /// <summary>
+        /// Copy manifest information such as name, description, etc.
+        /// </summary>
+        /// <param name="otherRepository">
+        /// The repository from which to copy the infomration
+        /// </param>
+        public abstract void CopyManifestInformation(
+            RepositoryProxy otherRepository);
 
         // Secondary methods called by destination repository proxy
 
