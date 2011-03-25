@@ -107,6 +107,12 @@ namespace RepositorySync
                     TempDirectory);
 
             String newFilePath = MakeNativePath(sourceManifestFile);
+            String directoryPath = Path.GetDirectoryName(newFilePath);
+
+            if (Directory.Exists(directoryPath) == false)
+            {
+                Directory.CreateDirectory(directoryPath);
+            }
 
             if (File.Exists(newFilePath))
             {
@@ -136,6 +142,18 @@ namespace RepositorySync
             removeManifestFile.ParentDirectory.Files.Remove(
                 removeManifestFile.Name);
 
+            String directoryPath = Path.GetDirectoryName(removeFilePath);
+            DirectoryInfo directory = new DirectoryInfo(directoryPath);
+
+            while (directory.GetDirectories().Count() == 0 &&
+                directory.GetFiles().Count() == 0)
+            {
+                DirectoryInfo deleteDir = directory;
+                directory = directory.Parent;
+
+                deleteDir.Delete();
+            }
+
             ManifestChanged = true;
         }
 
@@ -146,6 +164,12 @@ namespace RepositorySync
         {
             String oldFilePath = MakeNativePath(fileToBeMoved);
             String newFilePath = MakeNativePath(otherFileWithNewLocation);
+            String directoryPath = Path.GetDirectoryName(newFilePath);
+
+            if (Directory.Exists(directoryPath) == false)
+            {
+                Directory.CreateDirectory(directoryPath);
+            }
 
             File.Move(oldFilePath, newFilePath);
 
@@ -170,6 +194,12 @@ namespace RepositorySync
         {
             String oldFilePath = MakeNativePath(fileToBeCopied);
             String newFilePath = MakeNativePath(otherFileWithNewLocation);
+            String directoryPath = Path.GetDirectoryName(newFilePath);
+
+            if (Directory.Exists(directoryPath) == false)
+            {
+                Directory.CreateDirectory(directoryPath);
+            }
 
             File.Copy(oldFilePath, newFilePath, true);
 
