@@ -61,17 +61,14 @@ namespace RepositorySync.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to REPOTOOL - Repository Tool for Data Validation
+        ///   Looks up a localized string similar to REPOSYNC - Repository Sync for Validated Data
         ///
-        ///This tool maintains a manifest of files in a repository along with their hash
-        ///values and last modified dates.  In this way, the data integrity of the
-        ///repository can be validated conveniently.  The manifest is stored in a file at
-        ///the top level directory of the repository.
+        ///This tool allows for synchronization between two repositories...
         ///
         ///
         ///SYNTAX:
         ///
-        ///rt command [option] ...
+        ///rs command sourceRepository destinationRepository [option] ...
         ///
         ///
         ///COMMANDS:
@@ -79,8 +76,13 @@ namespace RepositorySync.Properties {
         ///    help
         ///        Show this description of commands and options.
         ///
-        ///    create
-        ///        Create an empty repository manifest in th [rest of string was truncated]&quot;;.
+        ///    diff
+        ///        Show differences bewtween two repository manifests.
+        ///
+        ///    update
+        ///        Update dest with anything new in source.  No changes to source.
+        ///        For any files in source that aren&apos;t in dest, copy them to dest.
+        ///   [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string RepositorySyncHelp {
             get {

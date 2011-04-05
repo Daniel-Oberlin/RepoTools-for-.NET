@@ -38,7 +38,8 @@ COMMANDS:
         necessary.  No changes are made to source.
 
     repair
-        TODO: Fix any corrupt files in dest with files from source where possible.
+        TODO: Fix any corrupt files in dest with files from source where
+        possible.
 
 
 OPTIONS:

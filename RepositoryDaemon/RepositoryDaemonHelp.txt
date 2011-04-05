@@ -1,0 +1,19 @@
+﻿REPODAEMON - Repository Daemon for Validated Data
+
+This tool allows for...
+
+
+SYNTAX:
+
+red command [option] ...
+
+
+COMMANDS:
+
+    help
+        Show this description of commands and options.
+
+OPTIONS:
+
+    -silent
+        Don't output anything.  Exit code may still be checked by a script.

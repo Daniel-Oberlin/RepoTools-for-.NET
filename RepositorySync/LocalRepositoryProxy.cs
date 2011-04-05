@@ -269,6 +269,9 @@ namespace RepositorySync
             fileInfo.LastWriteTimeUtc = file.LastModifiedUtc;
         }
 
+
+        // Protected
+
         protected string ManifestFilePath { set; get; }
         protected DirectoryInfo RootDirectory { set; get; }
         protected DirectoryInfo TempDirectory { set; get; }

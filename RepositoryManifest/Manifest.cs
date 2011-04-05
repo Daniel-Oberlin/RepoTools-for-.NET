@@ -142,6 +142,20 @@ namespace RepositoryManifest
             FileStream fileStream =
                 new FileStream(manifestFilePath, FileMode.Open);
 
+            return ReadManifestStream(fileStream);
+        }
+
+        /// <summary>
+        /// Read a manifest from a stream
+        /// </summary>
+        /// <param name="stream">
+        /// The input stream
+        /// </param>
+        /// <returns>
+        /// The manifest
+        /// </returns>
+        public static Manifest ReadManifestStream(Stream stream)
+        {
             BinaryFormatter formatter =
                 new BinaryFormatter();
 
@@ -150,11 +164,11 @@ namespace RepositoryManifest
             try
             {
                 manifest = (Manifest)
-                    formatter.Deserialize(fileStream);
+                    formatter.Deserialize(stream);
             }
             finally
             {
-                fileStream.Close();
+                stream.Close();
             }
 
             manifest.DoAnyUpgradeMaintenance();

@@ -21,27 +21,77 @@ namespace RepositorySync
             int argIndex = 0;
             string commandArg = "";
 
-            LocalRepositoryProxy sourceRep = null;
-            LocalRepositoryProxy destRep = null;
+            RepositoryProxy sourceRep = null;
+            RepositoryProxy destRep = null;
 
             if (argIndex < args.Count())
             {
                 commandArg = args[argIndex++];
             }
 
-            // TODO: Handle errors
-            if (argIndex < args.Count())
+            if (args.Length >= 3)
             {
-                sourceRep = new LocalRepositoryProxy(
-                    new System.IO.DirectoryInfo(
-                        args[argIndex++]));
-            }
+                argIndex += 2;
+                RepositoryProxy otherProxy = null;
 
-            if (argIndex < args.Count())
-            {
-                destRep = new LocalRepositoryProxy(
-                    new System.IO.DirectoryInfo(
-                        args[argIndex++]));
+                // TODO: Handle errors
+                try
+                {
+                    sourceRep = new LocalRepositoryProxy(
+                        new System.IO.DirectoryInfo(
+                            args[1]));
+
+                    otherProxy = sourceRep;
+                }
+                catch (Exception)
+                {
+                    // TODO
+                }
+
+                try
+                {
+                    destRep = new LocalRepositoryProxy(
+                        new System.IO.DirectoryInfo(
+                            args[2]));
+
+                    otherProxy = destRep;
+                }
+                catch (Exception)
+                {
+                    // TODO
+                }
+
+                if (sourceRep == null)
+                {
+                    //try
+                    {
+                        sourceRep = new RemoteRepositoryProxy(
+                            args[1],
+                            otherProxy.Manifest);
+
+                        otherProxy = sourceRep;
+                    }
+                    //catch (Exception)
+                    //{
+                    //    // TODO
+                    //}
+                }
+
+                if (destRep == null)
+                {
+                    //try
+                    {
+                        destRep = new RemoteRepositoryProxy(
+                            args[2],
+                            otherProxy.Manifest);
+
+                        otherProxy = destRep;
+                    }
+                    //catch (Exception)
+                    //{
+                    //    // TODO
+                    //}
+                }
             }
 
             if (sourceRep == null || destRep == null)
