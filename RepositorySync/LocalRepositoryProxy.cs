@@ -30,6 +30,7 @@ namespace RepositorySync
                 Path.Combine(
                     RootDirectory.FullName,
                     Manifest.DefaultManifestFileName);
+
             try
             {
                 Manifest = Manifest.ReadManifestFile(ManifestFilePath);
@@ -41,17 +42,7 @@ namespace RepositorySync
                     ex);
             }
 
-            try
-            {
-                TempDirectory = RootDirectory.CreateSubdirectory(
-                    Path.GetRandomFileName());
-            }
-            catch (Exception ex)
-            {
-                throw new Exception(
-                    "Could not create temporary directory in repository.",
-                    ex);
-            }
+            CreateTempDirectory();
         }
 
         /// <summary>
@@ -224,7 +215,7 @@ namespace RepositorySync
         }
 
 
-        // Secondary methods called by destination repository proxy
+        // Support methods called by destination repository proxy
 
         public override FileInfo GetFile(
             ManifestFileInfo readFile)
@@ -253,6 +244,21 @@ namespace RepositorySync
 
         // Helper methods
 
+        protected void CreateTempDirectory()
+        {
+            try
+            {
+                TempDirectory = RootDirectory.CreateSubdirectory(
+                    Path.GetRandomFileName());
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(
+                    "Could not create temporary directory in repository.",
+                    ex);
+            }
+        }
+
         protected String MakeNativePath(ManifestFileInfo file)
         {
             return Path.Combine(
@@ -270,7 +276,7 @@ namespace RepositorySync
         }
 
 
-        // Protected
+        // Accessors
 
         protected string ManifestFilePath { set; get; }
         protected DirectoryInfo RootDirectory { set; get; }

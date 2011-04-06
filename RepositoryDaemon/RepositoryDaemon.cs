@@ -133,10 +133,11 @@ namespace RepositoryDaemon
             object source,
             RequestEventArgs args)
         {
-            HttpServer.HttpClientContext context =
+            HttpClientContext context =
                 (HttpServer.HttpClientContext) source;
 
-            IHttpRequest request = args.Request;
+            HttpRequest request =
+                (HttpRequest) args.Request;
 
 
             // DEGBUG OUTPUT
@@ -144,6 +145,7 @@ namespace RepositoryDaemon
                 "Connection acccepted from " +
                 context.RemoteAddress);
 
+            System.Console.WriteLine(request.Method);
             System.Console.WriteLine(request.Uri);
 
             foreach (String nextKey in request.Headers.Keys)
@@ -152,12 +154,31 @@ namespace RepositoryDaemon
                     nextKey + "=" + request.Headers[nextKey]);
             }
             Console.WriteLine();
-           
+
+
+            // Handle methods
+            switch (request.Method)
+            {
+                case "GET":
+                    HandleGetRequest(context, request);
+                    break;
+
+                case "PUT":
+                    HandlePutRequest(context, request);
+                    break;
+            }
+        }
+
+        protected void HandleGetRequest(
+            HttpClientContext context,
+            HttpRequest request)
+        {
+            // TODO: Authenticate based on request address
 
             try
             {
                 FileInfo fileInfo = GetFileInfoFromRequest(request);
-                
+
                 IHttpResponse response = request.CreateResponse(context);
                 response.ContentType = "application/octet-stream";
 
@@ -171,12 +192,14 @@ namespace RepositoryDaemon
                     response.ContentLength = stream.Length;
                     response.SendHeaders();
 
-                    byte[] buffer = new byte[8192];
-                    int bytesRead = stream.Read(buffer, 0, 8192);
+                    // TODO: Try using Stream.CopyTo() instead of this...
+
+                    byte[] buffer = new byte[SendChunkSize];
+                    int bytesRead = stream.Read(buffer, 0, SendChunkSize);
                     while (bytesRead > 0)
                     {
                         response.SendBody(buffer, 0, bytesRead);
-                        bytesRead = stream.Read(buffer, 0, 8192);
+                        bytesRead = stream.Read(buffer, 0, SendChunkSize);
                     }
                 }
             }
@@ -191,7 +214,15 @@ namespace RepositoryDaemon
             }
         }
 
-        protected Guid GetManifestGuidFromRequest(IHttpRequest request)
+        protected void HandlePutRequest(
+            HttpClientContext context,
+            HttpRequest request)
+        {
+            // TODO: Authenticate based on request address
+
+        }
+
+        protected Guid GetManifestGuidFromRequest(HttpRequest request)
         {
             // Parse GUID
             Guid repoGuid;
@@ -213,7 +244,7 @@ namespace RepositoryDaemon
             throw new Exception("Repository GUID not registered.");
         }
 
-        protected FileInfo GetFileInfoFromRequest(IHttpRequest request)
+        protected FileInfo GetFileInfoFromRequest(HttpRequest request)
         {
             Guid repoGuid = GetManifestGuidFromRequest(request);
 
@@ -290,11 +321,13 @@ namespace RepositoryDaemon
 
         public static String DaemonSettingsFileName;
         public static int PortNumber { private set; get; }
+        protected static int SendChunkSize { set; get; }
 
         static RepositoryDaemon()
         {
             DaemonSettingsFileName = ".repositoryDaemonSettings";
             PortNumber = 7555;
+            SendChunkSize = 8192;
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -12,6 +13,107 @@ namespace RepositorySync
     public class RemoteRepositoryProxy : RepositoryProxy
     {
         public RemoteRepositoryProxy(
+            String uriString,
+            Manifest otherManifest = null)
+        {
+            GetRemoteManifest(uriString, otherManifest);
+            CreateTempDirectory();
+        }
+
+        ~RemoteRepositoryProxy()
+        {
+            TempDirectory.Delete(true);
+        }
+
+        public override Manifest Manifest { protected set; get; }
+
+        public override ManifestFileInfo PutFile(
+            RepositoryProxy sourceRepository,
+            ManifestFileInfo sourceManifestFile)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void RemoveFile(
+            ManifestFileInfo removeManifestFile)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override ManifestFileInfo CopyFile(
+            ManifestFileInfo fileToBeCopied,
+            RepositoryProxy otherRepositoryWithNewLocation,
+            RepositoryManifest.ManifestFileInfo otherFileWithNewLocation)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override ManifestFileInfo MoveFile(
+            ManifestFileInfo fileToBeMoved,
+            RepositoryProxy otherRepositoryWithNewLocation,
+            ManifestFileInfo otherFileWithNewLocation)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void CopyManifestInformation(
+            RepositoryProxy otherRepository)
+        {
+            throw new NotImplementedException();
+        }
+
+
+        // Support methods called by destination repository proxy
+
+        public override FileInfo GetFile(
+            ManifestFileInfo readFile)
+        {
+            // We don't have a local copy, so we must make a temp clone
+            // and supply that instead.
+            return CloneFile(readFile, TempDirectory);
+        }
+
+        public override FileInfo CloneFile(
+            ManifestFileInfo copyFile, 
+            DirectoryInfo copyToDirectory)
+        {
+            String manifestPath =
+                Manifest.MakeStandardPathString(copyFile);
+
+            // Remove the leading '.' from the relative path
+            String uriPath =
+                manifestPath.Substring(1, manifestPath.Length - 1);
+
+            Uri requestUri = new Uri(BaseUri.ToString() + uriPath);
+
+            HttpWebRequest request =
+                (HttpWebRequest)WebRequest.Create(requestUri);
+
+            request.Timeout = RequestTimeout;
+            request.Method = "GET";
+
+            HttpWebResponse response =
+                (HttpWebResponse)request.GetResponse();
+
+            string tempFilePath = Path.Combine(
+                TempDirectory.FullName,
+                copyFile.FileHash.ToString());
+
+            using (FileStream fileStream =
+                new FileStream(
+                    tempFilePath,
+                    FileMode.Create))
+            {
+                response.GetResponseStream().CopyTo(fileStream);
+            }
+
+            return new FileInfo(tempFilePath);
+        }
+
+
+        // Helper methods
+
+        protected void GetRemoteManifest(
             String uriString,
             Manifest otherManifest = null)
         {
@@ -47,11 +149,11 @@ namespace RepositorySync
                 throw new Exception("Malformed URI.");
             }
 
-            HttpWebRequest request = 
-                (HttpWebRequest) WebRequest.Create(BaseUri);
+            HttpWebRequest request =
+                (HttpWebRequest)WebRequest.Create(BaseUri);
 
-            request.Timeout = 10000;
-            request.Method = "POST";
+            request.Timeout = RequestTimeout;
+            request.Method = "GET";
 
             HttpWebResponse response =
                 (HttpWebResponse)request.GetResponse();
@@ -60,46 +162,38 @@ namespace RepositorySync
                 response.GetResponseStream());
         }
 
-        public override Manifest Manifest { protected set; get; }
-
-        public override RepositoryManifest.ManifestFileInfo PutFile(RepositoryProxy sourceRepository, RepositoryManifest.ManifestFileInfo sourceManifestFile)
+        protected void CreateTempDirectory()
         {
-            throw new NotImplementedException();
-        }
+            try
+            {
+                String systemTempPath = Path.GetTempPath();
+                DirectoryInfo systemTempDir = new DirectoryInfo(systemTempPath);
 
-        public override void RemoveFile(RepositoryManifest.ManifestFileInfo removeManifestFile)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override RepositoryManifest.ManifestFileInfo CopyFile(RepositoryManifest.ManifestFileInfo fileToBeCopied, RepositoryProxy otherRepositoryWithNewLocation, RepositoryManifest.ManifestFileInfo otherFileWithNewLocation)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override RepositoryManifest.ManifestFileInfo MoveFile(RepositoryManifest.ManifestFileInfo fileToBeMoved, RepositoryProxy otherRepositoryWithNewLocation, RepositoryManifest.ManifestFileInfo otherFileWithNewLocation)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override void CopyManifestInformation(RepositoryProxy otherRepository)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override System.IO.FileInfo GetFile(RepositoryManifest.ManifestFileInfo readFile)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override System.IO.FileInfo CloneFile(RepositoryManifest.ManifestFileInfo copyFile, System.IO.DirectoryInfo copyToDirectory)
-        {
-            throw new NotImplementedException();
+                TempDirectory = systemTempDir.CreateSubdirectory(
+                    Path.GetRandomFileName());
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(
+                    "Could not create temporary directory.",
+                    ex);
+            }
         }
 
 
-        // Protected
+        // Accessors
 
         protected Uri BaseUri { set; get; }
+        protected DirectoryInfo TempDirectory { set; get; }
+
+
+        // Static
+
+        protected static int RequestTimeout { set; get; }
+
+        static RemoteRepositoryProxy()
+        {
+            RequestTimeout = 10000;
+        }
     }
 }
