@@ -188,9 +188,14 @@ namespace RepositorySync
 
         protected static int RequestTimeout { set; get; }
 
+        public static String LastModifiedUtcHeaderName;
+        
+
         static RemoteRepositoryProxy()
         {
             RequestTimeout = 10000;
+
+            LastModifiedUtcHeaderName = "Rep-LastModifiedUtc";
         }
     }
 }

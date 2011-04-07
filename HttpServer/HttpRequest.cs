@@ -23,9 +23,13 @@ namespace HttpServer
         private readonly NameValueCollection _headers = new NameValueCollection();
         private readonly HttpParam _param = new HttpParam(HttpInput.Empty, HttpInput.Empty);
         private Stream _body = new MemoryStream();
-        private int _bodyBytesLeft;
+        // DMO
+        //private int _bodyBytesLeft;
+        private long _bodyBytesLeft;
         private ConnectionType _connection = ConnectionType.Close;
-        private int _contentLength;
+        // DMO
+        //private int _contentLength;
+        private long _contentLength;
         private HttpForm _form = HttpForm.EmptyForm;
         private string _httpVersion = string.Empty;
         private string _method = string.Empty;
@@ -126,7 +130,9 @@ namespace HttpServer
         /// <summary>
         /// Gets or sets number of bytes in the body.
         /// </summary>
-        public int ContentLength
+        // DMO
+        // public int ContentLength
+        public long ContentLength
         {
             get { return _contentLength; }
             set
@@ -283,10 +289,14 @@ namespace HttpServer
             if (_bodyBytesLeft > 0)
                 throw new InvalidOperationException("Body transfer has not yet been completed.");
 
+            // DMO
+            /*
             // If Content-Length is set we create a buffer of the exact size, otherwise
             // a MemoryStream is used to receive the response
             bool nolength = (_contentLength <= 0);
+
             int size = (nolength) ? 8192 : _contentLength;
+
             MemoryStream ms = (nolength) ? new MemoryStream() : null;
             byte[] buffer = new byte[size];
 
@@ -310,6 +320,12 @@ namespace HttpServer
                 return ms.ToArray();
             else
                 return buffer;
+             * */
+
+            // DMO: UNTESTED
+            MemoryStream ms = new MemoryStream();
+            _body.CopyTo(ms);
+            return ms.ToArray();
         }
 
         ///<summary>
@@ -426,7 +442,9 @@ namespace HttpServer
 
             if (length > _bodyBytesLeft)
             {
-                length = _bodyBytesLeft;
+                // DMO
+                //length = _bodyBytesLeft;
+                length = (int)_bodyBytesLeft;
             }
 
             _body.Write(bytes, offset, length);

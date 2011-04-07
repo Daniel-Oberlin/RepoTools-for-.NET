@@ -261,7 +261,15 @@ namespace RepositoryDaemon
                         manifest,
                         request);
 
-                //request.Headers
+                manFileInfo.FileLength =
+                    request.ContentLength;
+
+                long LastModifiedUtcTicks = long.Parse(
+                    request.Headers[RemoteRepositoryProxy.LastModifiedUtcHeaderName]);
+
+                manFileInfo.LastModifiedUtc =
+                    new DateTime(LastModifiedUtcTicks);
+
             }
             catch (Exception ex)
             {

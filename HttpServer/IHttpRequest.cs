@@ -35,7 +35,9 @@ namespace HttpServer
         /// <summary>
         /// Gets or sets number of bytes in the body.
         /// </summary>
-        int ContentLength { get; set; }
+        // DMO
+        //int ContentLength { get; set; }
+        long ContentLength { get; set; }
 
         /// <summary>
         /// Gets cookies that was sent with the request.
