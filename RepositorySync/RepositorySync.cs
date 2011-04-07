@@ -14,8 +14,8 @@ namespace RepositorySync
     class RepositorySync
     {
         public RepositorySync(
-            RepositoryProxy source,
-            RepositoryProxy dest)
+            IRepositoryProxy source,
+            IRepositoryProxy dest)
         {
             SourceRep = source;
             DestRep = dest;
@@ -453,9 +453,9 @@ namespace RepositorySync
         }
 
         protected void MoveFileSet(
-            RepositoryProxy sourceRep,
+            IRepositoryProxy sourceRep,
             List<ManifestFileInfo> sourceFiles,
-            RepositoryProxy destRep,
+            IRepositoryProxy destRep,
             List<ManifestFileInfo> destFiles)
         {
             // Move the existing dest files when possible to avoid
@@ -526,8 +526,8 @@ namespace RepositorySync
         }
 
         protected void PutFileHelper(
-            RepositoryProxy sourceRepository,
-            RepositoryProxy destRepository,
+            IRepositoryProxy sourceRepository,
+            IRepositoryProxy destRepository,
             ManifestFileInfo sourceFile)
         {
             if (Preview == false)
@@ -549,8 +549,8 @@ namespace RepositorySync
         }
 
         protected ManifestFileInfo MoveFileHelper(
-            RepositoryProxy sourceRepository,
-            RepositoryProxy destRepository,
+            IRepositoryProxy sourceRepository,
+            IRepositoryProxy destRepository,
             ManifestFileInfo sourceFileWithNewLocation,
             ManifestFileInfo destFileToBeMoved)
         {
@@ -578,8 +578,8 @@ namespace RepositorySync
         }
 
         protected ManifestFileInfo CopyFileHelper(
-            RepositoryProxy sourceRepository,
-            RepositoryProxy destRepository,
+            IRepositoryProxy sourceRepository,
+            IRepositoryProxy destRepository,
             ManifestFileInfo sourceFileWithNewLocation,
             ManifestFileInfo destFileToBeCopied)
         {
@@ -608,7 +608,7 @@ namespace RepositorySync
         }
 
         protected void RemoveFileHelper(
-            RepositoryProxy destRepository,
+            IRepositoryProxy destRepository,
             ManifestFileInfo destFile)
         {
             if (Preview == false)
@@ -632,8 +632,8 @@ namespace RepositorySync
 
         public WriteLogDelegate WriteLogDelegate { set; get; } 
 
-        public RepositoryProxy SourceRep { private set; get; }
-        public RepositoryProxy DestRep { private set; get; }
+        public IRepositoryProxy SourceRep { private set; get; }
+        public IRepositoryProxy DestRep { private set; get; }
 
         public bool Preview { set; get; }
         public bool BothWays { set; get; }

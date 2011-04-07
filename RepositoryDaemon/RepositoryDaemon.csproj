@@ -96,6 +96,10 @@
       <Project>{6ED3D09D-916A-4030-B61F-2F16E0B12144}</Project>
       <Name>RepositoryManifest</Name>
     </ProjectReference>
+    <ProjectReference Include="..\RepositorySync\RepositorySync.csproj">
+      <Project>{B943150D-9520-4FDB-A0CB-6954AE298CFA}</Project>
+      <Name>RepositorySync</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Utilities\Utilities.csproj">
       <Project>{544F2895-5BCE-4325-8F79-E6552AAF50F6}</Project>
       <Name>Utilities</Name>

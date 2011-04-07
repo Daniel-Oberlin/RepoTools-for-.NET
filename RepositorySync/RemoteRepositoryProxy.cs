@@ -10,7 +10,7 @@ using RepositoryManifest;
 
 namespace RepositorySync
 {
-    public class RemoteRepositoryProxy : RepositoryProxy
+    public class RemoteRepositoryProxy : IRepositoryProxy
     {
         public RemoteRepositoryProxy(
             String uriString,
@@ -25,39 +25,37 @@ namespace RepositorySync
             TempDirectory.Delete(true);
         }
 
-        public override Manifest Manifest { protected set; get; }
+        public Manifest Manifest { protected set; get; }
 
-        public override ManifestFileInfo PutFile(
-            RepositoryProxy sourceRepository,
+        public ManifestFileInfo PutFile(
+            IRepositoryProxy sourceRepository,
             ManifestFileInfo sourceManifestFile)
         {
             throw new NotImplementedException();
         }
 
-        public override void RemoveFile(
-            ManifestFileInfo removeManifestFile)
+        public void RemoveFile(ManifestFileInfo removeManifestFile)
         {
             throw new NotImplementedException();
         }
 
-        public override ManifestFileInfo CopyFile(
+        public ManifestFileInfo CopyFile(
             ManifestFileInfo fileToBeCopied,
-            RepositoryProxy otherRepositoryWithNewLocation,
+            IRepositoryProxy otherRepositoryWithNewLocation,
             RepositoryManifest.ManifestFileInfo otherFileWithNewLocation)
         {
             throw new NotImplementedException();
         }
 
-        public override ManifestFileInfo MoveFile(
+        public ManifestFileInfo MoveFile(
             ManifestFileInfo fileToBeMoved,
-            RepositoryProxy otherRepositoryWithNewLocation,
+            IRepositoryProxy otherRepositoryWithNewLocation,
             ManifestFileInfo otherFileWithNewLocation)
         {
             throw new NotImplementedException();
         }
 
-        public override void CopyManifestInformation(
-            RepositoryProxy otherRepository)
+        public void CopyManifestInformation(IRepositoryProxy otherRepository)
         {
             throw new NotImplementedException();
         }
@@ -65,15 +63,14 @@ namespace RepositorySync
 
         // Support methods called by destination repository proxy
 
-        public override FileInfo GetFile(
-            ManifestFileInfo readFile)
+        public FileInfo GetFile(ManifestFileInfo readFile)
         {
             // We don't have a local copy, so we must make a temp clone
             // and supply that instead.
             return CloneFile(readFile, TempDirectory);
         }
 
-        public override FileInfo CloneFile(
+        public FileInfo CloneFile(
             ManifestFileInfo copyFile, 
             DirectoryInfo copyToDirectory)
         {

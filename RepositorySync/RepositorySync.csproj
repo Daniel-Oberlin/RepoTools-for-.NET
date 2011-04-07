@@ -92,6 +92,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="LocalRepositoryProxy.cs" />
+    <Compile Include="LocalRepositoryState.cs" />
     <Compile Include="RemoteRepositoryProxy.cs" />
     <Compile Include="RepositoryProxy.cs" />
     <Compile Include="Program.cs" />

@@ -21,8 +21,8 @@ namespace RepositorySync
             int argIndex = 0;
             string commandArg = "";
 
-            RepositoryProxy sourceRep = null;
-            RepositoryProxy destRep = null;
+            IRepositoryProxy sourceRep = null;
+            IRepositoryProxy destRep = null;
 
             if (argIndex < args.Count())
             {
@@ -32,7 +32,7 @@ namespace RepositorySync
             if (args.Length >= 3)
             {
                 argIndex += 2;
-                RepositoryProxy otherProxy = null;
+                IRepositoryProxy otherProxy = null;
 
                 // TODO: Handle errors
                 try

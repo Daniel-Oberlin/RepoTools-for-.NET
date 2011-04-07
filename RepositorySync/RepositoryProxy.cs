@@ -12,12 +12,12 @@ namespace RepositorySync
     /// <summary>
     /// Abstraction for a repository proxy
     /// </summary>
-    public abstract class RepositoryProxy
+    public interface IRepositoryProxy
     {
         /// <summary>
         /// The manifest for this repository
         /// </summary>
-        public abstract Manifest Manifest { protected set; get; }
+        Manifest Manifest { get; }
 
 
         // Primary methods called by sync
@@ -34,8 +34,8 @@ namespace RepositorySync
         /// <returns>
         /// The file that was added
         /// </returns>
-        public abstract ManifestFileInfo PutFile(
-            RepositoryProxy sourceRepository,
+        ManifestFileInfo PutFile(
+            IRepositoryProxy sourceRepository,
             ManifestFileInfo sourceManifestFile);
 
         /// <summary>
@@ -44,8 +44,7 @@ namespace RepositorySync
         /// <param name="removeManifestFile">
         /// The file to be removed
         /// </param>
-        public abstract void RemoveFile(
-            ManifestFileInfo removeManifestFile);
+        void RemoveFile(ManifestFileInfo removeManifestFile);
 
         /// <summary>
         /// Copy a file in this repository
@@ -62,9 +61,9 @@ namespace RepositorySync
         /// <returns>
         /// The copied file
         /// </returns>
-        public abstract ManifestFileInfo CopyFile(
+        ManifestFileInfo CopyFile(
             ManifestFileInfo fileToBeCopied,
-            RepositoryProxy otherRepositoryWithNewLocation,
+            IRepositoryProxy otherRepositoryWithNewLocation,
             ManifestFileInfo otherFileWithNewLocation);
 
         /// <summary>
@@ -82,9 +81,9 @@ namespace RepositorySync
         /// <returns>
         /// The moved file
         /// </returns>
-        public abstract ManifestFileInfo MoveFile(
+        ManifestFileInfo MoveFile(
             ManifestFileInfo fileToBeMoved,
-            RepositoryProxy otherRepositoryWithNewLocation,
+            IRepositoryProxy otherRepositoryWithNewLocation,
             ManifestFileInfo otherFileWithNewLocation);
 
         /// <summary>
@@ -93,10 +92,10 @@ namespace RepositorySync
         /// <param name="otherRepository">
         /// The repository from which to copy the infomration
         /// </param>
-        public abstract void CopyManifestInformation(
-            RepositoryProxy otherRepository);
+        void CopyManifestInformation(IRepositoryProxy otherRepository);
 
-        // Secondary methods called by destination repository proxy
+
+        // Support methods called by destination repository proxy
 
         /// <summary>
         /// Get a file (or a copy of the file) for purposes of reading
@@ -107,8 +106,7 @@ namespace RepositorySync
         /// <returns>
         /// The file
         /// </returns>
-        public abstract FileInfo GetFile(
-            ManifestFileInfo readFile);
+        FileInfo GetFile(ManifestFileInfo readFile);
 
         /// <summary>
         /// Clone a file for purposes of adding to another repository
@@ -122,7 +120,7 @@ namespace RepositorySync
         /// <returns>
         /// The cloned file
         /// </returns>
-        public abstract FileInfo CloneFile(
+        FileInfo CloneFile(
             ManifestFileInfo copyFile,
             DirectoryInfo copyToDirectory);
     }

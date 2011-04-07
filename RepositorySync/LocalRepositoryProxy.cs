@@ -12,7 +12,7 @@ namespace RepositorySync
     /// <summary>
     /// Implementation of RepositoryProxy for a local filesystem.
     /// </summary>
-    public class LocalRepositoryProxy : RepositoryProxy
+    public class LocalRepositoryProxy : LocalRepositoryState, IRepositoryProxy
     {
         /// <summary>
         /// Constructor
@@ -21,75 +21,16 @@ namespace RepositorySync
         /// The root directory where the manifest can be found
         /// </param>
         public LocalRepositoryProxy(
-            DirectoryInfo rootDirectory)
+            DirectoryInfo rootDirectory) :
+            base(rootDirectory)
         {
-            RootDirectory = rootDirectory;
-            ManifestChanged = false;
-
-            ManifestFilePath =
-                Path.Combine(
-                    RootDirectory.FullName,
-                    Manifest.DefaultManifestFileName);
-
-            try
-            {
-                Manifest = Manifest.ReadManifestFile(ManifestFilePath);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception(
-                    "Could not read manifest.",
-                    ex);
-            }
-
-            CreateTempDirectory();
         }
 
-        /// <summary>
-        /// Finalizer removes temp directory and writes manifest
-        /// </summary>
-        ~LocalRepositoryProxy()
-        {
-            Exception exception = null;
 
-            try
-            {
-                TempDirectory.Delete(true);
-            }
-            catch (Exception ex)
-            {
-                if (exception == null)
-                {
-                    exception = ex;
-                }
-            }
-
-            if (ManifestChanged)
-            {
-                Manifest.LastUpdateDateUtc = DateTime.UtcNow;
-                try
-                {
-                    Manifest.WriteManifestFile(ManifestFilePath);
-                }
-                catch (Exception ex)
-                {
-                    // This exception overrides previous
-                    exception = new Exception(
-                     "Could not write manifest.",
-                     ex);
-                }
-            }
-
-            if (exception != null)
-            {
-                throw exception;
-            }
-        }
+        // Implement IRepositoryProxy
         
-        public override Manifest Manifest { protected set; get; }
-
-        public override ManifestFileInfo PutFile(
-            RepositoryProxy sourceRepository,
+        public ManifestFileInfo PutFile(
+            IRepositoryProxy sourceRepository,
             ManifestFileInfo sourceManifestFile)
         {
             FileInfo fileCopy =
@@ -123,8 +64,7 @@ namespace RepositorySync
             return newFileInfo;
         }
 
-        public override void RemoveFile(
-            ManifestFileInfo removeManifestFile)
+        public void RemoveFile(ManifestFileInfo removeManifestFile)
         {
             String removeFilePath = MakeNativePath(removeManifestFile);
 
@@ -148,9 +88,9 @@ namespace RepositorySync
             ManifestChanged = true;
         }
 
-        public override ManifestFileInfo MoveFile(
+        public ManifestFileInfo MoveFile(
             ManifestFileInfo fileToBeMoved,
-            RepositoryProxy otherRepositoryWithNewLocation,
+            IRepositoryProxy otherRepositoryWithNewLocation,
             ManifestFileInfo otherFileWithNewLocation)
         {
             String oldFilePath = MakeNativePath(fileToBeMoved);
@@ -178,9 +118,9 @@ namespace RepositorySync
             return newFileInfo;
         }
 
-        public override ManifestFileInfo CopyFile(
+        public ManifestFileInfo CopyFile(
             ManifestFileInfo fileToBeCopied,
-            RepositoryProxy otherRepositoryWithNewLocation,
+            IRepositoryProxy otherRepositoryWithNewLocation,
             ManifestFileInfo otherFileWithNewLocation)
         {
             String oldFilePath = MakeNativePath(fileToBeCopied);
@@ -205,8 +145,7 @@ namespace RepositorySync
             return newFileInfo;
         }
 
-        public override void CopyManifestInformation(
-            RepositoryProxy otherRepository)
+        public void CopyManifestInformation(IRepositoryProxy otherRepository)
         {
             Manifest.CopyManifestInfoFrom(
                 otherRepository.Manifest);
@@ -217,14 +156,13 @@ namespace RepositorySync
 
         // Support methods called by destination repository proxy
 
-        public override FileInfo GetFile(
-            ManifestFileInfo readFile)
+        public FileInfo GetFile(ManifestFileInfo readFile)
         {
             String filePath = MakeNativePath(readFile);
             return new FileInfo(filePath);
         }
 
-        public override FileInfo CloneFile(
+        public FileInfo CloneFile(
             ManifestFileInfo copyFile,
             DirectoryInfo copyToDirectory)
         {
@@ -244,28 +182,6 @@ namespace RepositorySync
 
         // Helper methods
 
-        protected void CreateTempDirectory()
-        {
-            try
-            {
-                TempDirectory = RootDirectory.CreateSubdirectory(
-                    Path.GetRandomFileName());
-            }
-            catch (Exception ex)
-            {
-                throw new Exception(
-                    "Could not create temporary directory in repository.",
-                    ex);
-            }
-        }
-
-        protected String MakeNativePath(ManifestFileInfo file)
-        {
-            return Path.Combine(
-                RootDirectory.FullName,
-                Manifest.MakeNativePathString(file));
-        }
-
         protected void SetFileDates(ManifestFileInfo file)
         {
             FileInfo fileInfo =
@@ -274,14 +190,5 @@ namespace RepositorySync
             fileInfo.CreationTimeUtc = file.CreationUtc;
             fileInfo.LastWriteTimeUtc = file.LastModifiedUtc;
         }
-
-
-        // Accessors
-
-        protected string ManifestFilePath { set; get; }
-        protected DirectoryInfo RootDirectory { set; get; }
-        protected DirectoryInfo TempDirectory { set; get; }
-
-        protected bool ManifestChanged { set; get; }
     }
 }

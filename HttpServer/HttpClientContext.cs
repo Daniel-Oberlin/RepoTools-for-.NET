@@ -221,7 +221,9 @@ namespace HttpServer
         /// <summary>
         /// Gets or sets the network stream.
         /// </summary>
-        internal Stream Stream
+        // DMO
+        //internal Stream Stream
+        public Stream Stream
         {
             get { return _stream; }
             private set { _stream = value; }

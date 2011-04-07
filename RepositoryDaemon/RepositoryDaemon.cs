@@ -9,6 +9,7 @@ using System.Text;
 using HttpServer;
 using HttpServer.HttpModules;
 using RepositoryManifest;
+using RepositorySync;
 
 
 namespace RepositoryDaemon
@@ -19,7 +20,14 @@ namespace RepositoryDaemon
         {
             LoadSettings();
 
-            GuidToManifest = new Dictionary<Guid, Manifest>();
+            GuidToRepository = new Dictionary<Guid, LocalRepositoryState>();
+
+            CreateTempDirectory();
+        }
+
+        ~RepositoryDaemon()
+        {
+            TempDirectory.Delete(true);
         }
 
         public void AddRepository(
@@ -173,13 +181,19 @@ namespace RepositoryDaemon
             HttpClientContext context,
             HttpRequest request)
         {
+            Guid manifestGuid = GetManifestGuidFromRequest(request);
+
+            // TODO: Lock manifest
+
+            Manifest manifest = GuidToRepository[manifestGuid].Manifest;
+
             // TODO: Authenticate based on request address
 
             try
             {
                 FileInfo fileInfo = GetFileInfoFromRequest(request);
 
-                IHttpResponse response = request.CreateResponse(context);
+                HttpResponse response = (HttpResponse)request.CreateResponse(context);
                 response.ContentType = "application/octet-stream";
 
                 using (FileStream stream =
@@ -194,13 +208,15 @@ namespace RepositoryDaemon
 
                     // TODO: Try using Stream.CopyTo() instead of this...
 
-                    byte[] buffer = new byte[SendChunkSize];
-                    int bytesRead = stream.Read(buffer, 0, SendChunkSize);
-                    while (bytesRead > 0)
-                    {
-                        response.SendBody(buffer, 0, bytesRead);
-                        bytesRead = stream.Read(buffer, 0, SendChunkSize);
-                    }
+                    //byte[] buffer = new byte[SendChunkSize];
+                    //int bytesRead = stream.Read(buffer, 0, SendChunkSize);
+                    //while (bytesRead > 0)
+                    //{
+                    //    response.SendBody(buffer, 0, bytesRead);
+                    //    bytesRead = stream.Read(buffer, 0, SendChunkSize);
+                    //}
+
+                    stream.CopyTo(context.Stream);
                 }
             }
             catch (Exception ex)
@@ -218,8 +234,66 @@ namespace RepositoryDaemon
             HttpClientContext context,
             HttpRequest request)
         {
+            Guid manifestGuid = GetManifestGuidFromRequest(request);
+
+            // TODO: Lock manifest
+
+            Manifest manifest = GuidToRepository[manifestGuid].Manifest;
+
             // TODO: Authenticate based on request address
 
+            try
+            {
+                string tempFilePath = Path.Combine(
+                    TempDirectory.FullName,
+                    Path.GetRandomFileName());
+
+                using (FileStream fileStream =
+                    new FileStream(
+                        tempFilePath,
+                        FileMode.Create))
+                {
+                    request.Body.CopyTo(fileStream);
+                }
+
+                ManifestFileInfo manFileInfo =
+                    GetOrMakeManifestFileInfoFromRequest(
+                        manifest,
+                        request);
+
+                //request.Headers
+            }
+            catch (Exception ex)
+            {
+                context.Respond(
+                    "HTTP/1.0",
+                    HttpStatusCode.InternalServerError,
+                    "Internal server error",
+                    ex.ToString(),
+                    "text/plain");
+            }
+        }
+
+
+        // Helper methods
+
+        protected void CreateTempDirectory()
+        {
+            try
+            {
+                String systemTempPath = Path.GetTempPath();
+                DirectoryInfo systemTempDir = new DirectoryInfo(systemTempPath);
+
+                TempDirectory = systemTempDir.CreateSubdirectory(
+                    "temp-" +
+                    Path.GetRandomFileName());
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(
+                    "Could not create temporary directory.",
+                    ex);
+            }
         }
 
         protected Guid GetManifestGuidFromRequest(HttpRequest request)
@@ -265,6 +339,13 @@ namespace RepositoryDaemon
             return new FileInfo(filePath);
         }
 
+        protected ManifestFileInfo GetOrMakeManifestFileInfoFromRequest(
+            Manifest manifest,
+            HttpRequest request)
+        {
+            return null;
+        }
+
         protected String GetSettingsFilePath()
         {
             String computerName =
@@ -304,17 +385,23 @@ namespace RepositoryDaemon
 
         protected void LoadManifests()
         {
-            GuidToManifest.Clear();
+            GuidToRepository.Clear();
 
-            foreach (Guid nextGuid in Settings.GuidToRepository.Keys)
+            foreach (RepositoryInfo nextRepo in Settings.GuidToRepository.Values)
             {
-                GuidToManifest[nextGuid] =
-                    Manifest.ReadManifestFile(
-                        Settings.GuidToRepository[nextGuid].ManifestPath);
+                DirectoryInfo rootDirectory =
+                    new DirectoryInfo(nextRepo.RepositoryPath);
+
+                GuidToRepository[nextRepo.Guid] =
+                    new LocalRepositoryState(rootDirectory);
             }
         }
 
-        protected Dictionary<Guid, Manifest> GuidToManifest { set; get; }
+
+        // Accessors
+
+        protected DirectoryInfo TempDirectory { set; get; }
+        protected Dictionary<Guid, LocalRepositoryState> GuidToRepository { set; get; }
 
 
         // Static
