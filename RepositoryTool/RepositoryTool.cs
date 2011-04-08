@@ -151,7 +151,6 @@ namespace RepositoryTool
                     }
                     else if (AlwaysCheckHash == true ||
                         nextFileInfo.LastWriteTimeUtc != nextManFileInfo.LastModifiedUtc ||
-                        nextFileInfo.CreationTimeUtc != nextManFileInfo.CreationUtc ||
                         nextFileInfo.Length != nextManFileInfo.FileLength)
                     {
                         FileHash checkHash = null;
@@ -195,18 +194,6 @@ namespace RepositoryTool
                                             nextManFileInfo.LastModifiedUtc;
                                     }
                                 }
-
-                                if (nextFileInfo.CreationTimeUtc != nextManFileInfo.CreationUtc)
-                                {
-                                    Write(" [CREATION DATE]");
-                                    CreationDateFiles.Add(nextManFileInfo);
-
-                                    if (BackDate == true)
-                                    {
-                                        nextFileInfo.CreationTimeUtc =
-                                            nextManFileInfo.CreationUtc;
-                                    }
-                                }
                             }
                         }
 
@@ -222,7 +209,6 @@ namespace RepositoryTool
                         nextManFileInfo.FileHash = newHash;
 
                         nextManFileInfo.LastModifiedUtc = nextFileInfo.LastWriteTimeUtc;
-                        nextManFileInfo.CreationUtc = nextFileInfo.CreationTimeUtc;
                         nextManFileInfo.FileLength = nextFileInfo.Length;
                     }
                     else
@@ -338,10 +324,7 @@ namespace RepositoryTool
                         newManFileInfo.LastModifiedUtc =
                             nextFileInfo.LastWriteTimeUtc;
 
-                        newManFileInfo.CreationUtc =
-                            nextFileInfo.CreationTimeUtc;
-
-                        newManFileInfo.ManifestCreationUtc =
+                        newManFileInfo.RegisteredUtc =
                             DateTime.Now.ToUniversalTime();
 
                         currentManfestDirInfo.Files.Add(

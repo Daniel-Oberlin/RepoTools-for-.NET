@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Text;
 
 namespace RepositoryManifest
@@ -9,7 +10,7 @@ namespace RepositoryManifest
     /// Information about a file in the repository
     /// </summary>
     [Serializable]
-    public class ManifestFileInfo : ManifestObjectInfo
+    public class ManifestFileInfo : ManifestObjectInfo, ISerializable
     {
         /// <summary>
         /// Constructor
@@ -25,7 +26,8 @@ namespace RepositoryManifest
             ManifestDirectoryInfo parentDirectory) :
             base(name, parentDirectory)
         {
-            Hash = null; // DEPRECATED
+            // DEPRECATED
+            //Hash = null;
 
             FileHash = null;
         }
@@ -46,8 +48,11 @@ namespace RepositoryManifest
         {
             FileLength = original.FileLength;
             LastModifiedUtc = original.LastModifiedUtc;
-            CreationUtc = original.CreationUtc;
-            ManifestCreationUtc = original.ManifestCreationUtc;
+
+            // DEPRECATED
+            // CreationUtc = original.CreationUtc;
+
+            RegisteredUtc = original.RegisteredUtc;
 
             // DEPRECATED
             // Hash = (byte[]) original.Hash.Clone();
@@ -67,19 +72,26 @@ namespace RepositoryManifest
 
         /// <summary>
         /// The time that this file was created according to the filesystem
+        /// *** DEPRECATED
         /// </summary>
-        public DateTime CreationUtc { set; get; }
+        //public DateTime CreationUtc { set; get; }
 
         /// <summary>
         /// The time that this file was first entered into the manifest
+        /// *** DEPRECATED
         /// </summary>
-        public DateTime ManifestCreationUtc { set; get; }
+        //public DateTime ManifestCreationUtc { set; get; }
+
+        /// <summary>
+        /// The time that this file was first put into the manifest
+        /// </summary>
+        public DateTime RegisteredUtc { set; get; }
 
         /// <summary>
         /// The hash of the file data.
         /// *** DEPRECATED
         /// </summary>
-        internal byte[] Hash { set; get; }
+        //internal byte[] Hash { set; get; }
 
         /// <summary>
         /// The hash of the file data
@@ -90,6 +102,43 @@ namespace RepositoryManifest
         /// The name of the hash algorithm used
         /// *** DEPRECATED
         /// </summary>
-        internal String HashType { set; get; }
+        //internal String HashType { set; get; }
+
+        protected ManifestFileInfo(
+            SerializationInfo info,
+            StreamingContext context) :
+            base(
+                info.GetString("ManifestObjectInfo+<Name>k__BackingField"),
+                (ManifestDirectoryInfo)
+                    info.GetValue(
+                        "ManifestObjectInfo+<ParentDirectory>k__BackingField",
+                        typeof(ManifestDirectoryInfo)))
+        {
+            FileLength = info.GetInt64("<FileLength>k__BackingField");
+            LastModifiedUtc = info.GetDateTime("<LastModifiedUtc>k__BackingField");
+
+            try
+            {
+                RegisteredUtc = info.GetDateTime("<RegisteredUtc>k__BackingField");
+            }
+            catch (Exception) { }
+
+            try
+            {
+                FileHash = (FileHash)info.GetValue("<FileHash>k__BackingField", typeof(FileHash));
+            }
+            catch (Exception) { }
+        }
+
+        public virtual void GetObjectData(SerializationInfo info,
+            StreamingContext context)
+        {
+            info.AddValue("ManifestObjectInfo+<Name>k__BackingField", Name);
+            info.AddValue("ManifestObjectInfo+<ParentDirectory>k__BackingField", ParentDirectory);
+            info.AddValue("<FileLength>k__BackingField", FileLength);
+            info.AddValue("<LastModifiedUtc>k__BackingField", LastModifiedUtc);
+            info.AddValue("<RegisteredUtc>k__BackingField", RegisteredUtc);
+            info.AddValue("<FileHash>k__BackingField", FileHash);
+        }
     }
 }

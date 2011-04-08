@@ -205,17 +205,6 @@ namespace RepositoryDaemon
                 {
                     response.ContentLength = stream.Length;
                     response.SendHeaders();
-
-                    // TODO: Try using Stream.CopyTo() instead of this...
-
-                    //byte[] buffer = new byte[SendChunkSize];
-                    //int bytesRead = stream.Read(buffer, 0, SendChunkSize);
-                    //while (bytesRead > 0)
-                    //{
-                    //    response.SendBody(buffer, 0, bytesRead);
-                    //    bytesRead = stream.Read(buffer, 0, SendChunkSize);
-                    //}
-
                     stream.CopyTo(context.Stream);
                 }
             }
@@ -268,7 +257,9 @@ namespace RepositoryDaemon
                     request.Headers[RemoteRepositoryProxy.LastModifiedUtcHeaderName]);
 
                 manFileInfo.LastModifiedUtc =
-                    new DateTime(LastModifiedUtcTicks);
+                    new DateTime(LastModifiedUtcTicks, DateTimeKind.Utc);
+
+
 
             }
             catch (Exception ex)

@@ -92,14 +92,8 @@ namespace RepositorySync
                             LastModifiedDateFiles.Add(sourceFile);
                         }
 
-                        if (sourceFile.CreationUtc !=
-                            destFile.CreationUtc)
-                        {
-                            CreationDateFiles.Add(sourceFile);
-                        }
-
-                        if (sourceFile.ManifestCreationUtc !=
-                            destFile.ManifestCreationUtc)
+                        if (sourceFile.RegisteredUtc !=
+                            destFile.RegisteredUtc)
                         {
                             ManifestCreationDateFiles.Add(sourceFile);
                         }
@@ -377,13 +371,13 @@ namespace RepositorySync
                 DateTime latestSourceTime = DateTime.MinValue;
                 foreach (ManifestFileInfo nextSourceFile in fileSet.SourceFiles)
                 {
-                    if (nextSourceFile.ManifestCreationUtc < earliestSourceTime)
+                    if (nextSourceFile.RegisteredUtc < earliestSourceTime)
                     {
-                        earliestSourceTime = nextSourceFile.ManifestCreationUtc;
+                        earliestSourceTime = nextSourceFile.RegisteredUtc;
                     }
-                    if (nextSourceFile.ManifestCreationUtc > latestSourceTime)
+                    if (nextSourceFile.RegisteredUtc > latestSourceTime)
                     {
-                        latestSourceTime = nextSourceFile.ManifestCreationUtc;
+                        latestSourceTime = nextSourceFile.RegisteredUtc;
                     }
                 }
 
@@ -391,13 +385,13 @@ namespace RepositorySync
                 DateTime latestDestTime = DateTime.MinValue;
                 foreach (ManifestFileInfo nextDestFile in fileSet.DestFiles)
                 {
-                    if (nextDestFile.ManifestCreationUtc < earliestDestTime)
+                    if (nextDestFile.RegisteredUtc < earliestDestTime)
                     {
-                        earliestDestTime = nextDestFile.ManifestCreationUtc;
+                        earliestDestTime = nextDestFile.RegisteredUtc;
                     }
-                    if (nextDestFile.ManifestCreationUtc > latestDestTime)
+                    if (nextDestFile.RegisteredUtc > latestDestTime)
                     {
-                        latestDestTime = nextDestFile.ManifestCreationUtc;
+                        latestDestTime = nextDestFile.RegisteredUtc;
                     }
                 }
 

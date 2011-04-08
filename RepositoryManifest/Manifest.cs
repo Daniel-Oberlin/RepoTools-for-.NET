@@ -383,36 +383,36 @@ namespace RepositoryManifest
                 foreach (ManifestFileInfo nextFileInfo in
                     currentDir.Files.Values)
                 {
-                    if (nextFileInfo.FileHash == null)
-                    {
-                        nextFileInfo.FileHash =
-                            new FileHash(
-                                nextFileInfo.Hash,
-                                nextFileInfo.HashType);
+                    //if (nextFileInfo.FileHash == null)
+                    //{
+                    //    nextFileInfo.FileHash =
+                    //        new FileHash(
+                    //            nextFileInfo.Hash,
+                    //            nextFileInfo.HashType);
 
-                        nextFileInfo.Hash = null;
-                        nextFileInfo.HashType = null;
+                    //    nextFileInfo.Hash = null;
+                    //    nextFileInfo.HashType = null;
 
-                        upgraded = true;
-                    }
+                    //    upgraded = true;
+                    //}
 
-                    if (nextFileInfo.CreationUtc == blankTime)
+                    //if (nextFileInfo.CreationUtc == blankTime)
+                    //{
+                    //    FileInfo file = new FileInfo(
+                    //        MakeNativePathString(nextFileInfo));
+
+                    //    nextFileInfo.CreationUtc =
+                    //        file.CreationTimeUtc;
+
+                    //    upgraded = true;
+                    //}
+
+                    if (nextFileInfo.RegisteredUtc == blankTime)
                     {
                         FileInfo file = new FileInfo(
                             MakeNativePathString(nextFileInfo));
 
-                        nextFileInfo.CreationUtc =
-                            file.CreationTimeUtc;
-
-                        upgraded = true;
-                    }
-
-                    if (nextFileInfo.ManifestCreationUtc == blankTime)
-                    {
-                        FileInfo file = new FileInfo(
-                            MakeNativePathString(nextFileInfo));
-
-                        nextFileInfo.ManifestCreationUtc =
+                        nextFileInfo.RegisteredUtc =
                             file.CreationTimeUtc;
 
                         upgraded = true;

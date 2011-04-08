@@ -187,7 +187,6 @@ namespace RepositorySync
             FileInfo fileInfo =
                 new FileInfo(MakeNativePath(file));
 
-            fileInfo.CreationTimeUtc = file.CreationUtc;
             fileInfo.LastWriteTimeUtc = file.LastModifiedUtc;
         }
     }
