@@ -302,17 +302,6 @@ namespace RepositoryTool
                                     }
                                 }
 
-                                if (tool.CreationDateFiles.Count > 0)
-                                {
-                                    console.WriteLine(tool.CreationDateFiles.Count.ToString() + " files have creation dates which are different.");
-                                    console.DetailFiles(tool.CreationDateFiles);
-
-                                    if (ignoreDate == false)
-                                    {
-                                        different = true;
-                                    }
-                                }
-
                                 if (tool.ErrorFiles.Count > 0)
                                 {
                                     console.WriteLine(tool.ErrorFiles.Count.ToString() + " files have errors.");
@@ -549,18 +538,15 @@ namespace RepositoryTool
                                     DateTime.Now.ToUniversalTime();
                             }
 
-                            if (tool.Manifest != null)
+                            try
                             {
-                                try
-                                {
-                                    tool.Manifest.WriteManifestFile(manifestFilePath);
-                                }
-                                catch (Exception ex)
-                                {
-                                    console.ReportException(ex);
-                                    console.WriteLine("Could not write manifest.");
-                                    exitCode = 1;
-                                }
+                                tool.Manifest.WriteManifestFile(manifestFilePath);
+                            }
+                            catch (Exception ex)
+                            {
+                                console.ReportException(ex);
+                                console.WriteLine("Could not write manifest.");
+                                exitCode = 1;
                             }
                         }
                         break;

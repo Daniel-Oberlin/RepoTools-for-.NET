@@ -29,7 +29,7 @@ namespace RepositorySync
 
         // Implement IRepositoryProxy
         
-        public ManifestFileInfo PutFile(
+        public void PutFile(
             IRepositoryProxy sourceRepository,
             ManifestFileInfo sourceManifestFile)
         {
@@ -60,8 +60,6 @@ namespace RepositorySync
             SetFileDates(newFileInfo);
 
             ManifestChanged = true;
-
-            return newFileInfo;
         }
 
         public void RemoveFile(ManifestFileInfo removeManifestFile)
@@ -88,7 +86,7 @@ namespace RepositorySync
             ManifestChanged = true;
         }
 
-        public ManifestFileInfo MoveFile(
+        public void MoveFile(
             ManifestFileInfo fileToBeMoved,
             IRepositoryProxy otherRepositoryWithNewLocation,
             ManifestFileInfo otherFileWithNewLocation)
@@ -114,11 +112,9 @@ namespace RepositorySync
             SetFileDates(newFileInfo);
 
             ManifestChanged = true;
-
-            return newFileInfo;
         }
 
-        public ManifestFileInfo CopyFile(
+        public void CopyFile(
             ManifestFileInfo fileToBeCopied,
             IRepositoryProxy otherRepositoryWithNewLocation,
             ManifestFileInfo otherFileWithNewLocation)
@@ -141,8 +137,21 @@ namespace RepositorySync
             SetFileDates(newFileInfo);
 
             ManifestChanged = true;
+        }
 
-            return newFileInfo;
+        public void CopyFileInformation(
+            ManifestFileInfo fileToBeUpdated,
+            ManifestFileInfo otherFileWithNewFileInfo)
+        {
+            fileToBeUpdated.LastModifiedUtc =
+                otherFileWithNewFileInfo.LastModifiedUtc;
+
+            fileToBeUpdated.RegisteredUtc =
+                otherFileWithNewFileInfo.RegisteredUtc;
+
+            SetFileDates(fileToBeUpdated);
+
+            ManifestChanged = true;
         }
 
         public void CopyManifestInformation(IRepositoryProxy otherRepository)

@@ -27,11 +27,52 @@ namespace RepositorySync
 
         public Manifest Manifest { protected set; get; }
 
-        public ManifestFileInfo PutFile(
+        public void PutFile(
             IRepositoryProxy sourceRepository,
             ManifestFileInfo sourceManifestFile)
         {
-            throw new NotImplementedException();
+            FileInfo sourceFile =
+                sourceRepository.GetFile(sourceManifestFile);
+
+            String manifestPath =
+                Manifest.MakeStandardPathString(sourceManifestFile);
+
+            // Remove the leading '.' from the relative path
+            String uriPath =
+                manifestPath.Substring(1, manifestPath.Length - 1);
+
+            Uri requestUri = new Uri(BaseUri.ToString() + uriPath);
+
+            HttpWebRequest request =
+                (HttpWebRequest)WebRequest.Create(requestUri);
+
+            request.Timeout = RequestTimeout;
+            request.Method = "Put";
+
+            request.Headers[RemoteRepositoryProxy.LastModifiedUtcHeaderName] =
+                sourceManifestFile.LastModifiedUtc.Ticks.ToString();
+
+            request.Headers[RemoteRepositoryProxy.RegisteredUtcHeaderName] =
+                sourceManifestFile.RegisteredUtc.Ticks.ToString();
+
+            request.Headers[RemoteRepositoryProxy.FileHashHeaderName] =
+                sourceManifestFile.FileHash.HashType +
+                ":" +
+                sourceManifestFile.FileHash.ToString();
+
+            // TODO: Use SendChunked?
+
+            using (FileStream fileStream = sourceFile.OpenRead())
+            {
+                request.ContentLength = fileStream.Length;
+                fileStream.CopyTo(request.GetRequestStream());
+                request.GetRequestStream().Close();
+            }
+
+            HttpWebResponse response =
+                (HttpWebResponse)request.GetResponse();
+
+            // TODO: Handle error?
         }
 
         public void RemoveFile(ManifestFileInfo removeManifestFile)
@@ -39,7 +80,7 @@ namespace RepositorySync
             throw new NotImplementedException();
         }
 
-        public ManifestFileInfo CopyFile(
+        public void CopyFile(
             ManifestFileInfo fileToBeCopied,
             IRepositoryProxy otherRepositoryWithNewLocation,
             RepositoryManifest.ManifestFileInfo otherFileWithNewLocation)
@@ -47,7 +88,14 @@ namespace RepositorySync
             throw new NotImplementedException();
         }
 
-        public ManifestFileInfo MoveFile(
+        public void CopyFileInformation(
+            ManifestFileInfo fileToBeUpdated,
+            ManifestFileInfo otherFileWithNewFileInfo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void MoveFile(
             ManifestFileInfo fileToBeMoved,
             IRepositoryProxy otherRepositoryWithNewLocation,
             ManifestFileInfo otherFileWithNewLocation)
@@ -102,6 +150,7 @@ namespace RepositorySync
                     FileMode.Create))
             {
                 response.GetResponseStream().CopyTo(fileStream);
+                response.GetResponseStream().Close();
             }
 
             return new FileInfo(tempFilePath);
@@ -189,13 +238,16 @@ namespace RepositorySync
         protected static int RequestTimeout { set; get; }
 
         public static String LastModifiedUtcHeaderName;
-        
+        public static String RegisteredUtcHeaderName;
+        public static String FileHashHeaderName;
 
         static RemoteRepositoryProxy()
         {
             RequestTimeout = 10000;
 
             LastModifiedUtcHeaderName = "Rep-LastModifiedUtc";
+            RegisteredUtcHeaderName = "Rep-RegisteredUtc";
+            FileHashHeaderName = "Rep-FileHash";
         }
     }
 }

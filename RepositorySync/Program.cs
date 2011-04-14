@@ -391,27 +391,17 @@ namespace RepositorySync
                     syncTool.LastModifiedDateFiles.Count.ToString() +
                     " files have last-modified dates which are different.");
 
-                console.DetailFiles(syncTool.LastModifiedDateFiles);
+                console.DetailFiles(syncTool.LastModifiedDateFiles.Keys);
                 different = true;
             }
 
-            if (syncTool.CreationDateFiles.Count != 0)
+            if (syncTool.RegisteredDateFiles.Count != 0)
             {
                 console.WriteLine(
-                    syncTool.CreationDateFiles.Count.ToString() +
-                    " files have creation dates which are different.");
-
-                console.DetailFiles(syncTool.CreationDateFiles);
-                different = true;
-            }
-
-            if (syncTool.ManifestCreationDateFiles.Count != 0)
-            {
-                console.WriteLine(
-                    syncTool.ManifestCreationDateFiles.Count.ToString() +
+                    syncTool.RegisteredDateFiles.Count.ToString() +
                     " files have manifest creation dates which are different.");
 
-                console.DetailFiles(syncTool.ManifestCreationDateFiles);
+                console.DetailFiles(syncTool.RegisteredDateFiles.Keys);
                 different = true;
             }
 

@@ -96,7 +96,14 @@ namespace RepositoryDaemon
                     break;
 
                 case "start":
-                    daemon.Start();
+                    try
+                    {
+                        daemon.Start();
+                    }
+                    catch (Exception ex)
+                    {
+                        console.WriteLine(ex.ToString());
+                    }
                     break;
             }
 

@@ -14,6 +14,27 @@ namespace RepositoryManifest
             HashType = hashType;
         }
 
+        public FileHash(String hashString, String hashType)
+        {
+            int byteLength = hashString.Length / 2;
+            byte[] hash = new byte[byteLength];
+
+            for (int nextByte = 0, nextChar = 0;
+                nextByte < byteLength;
+                nextByte++, nextChar += 2)
+            {
+                String nextByteString =
+                    hashString.Substring(nextChar, 2);
+
+                hash[nextByte] =
+                    Byte.Parse(
+                        nextByteString,
+                        System.Globalization.NumberStyles.HexNumber);
+            }
+
+            HashType = hashType;
+        }
+
         public FileHash(FileHash orig)
         {
             myHashData = orig.myHashData;

@@ -26,9 +26,6 @@ namespace RepositoryManifest
             ManifestDirectoryInfo parentDirectory) :
             base(name, parentDirectory)
         {
-            // DEPRECATED
-            //Hash = null;
-
             FileHash = null;
         }
 
@@ -48,14 +45,7 @@ namespace RepositoryManifest
         {
             FileLength = original.FileLength;
             LastModifiedUtc = original.LastModifiedUtc;
-
-            // DEPRECATED
-            // CreationUtc = original.CreationUtc;
-
             RegisteredUtc = original.RegisteredUtc;
-
-            // DEPRECATED
-            // Hash = (byte[]) original.Hash.Clone();
 
             FileHash = original.FileHash;
         }
@@ -71,39 +61,17 @@ namespace RepositoryManifest
         public DateTime LastModifiedUtc { set; get; }
 
         /// <summary>
-        /// The time that this file was created according to the filesystem
-        /// *** DEPRECATED
-        /// </summary>
-        //public DateTime CreationUtc { set; get; }
-
-        /// <summary>
-        /// The time that this file was first entered into the manifest
-        /// *** DEPRECATED
-        /// </summary>
-        //public DateTime ManifestCreationUtc { set; get; }
-
-        /// <summary>
         /// The time that this file was first put into the manifest
         /// </summary>
         public DateTime RegisteredUtc { set; get; }
-
-        /// <summary>
-        /// The hash of the file data.
-        /// *** DEPRECATED
-        /// </summary>
-        //internal byte[] Hash { set; get; }
 
         /// <summary>
         /// The hash of the file data
         /// </summary>
         public FileHash FileHash { set; get; }
 
-        /// <summary>
-        /// The name of the hash algorithm used
-        /// *** DEPRECATED
-        /// </summary>
-        //internal String HashType { set; get; }
 
+        // TEMP SERIALIZATION IMPLEMENTATION
         protected ManifestFileInfo(
             SerializationInfo info,
             StreamingContext context) :

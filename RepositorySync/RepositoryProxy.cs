@@ -31,10 +31,7 @@ namespace RepositorySync
         /// <param name="sourceManifestFile">
         /// The source file to be added
         /// </param>
-        /// <returns>
-        /// The file that was added
-        /// </returns>
-        ManifestFileInfo PutFile(
+        void PutFile(
             IRepositoryProxy sourceRepository,
             ManifestFileInfo sourceManifestFile);
 
@@ -58,13 +55,24 @@ namespace RepositorySync
         /// <param name="otherFileWithNewLocation">
         /// File in the other repository which is residing in the new location
         /// </param>
-        /// <returns>
-        /// The copied file
-        /// </returns>
-        ManifestFileInfo CopyFile(
+        void CopyFile(
             ManifestFileInfo fileToBeCopied,
             IRepositoryProxy otherRepositoryWithNewLocation,
             ManifestFileInfo otherFileWithNewLocation);
+
+        /// <summary>
+        /// Copy file information - anything but content - from another
+        /// manifest entry
+        /// </summary>
+        /// <param name="fileToBeUpdated">
+        /// The file in this repository whose information is being updated
+        /// </param>
+        /// <param name="otherFileWithNewFileInfo">
+        /// The file in the other repository with the new information
+        /// </param>
+        void CopyFileInformation(
+            ManifestFileInfo fileToBeUpdated,
+            ManifestFileInfo otherFileWithNewFileInfo);
 
         /// <summary>
         /// Move a file in this repository
@@ -78,10 +86,7 @@ namespace RepositorySync
         /// <param name="otherFileWithNewLocation">
         /// File in the other repository which is residing in the new location
         /// </param>
-        /// <returns>
-        /// The moved file
-        /// </returns>
-        ManifestFileInfo MoveFile(
+        void MoveFile(
             ManifestFileInfo fileToBeMoved,
             IRepositoryProxy otherRepositoryWithNewLocation,
             ManifestFileInfo otherFileWithNewLocation);

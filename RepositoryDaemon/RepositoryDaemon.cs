@@ -181,17 +181,12 @@ namespace RepositoryDaemon
             HttpClientContext context,
             HttpRequest request)
         {
-            Guid manifestGuid = GetManifestGuidFromRequest(request);
-
-            // TODO: Lock manifest
-
-            Manifest manifest = GuidToRepository[manifestGuid].Manifest;
-
             // TODO: Authenticate based on request address
 
             try
             {
-                FileInfo fileInfo = GetFileInfoFromRequest(request);
+                FileInfo fileInfo =
+                    new FileInfo(GetFilePathFromRequest(request));
 
                 HttpResponse response = (HttpResponse)request.CreateResponse(context);
                 response.ContentType = "application/octet-stream";
@@ -206,6 +201,7 @@ namespace RepositoryDaemon
                     response.ContentLength = stream.Length;
                     response.SendHeaders();
                     stream.CopyTo(context.Stream);
+                    context.Stream.Close();
                 }
             }
             catch (Exception ex)
@@ -224,18 +220,25 @@ namespace RepositoryDaemon
             HttpRequest request)
         {
             Guid manifestGuid = GetManifestGuidFromRequest(request);
+            LocalRepositoryState repoState = GuidToRepository[manifestGuid];
+            Manifest manifest = repoState.Manifest;
 
             // TODO: Lock manifest
-
-            Manifest manifest = GuidToRepository[manifestGuid].Manifest;
 
             // TODO: Authenticate based on request address
 
             try
             {
+                string[] fileHashParts =
+                    request.Headers[RemoteRepositoryProxy.FileHashHeaderName].Split(
+                        new char[] { ':' });
+
                 string tempFilePath = Path.Combine(
                     TempDirectory.FullName,
-                    Path.GetRandomFileName());
+                    fileHashParts[1]);
+
+                long lastModifiedUtcTicks = long.Parse(
+                    request.Headers[RemoteRepositoryProxy.LastModifiedUtcHeaderName]);
 
                 using (FileStream fileStream =
                     new FileStream(
@@ -243,6 +246,35 @@ namespace RepositoryDaemon
                         FileMode.Create))
                 {
                     request.Body.CopyTo(fileStream);
+                    request.Body.Close();
+                }
+
+                String newFilePath = GetFilePathFromRequest(request);
+                String directoryPath = Path.GetDirectoryName(newFilePath);
+
+                FileInfo tempFile = new FileInfo(tempFilePath);
+
+                try
+                {
+                    if (Directory.Exists(directoryPath) == false)
+                    {
+                        Directory.CreateDirectory(directoryPath);
+                    }
+
+                    if (File.Exists(newFilePath))
+                    {
+                        File.Delete(newFilePath);
+                    }
+
+                    tempFile.LastWriteTimeUtc =
+                        new DateTime(lastModifiedUtcTicks, DateTimeKind.Utc);
+
+                    tempFile.MoveTo(newFilePath);
+                }
+                catch (Exception ex)
+                {
+                    tempFile.Delete();
+                    throw ex;
                 }
 
                 ManifestFileInfo manFileInfo =
@@ -253,14 +285,26 @@ namespace RepositoryDaemon
                 manFileInfo.FileLength =
                     request.ContentLength;
 
-                long LastModifiedUtcTicks = long.Parse(
-                    request.Headers[RemoteRepositoryProxy.LastModifiedUtcHeaderName]);
-
                 manFileInfo.LastModifiedUtc =
-                    new DateTime(LastModifiedUtcTicks, DateTimeKind.Utc);
+                    new DateTime(lastModifiedUtcTicks, DateTimeKind.Utc);
 
+                long registeredUtcTicks = long.Parse(
+                    request.Headers[RemoteRepositoryProxy.RegisteredUtcHeaderName]);
 
+                manFileInfo.RegisteredUtc =
+                    new DateTime(registeredUtcTicks, DateTimeKind.Utc);
 
+                manFileInfo.FileHash =
+                    new FileHash(
+                        fileHashParts[1],
+                        fileHashParts[0]);
+
+                context.Respond(
+                    "HTTP/1.0",
+                    HttpStatusCode.OK,
+                    "File accepted",
+                    "",
+                    "text/plain");
             }
             catch (Exception ex)
             {
@@ -270,6 +314,8 @@ namespace RepositoryDaemon
                     "Internal server error",
                     ex.ToString(),
                     "text/plain");
+
+                Console.WriteLine(ex.ToString());
             }
         }
 
@@ -317,15 +363,14 @@ namespace RepositoryDaemon
             throw new Exception("Repository GUID not registered.");
         }
 
-        protected FileInfo GetFileInfoFromRequest(HttpRequest request)
+        protected String GetFilePathFromRequest(HttpRequest request)
         {
             Guid repoGuid = GetManifestGuidFromRequest(request);
 
             if (request.UriParts.Length == 1)
             {
                 // If no path is specified, return the manifest file
-                return new FileInfo(
-                    Settings.GuidToRepository[repoGuid].ManifestPath);
+                return Settings.GuidToRepository[repoGuid].ManifestPath;
             }
 
             // Otherwise, locate the file
@@ -335,14 +380,50 @@ namespace RepositoryDaemon
                 filePath = Path.Combine(filePath, request.UriParts[i]);
             }
 
-            return new FileInfo(filePath);
+            return filePath;
         }
 
         protected ManifestFileInfo GetOrMakeManifestFileInfoFromRequest(
             Manifest manifest,
             HttpRequest request)
         {
-            return null;
+            ManifestDirectoryInfo currentParentThis =
+                manifest.RootDirectory;
+
+            int uriPartIndex = 1;
+            for (;
+                uriPartIndex < request.UriParts.Length - 1;
+                uriPartIndex++)
+            {
+                String uriPart = request.UriParts[uriPartIndex];
+
+                if (currentParentThis.Subdirectories.Keys.Contains(uriPart))
+                {
+                    currentParentThis = currentParentThis.Subdirectories[uriPart];
+                }
+                else
+                {
+                    ManifestDirectoryInfo newParent =
+                        new ManifestDirectoryInfo(
+                            uriPart,
+                            currentParentThis);
+
+                    currentParentThis.Subdirectories[uriPart] =
+                        newParent;
+
+                    currentParentThis = newParent;
+                }
+            }
+
+            ManifestFileInfo newManifestFile =
+                new ManifestFileInfo(
+                    request.UriParts[uriPartIndex],
+                    currentParentThis);
+
+            currentParentThis.Files[newManifestFile.Name] =
+                newManifestFile;
+
+            return newManifestFile;
         }
 
         protected String GetSettingsFilePath()

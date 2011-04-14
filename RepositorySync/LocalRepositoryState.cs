@@ -110,7 +110,7 @@ namespace RepositorySync
             }
         }
 
-        protected String MakeNativePath(ManifestFileInfo file)
+        public String MakeNativePath(ManifestFileInfo file)
         {
             return Path.Combine(
                 RootDirectory.FullName,

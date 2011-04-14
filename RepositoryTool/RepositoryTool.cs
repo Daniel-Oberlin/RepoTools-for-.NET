@@ -34,7 +34,6 @@ namespace RepositoryTool
             ChangedFiles = new List<ManifestFileInfo>();
             MissingFiles = new List<ManifestFileInfo>();
             LastModifiedDateFiles = new List<ManifestFileInfo>();
-            CreationDateFiles = new List<ManifestFileInfo>();
             ErrorFiles = new List<ManifestFileInfo>();
             IgnoredFiles = new List<ManifestFileInfo>();
             NewlyIgnoredFiles = new List<ManifestFileInfo>();
@@ -53,7 +52,6 @@ namespace RepositoryTool
             ChangedFiles.Clear();
             MissingFiles.Clear();
             LastModifiedDateFiles.Clear();
-            CreationDateFiles.Clear();
             ErrorFiles.Clear();
             IgnoredFiles.Clear();
             NewlyIgnoredFiles.Clear();
@@ -629,7 +627,6 @@ namespace RepositoryTool
         public List<ManifestFileInfo> ChangedFiles { private set; get; }
         public List<ManifestFileInfo> MissingFiles { private set; get; }
         public List<ManifestFileInfo> LastModifiedDateFiles { private set; get; }
-        public List<ManifestFileInfo> CreationDateFiles { private set; get; }
         public List<ManifestFileInfo> ErrorFiles { private set; get; }
         public List<ManifestFileInfo> IgnoredFiles { private set; get; }
         public List<ManifestFileInfo> NewlyIgnoredFiles { private set; get; }
