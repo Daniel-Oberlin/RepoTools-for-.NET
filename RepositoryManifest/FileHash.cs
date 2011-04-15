@@ -17,7 +17,7 @@ namespace RepositoryManifest
         public FileHash(String hashString, String hashType)
         {
             int byteLength = hashString.Length / 2;
-            byte[] hash = new byte[byteLength];
+            myHashData = new byte[byteLength];
 
             for (int nextByte = 0, nextChar = 0;
                 nextByte < byteLength;
@@ -26,7 +26,7 @@ namespace RepositoryManifest
                 String nextByteString =
                     hashString.Substring(nextChar, 2);
 
-                hash[nextByte] =
+                myHashData[nextByte] =
                     Byte.Parse(
                         nextByteString,
                         System.Globalization.NumberStyles.HexNumber);

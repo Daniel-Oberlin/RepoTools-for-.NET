@@ -126,6 +126,6 @@ namespace RepositorySync
         protected DirectoryInfo RootDirectory { set; get; }
         protected DirectoryInfo TempDirectory { set; get; }
 
-        protected bool ManifestChanged { set; get; }
+        public bool ManifestChanged { set; get; }
     }
 }

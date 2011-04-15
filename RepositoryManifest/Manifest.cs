@@ -193,10 +193,7 @@ namespace RepositoryManifest
                     manifestFilePath,
                     FileMode.Create);
 
-                BinaryFormatter formatter =
-                    new BinaryFormatter();
-
-                formatter.Serialize(fileStream, this);
+                WriteManifestStream(fileStream);
             }
             catch (Exception ex)
             {
@@ -224,6 +221,20 @@ namespace RepositoryManifest
                     throw exception;
                 }
             }
+        }
+
+        /// <summary>
+        /// Write a manifest to a stream
+        /// </summary>
+        /// <param name="stream">
+        /// The stream
+        /// </param>
+        public void WriteManifestStream(Stream stream)
+        {
+            BinaryFormatter formatter =
+                new BinaryFormatter();
+
+            formatter.Serialize(stream, this);
         }
 
         /// <summary>

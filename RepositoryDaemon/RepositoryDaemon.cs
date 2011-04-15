@@ -191,17 +191,38 @@ namespace RepositoryDaemon
                 HttpResponse response = (HttpResponse)request.CreateResponse(context);
                 response.ContentType = "application/octet-stream";
 
-                using (FileStream stream =
-                    new FileStream(
-                        fileInfo.FullName,
-                        FileMode.Open,
-                        FileAccess.Read,
-                        FileShare.ReadWrite))
+
+
+                if (request.UriParts.Length == 1)
                 {
-                    response.ContentLength = stream.Length;
+                    // Requesting manifest
+                    Guid repoGuid = GetManifestGuidFromRequest(request);
+                    Manifest manifest = GuidToRepository[repoGuid].Manifest;
+
+                    MemoryStream memStream = new MemoryStream();
+                    manifest.WriteManifestStream(memStream);
+
+                    memStream.Seek(0, SeekOrigin.Begin);
+                    response.ContentLength = memStream.Length;
                     response.SendHeaders();
-                    stream.CopyTo(context.Stream);
-                    context.Stream.Close();
+                    memStream.CopyTo(context.Stream);
+                    context.Stream.Close();                    
+                }
+                else
+                {
+                    // Requesting file
+                    using (FileStream stream =
+                        new FileStream(
+                            fileInfo.FullName,
+                            FileMode.Open,
+                            FileAccess.Read,
+                            FileShare.ReadWrite))
+                    {
+                        response.ContentLength = stream.Length;
+                        response.SendHeaders();
+                        stream.CopyTo(context.Stream);
+                        context.Stream.Close();
+                    }
                 }
             }
             catch (Exception ex)
@@ -299,6 +320,8 @@ namespace RepositoryDaemon
                         fileHashParts[1],
                         fileHashParts[0]);
 
+                repoState.ManifestChanged = true;
+
                 context.Respond(
                     "HTTP/1.0",
                     HttpStatusCode.OK,
@@ -367,12 +390,6 @@ namespace RepositoryDaemon
         {
             Guid repoGuid = GetManifestGuidFromRequest(request);
 
-            if (request.UriParts.Length == 1)
-            {
-                // If no path is specified, return the manifest file
-                return Settings.GuidToRepository[repoGuid].ManifestPath;
-            }
-
             // Otherwise, locate the file
             String filePath = Settings.GuidToRepository[repoGuid].RepositoryPath;
             for (int i = 1; i < request.UriParts.Length; i++)
@@ -415,9 +432,16 @@ namespace RepositoryDaemon
                 }
             }
 
+            String fileName = request.UriParts[uriPartIndex];
+
+            if (currentParentThis.Files.Keys.Contains(fileName))
+            {
+                return currentParentThis.Files[fileName];
+            }
+
             ManifestFileInfo newManifestFile =
                 new ManifestFileInfo(
-                    request.UriParts[uriPartIndex],
+                    fileName,
                     currentParentThis);
 
             currentParentThis.Files[newManifestFile.Name] =

@@ -10,6 +10,8 @@ namespace RepositoryDaemon
 {
     class Program
     {
+        public delegate void TaskDelegate();
+
         static void Main(string[] args)
         {
             RepositoryDaemon daemon = new RepositoryDaemon();
@@ -96,14 +98,18 @@ namespace RepositoryDaemon
                     break;
 
                 case "start":
-                    try
-                    {
-                        daemon.Start();
-                    }
-                    catch (Exception ex)
-                    {
-                        console.WriteLine(ex.ToString());
-                    }
+
+                    
+                    TaskDelegate startDelegate = daemon.Start;
+                    startDelegate.BeginInvoke(null, null);
+
+                    console.WriteLine("Press enter to terminate...");
+                    Console.ReadLine();
+                    
+                    /*
+                    daemon.Start();
+                    */
+
                     break;
             }
 
