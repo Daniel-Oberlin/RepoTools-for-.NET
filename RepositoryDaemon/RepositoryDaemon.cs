@@ -21,13 +21,6 @@ namespace RepositoryDaemon
             LoadSettings();
 
             GuidToRepository = new Dictionary<Guid, LocalRepositoryState>();
-
-            CreateTempDirectory();
-        }
-
-        ~RepositoryDaemon()
-        {
-            TempDirectory.Delete(true);
         }
 
         public void AddRepository(
@@ -61,23 +54,7 @@ namespace RepositoryDaemon
                     fullRepositoryPath,
                     fullManifestPath);
 
-            if (Settings.GuidToRepository.ContainsKey(repoInfo.Guid))
-            {
-                throw new Exception("Repository GUID is already registered.");
-            }
-
-            if (manifest.Name != null &&
-                Settings.NameToRepository.ContainsKey(repoInfo.Name))
-            {
-                throw new Exception("Repository name is already registered.");
-            }
-
-            Settings.GuidToRepository[manifest.Guid] = repoInfo;
-
-            if (manifest.Name != null)
-            {
-                Settings.NameToRepository[manifest.Name] = repoInfo;
-            }
+            Settings.AddRepository(repoInfo);
         }
 
         public void RemoveRepository(String manifestPath)
@@ -85,28 +62,12 @@ namespace RepositoryDaemon
             Manifest manifest =
                 Manifest.ReadManifestFile(manifestPath);
 
-            if (Settings.GuidToRepository.ContainsKey(manifest.Guid) == false)
-            {
-                throw new Exception("Repository GUID is not registered.");
-            }
-
-            if (manifest.Name != null &&
-                Settings.NameToRepository.ContainsKey(manifest.Name) == false)
-            {
-                throw new Exception("Repository name is not registered.");
-            }
-
-            Settings.GuidToRepository.Remove(manifest.Guid);
-
-            if (manifest.Name != null)
-            {
-                Settings.NameToRepository.Remove(manifest.Name);
-            }
+            Settings.RemoveRepository(manifest.Guid);
         }
 
         public void Start()
         {
-            LoadManifests();
+            LoadRepositories();
 
             // TODO: Specify our address
             HttpServer.HttpListener listener =
@@ -117,19 +78,26 @@ namespace RepositoryDaemon
             listener.RequestReceived += OnRequest;
 
             listener.Start(5);
-             
+
+            int milliSeconds =
+                1000 * Settings.ManifestFlushIntervalSeconds;
+
+            System.Threading.TimerCallback cb =
+                new System.Threading.TimerCallback(
+                    FlushManifestsCallback);
+
+            System.Threading.Timer flushTimer = new
+                System.Threading.Timer(
+                    cb,
+                    null,
+                    milliSeconds,
+                    milliSeconds);
+
             // TODO: Wait for signal
             System.Threading.Thread.Sleep(
                 System.Threading.Timeout.Infinite);
-        }
 
-        public void SaveSettings()
-        {
-            if (Settings != null)
-            {
-                String daemonSettingsFilePath = GetSettingsFilePath();
-                Settings.WriteDaemonSettings(daemonSettingsFilePath);
-            }
+            flushTimer.Dispose();
         }
 
         public DaemonSettings Settings { private set; get; }
@@ -191,16 +159,16 @@ namespace RepositoryDaemon
                 HttpResponse response = (HttpResponse)request.CreateResponse(context);
                 response.ContentType = "application/octet-stream";
 
-
-
                 if (request.UriParts.Length == 1)
                 {
                     // Requesting manifest
                     Guid repoGuid = GetManifestGuidFromRequest(request);
-                    Manifest manifest = GuidToRepository[repoGuid].Manifest;
+
+                    Manifest manifestClone =
+                        GetRepositoryFromGuid(repoGuid).CloneManifest();
 
                     MemoryStream memStream = new MemoryStream();
-                    manifest.WriteManifestStream(memStream);
+                    manifestClone.WriteManifestStream(memStream);
 
                     memStream.Seek(0, SeekOrigin.Begin);
                     response.ContentLength = memStream.Length;
@@ -241,10 +209,7 @@ namespace RepositoryDaemon
             HttpRequest request)
         {
             Guid manifestGuid = GetManifestGuidFromRequest(request);
-            LocalRepositoryState repoState = GuidToRepository[manifestGuid];
-            Manifest manifest = repoState.Manifest;
-
-            // TODO: Lock manifest
+            LocalRepositoryState repoState = GetRepositoryFromGuid(manifestGuid);
 
             // TODO: Authenticate based on request address
 
@@ -255,7 +220,7 @@ namespace RepositoryDaemon
                         new char[] { ':' });
 
                 string tempFilePath = Path.Combine(
-                    TempDirectory.FullName,
+                    repoState.TempDirectory.FullName,
                     fileHashParts[1]);
 
                 long lastModifiedUtcTicks = long.Parse(
@@ -298,29 +263,32 @@ namespace RepositoryDaemon
                     throw ex;
                 }
 
-                ManifestFileInfo manFileInfo =
-                    GetOrMakeManifestFileInfoFromRequest(
-                        manifest,
-                        request);
+                lock (repoState.Manifest)
+                {
+                    ManifestFileInfo manFileInfo =
+                        GetOrMakeManifestFileInfoFromRequest(
+                            repoState.Manifest,
+                            request);
 
-                manFileInfo.FileLength =
-                    request.ContentLength;
+                    manFileInfo.FileLength =
+                        request.ContentLength;
 
-                manFileInfo.LastModifiedUtc =
-                    new DateTime(lastModifiedUtcTicks, DateTimeKind.Utc);
+                    manFileInfo.LastModifiedUtc =
+                        new DateTime(lastModifiedUtcTicks, DateTimeKind.Utc);
 
-                long registeredUtcTicks = long.Parse(
-                    request.Headers[RemoteRepositoryProxy.RegisteredUtcHeaderName]);
+                    long registeredUtcTicks = long.Parse(
+                        request.Headers[RemoteRepositoryProxy.RegisteredUtcHeaderName]);
 
-                manFileInfo.RegisteredUtc =
-                    new DateTime(registeredUtcTicks, DateTimeKind.Utc);
+                    manFileInfo.RegisteredUtc =
+                        new DateTime(registeredUtcTicks, DateTimeKind.Utc);
 
-                manFileInfo.FileHash =
-                    new FileHash(
-                        fileHashParts[1],
-                        fileHashParts[0]);
+                    manFileInfo.FileHash =
+                        new FileHash(
+                            fileHashParts[1],
+                            fileHashParts[0]);
 
-                repoState.ManifestChanged = true;
+                    repoState.SetManifestChanged();
+                }
 
                 context.Respond(
                     "HTTP/1.0",
@@ -345,25 +313,6 @@ namespace RepositoryDaemon
 
         // Helper methods
 
-        protected void CreateTempDirectory()
-        {
-            try
-            {
-                String systemTempPath = Path.GetTempPath();
-                DirectoryInfo systemTempDir = new DirectoryInfo(systemTempPath);
-
-                TempDirectory = systemTempDir.CreateSubdirectory(
-                    "temp-" +
-                    Path.GetRandomFileName());
-            }
-            catch (Exception ex)
-            {
-                throw new Exception(
-                    "Could not create temporary directory.",
-                    ex);
-            }
-        }
-
         protected Guid GetManifestGuidFromRequest(HttpRequest request)
         {
             // Parse GUID
@@ -378,7 +327,7 @@ namespace RepositoryDaemon
             }
 
             // Find manifest
-            if (Settings.GuidToRepository.ContainsKey((Guid) repoGuid))
+            if (Settings.GetRepositoryFromGuid((Guid) repoGuid) != null)
             {
                 return repoGuid;
             }
@@ -391,7 +340,7 @@ namespace RepositoryDaemon
             Guid repoGuid = GetManifestGuidFromRequest(request);
 
             // Otherwise, locate the file
-            String filePath = Settings.GuidToRepository[repoGuid].RepositoryPath;
+            String filePath = Settings.GetRepositoryFromGuid(repoGuid).RepositoryPath;
             for (int i = 1; i < request.UriParts.Length; i++)
             {
                 filePath = Path.Combine(filePath, request.UriParts[i]);
@@ -404,50 +353,53 @@ namespace RepositoryDaemon
             Manifest manifest,
             HttpRequest request)
         {
-            ManifestDirectoryInfo currentParentThis =
-                manifest.RootDirectory;
-
-            int uriPartIndex = 1;
-            for (;
-                uriPartIndex < request.UriParts.Length - 1;
-                uriPartIndex++)
+            lock (manifest)
             {
-                String uriPart = request.UriParts[uriPartIndex];
+                ManifestDirectoryInfo currentParentThis =
+                    manifest.RootDirectory;
 
-                if (currentParentThis.Subdirectories.Keys.Contains(uriPart))
+                int uriPartIndex = 1;
+                for (;
+                    uriPartIndex < request.UriParts.Length - 1;
+                    uriPartIndex++)
                 {
-                    currentParentThis = currentParentThis.Subdirectories[uriPart];
+                    String uriPart = request.UriParts[uriPartIndex];
+
+                    if (currentParentThis.Subdirectories.Keys.Contains(uriPart))
+                    {
+                        currentParentThis = currentParentThis.Subdirectories[uriPart];
+                    }
+                    else
+                    {
+                        ManifestDirectoryInfo newParent =
+                            new ManifestDirectoryInfo(
+                                uriPart,
+                                currentParentThis);
+
+                        currentParentThis.Subdirectories[uriPart] =
+                            newParent;
+
+                        currentParentThis = newParent;
+                    }
                 }
-                else
+
+                String fileName = request.UriParts[uriPartIndex];
+
+                if (currentParentThis.Files.Keys.Contains(fileName))
                 {
-                    ManifestDirectoryInfo newParent =
-                        new ManifestDirectoryInfo(
-                            uriPart,
-                            currentParentThis);
-
-                    currentParentThis.Subdirectories[uriPart] =
-                        newParent;
-
-                    currentParentThis = newParent;
+                    return currentParentThis.Files[fileName];
                 }
+
+                ManifestFileInfo newManifestFile =
+                    new ManifestFileInfo(
+                        fileName,
+                        currentParentThis);
+
+                currentParentThis.Files[newManifestFile.Name] =
+                    newManifestFile;
+
+                return newManifestFile;
             }
-
-            String fileName = request.UriParts[uriPartIndex];
-
-            if (currentParentThis.Files.Keys.Contains(fileName))
-            {
-                return currentParentThis.Files[fileName];
-            }
-
-            ManifestFileInfo newManifestFile =
-                new ManifestFileInfo(
-                    fileName,
-                    currentParentThis);
-
-            currentParentThis.Files[newManifestFile.Name] =
-                newManifestFile;
-
-            return newManifestFile;
         }
 
         protected String GetSettingsFilePath()
@@ -484,27 +436,53 @@ namespace RepositoryDaemon
             if (Settings == null)
             {
                 Settings = new DaemonSettings();
+                Settings.DaemonSettingsFilePath = daemonSettingsFilePath;
             }
         }
 
-        protected void LoadManifests()
+        protected void LoadRepositories()
         {
-            GuidToRepository.Clear();
-
-            foreach (RepositoryInfo nextRepo in Settings.GuidToRepository.Values)
+            lock (GuidToRepository)
             {
-                DirectoryInfo rootDirectory =
-                    new DirectoryInfo(nextRepo.RepositoryPath);
+                GuidToRepository.Clear();
 
-                GuidToRepository[nextRepo.Guid] =
-                    new LocalRepositoryState(rootDirectory);
+                foreach (RepositoryInfo nextRepo in Settings.GetRepositories())
+                {
+                    DirectoryInfo rootDirectory =
+                        new DirectoryInfo(nextRepo.RepositoryPath);
+
+                    GuidToRepository[nextRepo.Guid] =
+                        new LocalRepositoryState(rootDirectory);
+                }
+            }
+        }
+
+        protected LocalRepositoryState GetRepositoryFromGuid(Guid guid)
+        {
+            lock (GuidToRepository)
+            {
+                return GuidToRepository[guid];
+            }
+        }
+
+        protected void FlushManifestsCallback(object state)
+        {
+            List<LocalRepositoryState> repositoryList;
+            lock (GuidToRepository)
+            {
+                repositoryList = new List<LocalRepositoryState>(
+                    GuidToRepository.Values);
+            }
+
+            foreach (LocalRepositoryState nextRepo in repositoryList)
+            {
+                nextRepo.FlushManifest();
             }
         }
 
 
         // Accessors
 
-        protected DirectoryInfo TempDirectory { set; get; }
         protected Dictionary<Guid, LocalRepositoryState> GuidToRepository { set; get; }
 
 
@@ -512,13 +490,11 @@ namespace RepositoryDaemon
 
         public static String DaemonSettingsFileName;
         public static int PortNumber { private set; get; }
-        protected static int SendChunkSize { set; get; }
 
         static RepositoryDaemon()
         {
             DaemonSettingsFileName = ".repositoryDaemonSettings";
             PortNumber = 7555;
-            SendChunkSize = 8192;
         }
     }
 }

@@ -69,7 +69,6 @@ namespace RepositoryDaemon
                 case "add":
                     // TODO: Allow for separate manifest and repository paths
                     daemon.AddRepository(commandTarget);
-                    daemon.SaveSettings();
                     break;
 
                 case "remove":
@@ -80,11 +79,10 @@ namespace RepositoryDaemon
                             RepositoryManifest.Manifest.DefaultManifestFileName);
 
                     daemon.RemoveRepository(manifestPath);
-                    daemon.SaveSettings();
                     break;
 
                 case "status":
-                    foreach (RepositoryInfo nextInfo in daemon.Settings.GuidToRepository.Values)
+                    foreach (RepositoryInfo nextInfo in daemon.Settings.GetRepositories())
                     {
                         if (nextInfo.Name != null)
                         {

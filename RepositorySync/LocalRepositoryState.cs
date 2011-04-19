@@ -28,7 +28,10 @@ namespace RepositorySync
             LoadManifest();
             CreateTempDirectory();
 
-            ManifestChanged = false;
+            ManifestFileLock = new object();
+
+            myManifestChangedLock = new object();
+            myManifestChanged = false;
         }
 
         /// <summary>
@@ -50,21 +53,7 @@ namespace RepositorySync
                 }
             }
 
-            if (ManifestChanged)
-            {
-                Manifest.LastUpdateDateUtc = DateTime.UtcNow;
-                try
-                {
-                    Manifest.WriteManifestFile(ManifestFilePath);
-                }
-                catch (Exception ex)
-                {
-                    // This exception overrides previous
-                    exception = new Exception(
-                     "Could not write manifest.",
-                     ex);
-                }
-            }
+            FlushManifest();
 
             if (exception != null)
             {
@@ -72,6 +61,37 @@ namespace RepositorySync
             }
         }
 
+        public void FlushManifest()
+        {
+            if (ManifestChanged)
+            {
+                Manifest manifestClone;
+                lock (Manifest)
+                {
+                    Manifest.LastUpdateDateUtc = DateTime.UtcNow;
+                    manifestClone = CloneManifest();
+
+                    // Assume success - back out later if we need to
+                    ClearManifestChanged();
+                }
+
+                try
+                {
+                    lock (ManifestFileLock)
+                    {
+                        Manifest.WriteManifestFile(ManifestFilePath);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Not successful
+                    SetManifestChanged();
+                    throw new Exception(
+                        "Could not write manifest.",
+                        ex);
+                }
+            }
+        }
 
         // Helper methods
 
@@ -122,10 +142,49 @@ namespace RepositorySync
 
         public Manifest Manifest { protected set; get; }
 
-        protected string ManifestFilePath { set; get; }
-        protected DirectoryInfo RootDirectory { set; get; }
-        protected DirectoryInfo TempDirectory { set; get; }
+        public Manifest CloneManifest()
+        {
+            lock (Manifest)
+            {
+                return new Manifest(Manifest);
+            }
+        }
 
-        public bool ManifestChanged { set; get; }
+        public Object ManifestFileLock { protected set; get; }
+
+        public DirectoryInfo RootDirectory { protected set; get; }
+        public DirectoryInfo TempDirectory { protected set; get; }
+
+        public string ManifestFilePath { protected set; get; }
+
+        public void SetManifestChanged()
+        {
+            lock (myManifestChangedLock)
+            {
+                myManifestChanged = true;
+            }
+        }
+
+        protected void ClearManifestChanged()
+        {
+            lock (myManifestChangedLock)
+            {
+                myManifestChanged = false;
+            }
+        }
+
+        public bool ManifestChanged
+        {
+            get
+            {
+                lock (myManifestChangedLock)
+                {
+                    return myManifestChanged;
+                }
+            }
+        }
+
+        protected bool myManifestChanged;
+        protected object myManifestChangedLock;
     }
 }

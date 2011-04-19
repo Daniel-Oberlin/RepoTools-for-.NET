@@ -59,7 +59,7 @@ namespace RepositorySync
 
             SetFileDates(newFileInfo);
 
-            ManifestChanged = true;
+            SetManifestChanged();
         }
 
         public void RemoveFile(ManifestFileInfo removeManifestFile)
@@ -83,7 +83,7 @@ namespace RepositorySync
                 deleteDir.Delete();
             }
 
-            ManifestChanged = true;
+            SetManifestChanged();
         }
 
         public void MoveFile(
@@ -111,7 +111,7 @@ namespace RepositorySync
 
             SetFileDates(newFileInfo);
 
-            ManifestChanged = true;
+            SetManifestChanged();
         }
 
         public void CopyFile(
@@ -136,7 +136,7 @@ namespace RepositorySync
 
             SetFileDates(newFileInfo);
 
-            ManifestChanged = true;
+            SetManifestChanged();
         }
 
         public void CopyFileInformation(
@@ -151,7 +151,7 @@ namespace RepositorySync
 
             SetFileDates(fileToBeUpdated);
 
-            ManifestChanged = true;
+            SetManifestChanged();
         }
 
         public void CopyManifestInformation(IRepositoryProxy otherRepository)
@@ -159,7 +159,7 @@ namespace RepositorySync
             Manifest.CopyManifestInfoFrom(
                 otherRepository.Manifest);
 
-            ManifestChanged = true;
+            SetManifestChanged();
         }
 
 
