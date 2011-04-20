@@ -16,19 +16,18 @@ rs:
 	catch top level exceptions and see if this allows for proper cleanup of temp directories
 	allow non-default manifest names and locations
 	repair - define and implement
+	Keep directories and manifest directories clean - remove when empty
 
 
 red:
 	Add logging flag
-	Thread lock manifests when using
 	catch top level exceptions and see if this allows for proper cleanup of temp directories
 	authentication via request address
 	allow non-default manifest names and locations
 	shutdown
-	periodic update of loaded manifests
-	XXX Separate task queue for copying/moving files, which might take a long time and cause a request to timeout
 	Handle moves and copies synchronously with no timeouts
 	Access locking scheme where lock is removed 5 minutes after last access by a user
+	Keep directories and manifest directories clean - remove when empty
 
 
 

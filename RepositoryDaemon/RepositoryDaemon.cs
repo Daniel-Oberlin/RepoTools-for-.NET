@@ -142,6 +142,10 @@ namespace RepositoryDaemon
                 case "PUT":
                     HandlePutRequest(context, request);
                     break;
+
+                case "DELETE":
+                    HandleDeleteRequest(context, request);
+                    break;
             }
         }
 
@@ -310,6 +314,62 @@ namespace RepositoryDaemon
             }
         }
 
+        protected void HandleDeleteRequest(
+            HttpClientContext context,
+            HttpRequest request)
+        {
+            Guid manifestGuid = GetManifestGuidFromRequest(request);
+            LocalRepositoryState repoState = GetRepositoryFromGuid(manifestGuid);
+
+            // TODO: Authenticate based on request address
+
+            try
+            {
+                String filePath = GetFilePathFromRequest(request);
+                File.Delete(filePath);
+
+                HttpResponse response = (HttpResponse)request.CreateResponse(context);
+                response.ContentType = "application/octet-stream";
+
+                lock (repoState.Manifest)
+                {
+                    ManifestFileInfo manFileInfo =
+                        GetOrMakeManifestFileInfoFromRequest(
+                            repoState.Manifest,
+                            request,
+                            false);
+
+                    if (manFileInfo == null)
+                    {
+                        throw new Exception(
+                            "File not registered:  " +
+                            filePath);
+                    }
+
+                    manFileInfo.ParentDirectory.Files.Remove(
+                        manFileInfo.Name);
+
+                    repoState.SetManifestChanged();
+                }
+
+                context.Respond(
+                    "HTTP/1.0",
+                    HttpStatusCode.OK,
+                    "File accepted",
+                    "",
+                    "text/plain");
+            }
+            catch (Exception ex)
+            {
+                context.Respond(
+                    "HTTP/1.0",
+                    HttpStatusCode.InternalServerError,
+                    "Internal server error",
+                    ex.ToString(),
+                    "text/plain");
+            }
+        }
+
 
         // Helper methods
 
@@ -351,7 +411,8 @@ namespace RepositoryDaemon
 
         protected ManifestFileInfo GetOrMakeManifestFileInfoFromRequest(
             Manifest manifest,
-            HttpRequest request)
+            HttpRequest request,
+            bool makeNewEntryIfNeeded = true)
         {
             lock (manifest)
             {
@@ -371,15 +432,22 @@ namespace RepositoryDaemon
                     }
                     else
                     {
-                        ManifestDirectoryInfo newParent =
-                            new ManifestDirectoryInfo(
-                                uriPart,
-                                currentParentThis);
+                        if (makeNewEntryIfNeeded)
+                        {
+                            ManifestDirectoryInfo newParent =
+                                new ManifestDirectoryInfo(
+                                    uriPart,
+                                    currentParentThis);
 
-                        currentParentThis.Subdirectories[uriPart] =
-                            newParent;
+                            currentParentThis.Subdirectories[uriPart] =
+                                newParent;
 
-                        currentParentThis = newParent;
+                            currentParentThis = newParent;
+                        }
+                        else
+                        {
+                            return null;
+                        }
                     }
                 }
 
@@ -390,15 +458,20 @@ namespace RepositoryDaemon
                     return currentParentThis.Files[fileName];
                 }
 
-                ManifestFileInfo newManifestFile =
-                    new ManifestFileInfo(
-                        fileName,
-                        currentParentThis);
+                if (makeNewEntryIfNeeded)
+                {
+                    ManifestFileInfo newManifestFile =
+                        new ManifestFileInfo(
+                            fileName,
+                            currentParentThis);
 
-                currentParentThis.Files[newManifestFile.Name] =
-                    newManifestFile;
+                    currentParentThis.Files[newManifestFile.Name] =
+                        newManifestFile;
 
-                return newManifestFile;
+                    return newManifestFile;
+                }
+
+                return null;
             }
         }
 

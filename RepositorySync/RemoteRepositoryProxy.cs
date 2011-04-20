@@ -77,7 +77,25 @@ namespace RepositorySync
 
         public void RemoveFile(ManifestFileInfo removeManifestFile)
         {
-            throw new NotImplementedException();
+            String manifestPath =
+                Manifest.MakeStandardPathString(removeManifestFile);
+
+            // Remove the leading '.' from the relative path
+            String uriPath =
+                manifestPath.Substring(1, manifestPath.Length - 1);
+
+            Uri requestUri = new Uri(BaseUri.ToString() + uriPath);
+
+            HttpWebRequest request =
+                (HttpWebRequest)WebRequest.Create(requestUri);
+
+            request.Timeout = RequestTimeout;
+            request.Method = "Delete";
+
+            HttpWebResponse response =
+                (HttpWebResponse)request.GetResponse();
+
+            // TODO: Handle error?
         }
 
         public void CopyFile(

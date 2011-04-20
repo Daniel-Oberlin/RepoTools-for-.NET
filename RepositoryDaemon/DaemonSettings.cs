@@ -228,7 +228,7 @@ namespace RepositoryDaemon
 
         static DaemonSettings()
         {
-            DefaultManifestFlushIntervalSeconds = 20;
+            DefaultManifestFlushIntervalSeconds = 300;
         }
 
     }
