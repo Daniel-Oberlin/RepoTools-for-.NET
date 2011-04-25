@@ -538,6 +538,12 @@ namespace RepositorySync
                     " -> " +
                     Manifest.MakeStandardPathString(nextSourceFile));
 
+                MoveFileHelper(
+                    sourceRep,
+                    destRep,
+                    nextSourceFile,
+                    destFiles[0]);
+
                 WriteLine();
             }
 
@@ -610,7 +616,6 @@ namespace RepositorySync
                 {
                     destRepository.MoveFile(
                         destFileToBeMoved,
-                        sourceRepository,
                         sourceFileWithNewLocation);
                 }
                 catch (Exception ex)
@@ -635,7 +640,6 @@ namespace RepositorySync
                 {
                     destRepository.CopyFile(
                         destFileToBeCopied,
-                        sourceRepository,
                         sourceFileWithNewLocation);
 
                 }

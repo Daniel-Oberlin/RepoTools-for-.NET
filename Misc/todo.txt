@@ -5,7 +5,7 @@ How to use tools to create a new manifest copy (without using robocopy)
 rt:
 	Ability to validate a single file or directory
 	Don't change root directory when specifying manifest, so that manifest can live elsewhere
-	-deep option for -recursive, or -deepRecursive - check for manifests underneath manifests when recursive
+	-deep option for -recursive, or -deepRecursive - check for manifests underneath manifests when recursive (could make this very efficient so that each file is checked only once but would need to rewrite a lot)
 	Ability to show file checksums
 	Search upwards for manifest to allow narrow update, validate, etc.
 	Utilize manifest information modified date
@@ -14,8 +14,9 @@ rt:
 
 rs:
 	catch top level exceptions and see if this allows for proper cleanup of temp directories
-	allow non-default manifest names and locations
 	repair - define and implement
+	allow non-default manifest names and locations
+	Check for copies without moves
 	Keep directories and manifest directories clean - remove when empty
 
 
@@ -25,9 +26,11 @@ red:
 	authentication via request address
 	allow non-default manifest names and locations
 	shutdown
-	Handle moves and copies synchronously with no timeouts
 	Access locking scheme where lock is removed 5 minutes after last access by a user
+	Consider thread-locking manifest file object during entire operation
 	Keep directories and manifest directories clean - remove when empty
+	Allow changing flush interval
+
 
 
 

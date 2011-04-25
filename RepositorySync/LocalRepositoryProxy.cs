@@ -88,7 +88,6 @@ namespace RepositorySync
 
         public void MoveFile(
             ManifestFileInfo fileToBeMoved,
-            IRepositoryProxy otherRepositoryWithNewLocation,
             ManifestFileInfo otherFileWithNewLocation)
         {
             String oldFilePath = MakeNativePath(fileToBeMoved);
@@ -116,7 +115,6 @@ namespace RepositorySync
 
         public void CopyFile(
             ManifestFileInfo fileToBeCopied,
-            IRepositoryProxy otherRepositoryWithNewLocation,
             ManifestFileInfo otherFileWithNewLocation)
         {
             String oldFilePath = MakeNativePath(fileToBeCopied);

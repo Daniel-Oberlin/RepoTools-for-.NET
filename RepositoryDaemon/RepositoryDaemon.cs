@@ -146,6 +146,11 @@ namespace RepositoryDaemon
                 case "DELETE":
                     HandleDeleteRequest(context, request);
                     break;
+
+                case "COPY":
+                case "MOVE":
+                    HandleCopyOrMoveRequest(context, request);
+                    break;
             }
         }
 
@@ -153,12 +158,12 @@ namespace RepositoryDaemon
             HttpClientContext context,
             HttpRequest request)
         {
-            // TODO: Authenticate based on request address
-
             try
             {
+                // TODO: Authenticate based on request address
+
                 FileInfo fileInfo =
-                    new FileInfo(GetFilePathFromRequest(request));
+                    new FileInfo(GetLocalFilePathFromRequest(request));
 
                 HttpResponse response = (HttpResponse)request.CreateResponse(context);
                 response.ContentType = "application/octet-stream";
@@ -166,7 +171,7 @@ namespace RepositoryDaemon
                 if (request.UriParts.Length == 1)
                 {
                     // Requesting manifest
-                    Guid repoGuid = GetManifestGuidFromRequest(request);
+                    Guid repoGuid = GetRepositoryGuidFromRequest(request);
 
                     Manifest manifestClone =
                         GetRepositoryFromGuid(repoGuid).CloneManifest();
@@ -212,23 +217,13 @@ namespace RepositoryDaemon
             HttpClientContext context,
             HttpRequest request)
         {
-            Guid manifestGuid = GetManifestGuidFromRequest(request);
-            LocalRepositoryState repoState = GetRepositoryFromGuid(manifestGuid);
-
-            // TODO: Authenticate based on request address
-
             try
             {
-                string[] fileHashParts =
-                    request.Headers[RemoteRepositoryProxy.FileHashHeaderName].Split(
-                        new char[] { ':' });
+                LocalRepositoryState repoState = GetRepositoryFromRequest(request);
 
-                string tempFilePath = Path.Combine(
-                    repoState.TempDirectory.FullName,
-                    fileHashParts[1]);
+                // TODO: Authenticate based on request address
 
-                long lastModifiedUtcTicks = long.Parse(
-                    request.Headers[RemoteRepositoryProxy.LastModifiedUtcHeaderName]);
+                string tempFilePath = GetTempFilePathFromRequest(request);
 
                 using (FileStream fileStream =
                     new FileStream(
@@ -239,7 +234,7 @@ namespace RepositoryDaemon
                     request.Body.Close();
                 }
 
-                String newFilePath = GetFilePathFromRequest(request);
+                String newFilePath = GetLocalFilePathFromRequest(request);
                 String directoryPath = Path.GetDirectoryName(newFilePath);
 
                 FileInfo tempFile = new FileInfo(tempFilePath);
@@ -256,8 +251,7 @@ namespace RepositoryDaemon
                         File.Delete(newFilePath);
                     }
 
-                    tempFile.LastWriteTimeUtc =
-                        new DateTime(lastModifiedUtcTicks, DateTimeKind.Utc);
+                    SetFileInfoFromRequest(tempFile, request);
 
                     tempFile.MoveTo(newFilePath);
                 }
@@ -267,6 +261,8 @@ namespace RepositoryDaemon
                     throw ex;
                 }
 
+                FileInfo newFile = new FileInfo(newFilePath);
+
                 lock (repoState.Manifest)
                 {
                     ManifestFileInfo manFileInfo =
@@ -274,22 +270,7 @@ namespace RepositoryDaemon
                             repoState.Manifest,
                             request);
 
-                    manFileInfo.FileLength =
-                        request.ContentLength;
-
-                    manFileInfo.LastModifiedUtc =
-                        new DateTime(lastModifiedUtcTicks, DateTimeKind.Utc);
-
-                    long registeredUtcTicks = long.Parse(
-                        request.Headers[RemoteRepositoryProxy.RegisteredUtcHeaderName]);
-
-                    manFileInfo.RegisteredUtc =
-                        new DateTime(registeredUtcTicks, DateTimeKind.Utc);
-
-                    manFileInfo.FileHash =
-                        new FileHash(
-                            fileHashParts[1],
-                            fileHashParts[0]);
+                    SetManifestFileInfo(manFileInfo, request, newFile);
 
                     repoState.SetManifestChanged();
                 }
@@ -318,14 +299,13 @@ namespace RepositoryDaemon
             HttpClientContext context,
             HttpRequest request)
         {
-            Guid manifestGuid = GetManifestGuidFromRequest(request);
-            LocalRepositoryState repoState = GetRepositoryFromGuid(manifestGuid);
-
-            // TODO: Authenticate based on request address
-
             try
             {
-                String filePath = GetFilePathFromRequest(request);
+                LocalRepositoryState repoState = GetRepositoryFromRequest(request);
+
+                // TODO: Authenticate based on request address
+
+                String filePath = GetLocalFilePathFromRequest(request);
                 File.Delete(filePath);
 
                 HttpResponse response = (HttpResponse)request.CreateResponse(context);
@@ -370,110 +350,87 @@ namespace RepositoryDaemon
             }
         }
 
-
-        // Helper methods
-
-        protected Guid GetManifestGuidFromRequest(HttpRequest request)
+        protected void HandleCopyOrMoveRequest(
+            HttpClientContext context,
+            HttpRequest request)
         {
-            // Parse GUID
-            Guid repoGuid;
             try
             {
-                repoGuid = new Guid(request.UriParts[0]);
-            }
-            catch (Exception)
-            {
-                throw new Exception("Could not parse repository GUID.");
-            }
+                LocalRepositoryState repoState = GetRepositoryFromRequest(request);
 
-            // Find manifest
-            if (Settings.GetRepositoryFromGuid((Guid) repoGuid) != null)
-            {
-                return repoGuid;
-            }
+                // TODO: Authenticate based on request address
 
-            throw new Exception("Repository GUID not registered.");
-        }
+                FileInfo sourceFileInfo =
+                    new FileInfo(GetLocalFilePathFromRequest(request));
 
-        protected String GetFilePathFromRequest(HttpRequest request)
-        {
-            Guid repoGuid = GetManifestGuidFromRequest(request);
+                String destFilePath =
+                    GetLocalDestinationFilePathFromRequest(request, repoState);
 
-            // Otherwise, locate the file
-            String filePath = Settings.GetRepositoryFromGuid(repoGuid).RepositoryPath;
-            for (int i = 1; i < request.UriParts.Length; i++)
-            {
-                filePath = Path.Combine(filePath, request.UriParts[i]);
-            }
-
-            return filePath;
-        }
-
-        protected ManifestFileInfo GetOrMakeManifestFileInfoFromRequest(
-            Manifest manifest,
-            HttpRequest request,
-            bool makeNewEntryIfNeeded = true)
-        {
-            lock (manifest)
-            {
-                ManifestDirectoryInfo currentParentThis =
-                    manifest.RootDirectory;
-
-                int uriPartIndex = 1;
-                for (;
-                    uriPartIndex < request.UriParts.Length - 1;
-                    uriPartIndex++)
+                if (request.Method == "MOVE")
                 {
-                    String uriPart = request.UriParts[uriPartIndex];
+                    sourceFileInfo.MoveTo(destFilePath);
+                }
+                else
+                {
+                    // Must be copy
+                    sourceFileInfo.CopyTo(destFilePath);
+                }
 
-                    if (currentParentThis.Subdirectories.Keys.Contains(uriPart))
+                FileInfo destFile = new FileInfo(destFilePath);
+                SetFileInfoFromRequest(destFile, request);
+
+                lock (repoState.Manifest)
+                {
+                    if (request.Method == "MOVE")
                     {
-                        currentParentThis = currentParentThis.Subdirectories[uriPart];
-                    }
-                    else
-                    {
-                        if (makeNewEntryIfNeeded)
-                        {
-                            ManifestDirectoryInfo newParent =
-                                new ManifestDirectoryInfo(
-                                    uriPart,
-                                    currentParentThis);
+                        ManifestFileInfo removeFileInfo =
+                            GetOrMakeManifestFileInfoFromRequest(
+                                repoState.Manifest,
+                                request,
+                                false);
 
-                            currentParentThis.Subdirectories[uriPart] =
-                                newParent;
-
-                            currentParentThis = newParent;
-                        }
-                        else
+                        if (removeFileInfo != null)
                         {
-                            return null;
+                            // If this is ever null, something weird is happening
+                            // but we already copied the file so might as well
+                            // proceed.
+                            removeFileInfo.ParentDirectory.Files.Remove(
+                                removeFileInfo.Name);
                         }
                     }
+
+                    ManifestFileInfo manFileInfo =
+                        GetOrMakeDestinationManifestFileInfoFromRequest(
+                            repoState.Manifest,
+                            request);
+
+                    SetManifestFileInfo(manFileInfo, request, destFile);
+
+                    repoState.SetManifestChanged();
                 }
 
-                String fileName = request.UriParts[uriPartIndex];
+                context.Respond(
+                    "HTTP/1.0",
+                    HttpStatusCode.OK,
+                    "File accepted",
+                    "",
+                    "text/plain");
+            }
+            catch (Exception ex)
+            {
+                context.Respond(
+                    "HTTP/1.0",
+                    HttpStatusCode.InternalServerError,
+                    "Internal server error",
+                    ex.ToString(),
+                    "text/plain");
 
-                if (currentParentThis.Files.Keys.Contains(fileName))
-                {
-                    return currentParentThis.Files[fileName];
-                }
-
-                if (makeNewEntryIfNeeded)
-                {
-                    ManifestFileInfo newManifestFile =
-                        new ManifestFileInfo(
-                            fileName,
-                            currentParentThis);
-
-                    currentParentThis.Files[newManifestFile.Name] =
-                        newManifestFile;
-
-                    return newManifestFile;
-                }
-
-                return null;
+                Console.WriteLine(ex.ToString());
             }
         }
+
+
+        // Helper methods
 
         protected String GetSettingsFilePath()
         {
@@ -530,12 +487,246 @@ namespace RepositoryDaemon
             }
         }
 
+        protected Guid GetRepositoryGuidFromRequest(HttpRequest request)
+        {
+            // Parse GUID
+            Guid repoGuid;
+            try
+            {
+                repoGuid = new Guid(request.UriParts[0]);
+            }
+            catch (Exception)
+            {
+                throw new Exception("Could not parse repository GUID.");
+            }
+
+            // Find manifest
+            if (Settings.GetRepositoryFromGuid((Guid) repoGuid) != null)
+            {
+                return repoGuid;
+            }
+
+            throw new Exception("Repository GUID not registered.");
+        }
+
         protected LocalRepositoryState GetRepositoryFromGuid(Guid guid)
         {
             lock (GuidToRepository)
             {
                 return GuidToRepository[guid];
             }
+        }
+
+        protected LocalRepositoryState GetRepositoryFromRequest(HttpRequest request)
+        {
+            Guid guid = GetRepositoryGuidFromRequest(request);
+            return GetRepositoryFromGuid(guid);
+        }
+
+        protected String GetLocalFilePathFromRequest(HttpRequest request)
+        {
+            Guid repoGuid = GetRepositoryGuidFromRequest(request);
+
+            // Otherwise, locate the file
+            String filePath = Settings.GetRepositoryFromGuid(repoGuid).RepositoryPath;
+            for (int i = 1; i < request.UriParts.Length; i++)
+            {
+                filePath = Path.Combine(filePath, request.UriParts[i]);
+            }
+
+            return filePath;
+        }
+
+        protected String GetTempFilePathFromRequest(HttpRequest request)
+        {
+            Guid manifestGuid = GetRepositoryGuidFromRequest(request);
+            LocalRepositoryState repoState = GetRepositoryFromGuid(manifestGuid);
+
+            // TODO: Authenticate based on request address
+
+            string[] fileHashParts =
+                request.Headers[RemoteRepositoryProxy.FileHashHeaderName].Split(
+                    new char[] { ':' });
+
+            string tempFilePath = Path.Combine(
+                repoState.TempDirectory.FullName,
+                fileHashParts[1]);
+
+            return tempFilePath;
+        }
+
+        protected String GetLocalDestinationFilePathFromRequest(
+            HttpRequest request,
+            LocalRepositoryState repoState)
+        {
+            String destRepoPath =
+                request.Headers[RemoteRepositoryProxy.DestinationPathHeaderName];
+
+            // Remove the leading './' from the relative path
+            destRepoPath =
+                destRepoPath.Substring(2, destRepoPath.Length - 2);
+
+            string[] pathParts = destRepoPath.Split(new char[] { '/' });
+
+            String filePath = repoState.RootDirectory.FullName;
+            for (int i = 0; i < pathParts.Length; i++)
+            {
+                filePath = Path.Combine(filePath, pathParts[i]);
+            }
+
+            return filePath;
+        }
+
+        protected void SetFileInfoFromRequest(
+            FileInfo file,
+            HttpRequest request)
+        {
+            long lastModifiedUtcTicks = long.Parse(
+                request.Headers[RemoteRepositoryProxy.LastModifiedUtcHeaderName]);
+
+            file.LastWriteTimeUtc =
+                new DateTime(lastModifiedUtcTicks, DateTimeKind.Utc);
+        }
+
+        protected ManifestFileInfo GetOrMakeManifestFileInfoFromParts(
+            Manifest manifest,
+            List<String> parts,
+            bool makeNewEntryIfNeeded = true)
+        {
+            lock (manifest)
+            {
+                ManifestDirectoryInfo currentParentThis =
+                    manifest.RootDirectory;
+
+                int partIndex = 0;
+                for (; partIndex < parts.Count - 1; partIndex++)
+                {
+                    String uriPart = parts[partIndex];
+
+                    if (currentParentThis.Subdirectories.Keys.Contains(uriPart))
+                    {
+                        currentParentThis = currentParentThis.Subdirectories[uriPart];
+                    }
+                    else
+                    {
+                        if (makeNewEntryIfNeeded)
+                        {
+                            ManifestDirectoryInfo newParent =
+                                new ManifestDirectoryInfo(
+                                    uriPart,
+                                    currentParentThis);
+
+                            currentParentThis.Subdirectories[uriPart] =
+                                newParent;
+
+                            currentParentThis = newParent;
+                        }
+                        else
+                        {
+                            return null;
+                        }
+                    }
+                }
+
+                String fileName = parts[partIndex];
+
+                if (currentParentThis.Files.Keys.Contains(fileName))
+                {
+                    return currentParentThis.Files[fileName];
+                }
+
+                if (makeNewEntryIfNeeded)
+                {
+                    ManifestFileInfo newManifestFile =
+                        new ManifestFileInfo(
+                            fileName,
+                            currentParentThis);
+
+                    currentParentThis.Files[newManifestFile.Name] =
+                        newManifestFile;
+
+                    return newManifestFile;
+                }
+
+                return null;
+            }
+        }
+
+        protected ManifestFileInfo GetOrMakeManifestFileInfoFromRequest(
+            Manifest manifest,
+            HttpRequest request,
+            bool makeNewEntryIfNeeded = true)
+        {
+            List<String> parts = new List<string>();
+
+            for (int uriPartIndex = 1;
+                uriPartIndex < request.UriParts.Length;
+                uriPartIndex++)
+            {
+                parts.Add(request.UriParts[uriPartIndex]);
+            }
+
+            return GetOrMakeManifestFileInfoFromParts(
+                manifest,
+                parts,
+                makeNewEntryIfNeeded);
+        }
+
+        protected ManifestFileInfo GetOrMakeDestinationManifestFileInfoFromRequest(
+            Manifest manifest,
+            HttpRequest request,
+            bool makeNewEntryIfNeeded = true)
+        {
+            List<String> parts = new List<string>();
+
+            String destRepoPath =
+                request.Headers[RemoteRepositoryProxy.DestinationPathHeaderName];
+
+            // Remove the leading './' from the relative path
+            destRepoPath =
+                destRepoPath.Substring(2, destRepoPath.Length - 2);
+
+            string[] pathParts = destRepoPath.Split(new char[] { '/' });
+
+            for (int i = 0; i < pathParts.Length; i++)
+            {
+                parts.Add(pathParts[i]);
+            }
+
+            return GetOrMakeManifestFileInfoFromParts(
+                manifest,
+                parts,
+                makeNewEntryIfNeeded);
+        }
+
+        protected void SetManifestFileInfo(
+            ManifestFileInfo manFileInfo,
+            HttpRequest request,
+            FileInfo file)
+        {
+
+            manFileInfo.FileLength = file.Length;
+
+            long lastModifiedUtcTicks = long.Parse(
+                request.Headers[RemoteRepositoryProxy.LastModifiedUtcHeaderName]);
+
+            manFileInfo.LastModifiedUtc =
+                new DateTime(lastModifiedUtcTicks, DateTimeKind.Utc);
+
+            long registeredUtcTicks = long.Parse(
+                request.Headers[RemoteRepositoryProxy.RegisteredUtcHeaderName]);
+
+            manFileInfo.RegisteredUtc =
+                new DateTime(registeredUtcTicks, DateTimeKind.Utc);
+
+            string[] fileHashParts =
+                request.Headers[RemoteRepositoryProxy.FileHashHeaderName].Split(
+                    new char[] { ':' });
+
+            manFileInfo.FileHash =
+                new FileHash(
+                    fileHashParts[1],
+                    fileHashParts[0]);
         }
 
         protected void FlushManifestsCallback(object state)

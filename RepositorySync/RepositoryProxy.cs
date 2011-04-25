@@ -49,15 +49,11 @@ namespace RepositorySync
         /// <param name="fileToBeCopied">
         /// File in this repository to be copied
         /// </param>
-        /// <param name="otherRepositoryWithNewLocation">
-        /// Other repository where the file is in the new location
-        /// </param>
         /// <param name="otherFileWithNewLocation">
         /// File in the other repository which is residing in the new location
         /// </param>
         void CopyFile(
             ManifestFileInfo fileToBeCopied,
-            IRepositoryProxy otherRepositoryWithNewLocation,
             ManifestFileInfo otherFileWithNewLocation);
 
         /// <summary>
@@ -80,15 +76,11 @@ namespace RepositorySync
         /// <param name="fileToBeMoved">
         /// File in this repository to be moved
         /// </param>
-        /// <param name="otherRepositoryWithNewLocation">
-        /// Other repository where the file is in the new location
-        /// </param>
         /// <param name="otherFileWithNewLocation">
         /// File in the other repository which is residing in the new location
         /// </param>
         void MoveFile(
             ManifestFileInfo fileToBeMoved,
-            IRepositoryProxy otherRepositoryWithNewLocation,
             ManifestFileInfo otherFileWithNewLocation);
 
         /// <summary>

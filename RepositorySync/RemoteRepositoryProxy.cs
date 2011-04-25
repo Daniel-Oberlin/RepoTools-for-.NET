@@ -46,19 +46,10 @@ namespace RepositorySync
             HttpWebRequest request =
                 (HttpWebRequest)WebRequest.Create(requestUri);
 
+            request.Method = "PUT";
             request.Timeout = RequestTimeout;
-            request.Method = "Put";
 
-            request.Headers[RemoteRepositoryProxy.LastModifiedUtcHeaderName] =
-                sourceManifestFile.LastModifiedUtc.Ticks.ToString();
-
-            request.Headers[RemoteRepositoryProxy.RegisteredUtcHeaderName] =
-                sourceManifestFile.RegisteredUtc.Ticks.ToString();
-
-            request.Headers[RemoteRepositoryProxy.FileHashHeaderName] =
-                sourceManifestFile.FileHash.HashType +
-                ":" +
-                sourceManifestFile.FileHash.ToString();
+            SetStandardFileHeaders(request, sourceManifestFile);
 
             // TODO: Use SendChunked?
 
@@ -89,8 +80,9 @@ namespace RepositorySync
             HttpWebRequest request =
                 (HttpWebRequest)WebRequest.Create(requestUri);
 
+            // TODO: change timeout...?
+            request.Method = "DELETE";
             request.Timeout = RequestTimeout;
-            request.Method = "Delete";
 
             HttpWebResponse response =
                 (HttpWebResponse)request.GetResponse();
@@ -100,10 +92,13 @@ namespace RepositorySync
 
         public void CopyFile(
             ManifestFileInfo fileToBeCopied,
-            IRepositoryProxy otherRepositoryWithNewLocation,
-            RepositoryManifest.ManifestFileInfo otherFileWithNewLocation)
+            ManifestFileInfo otherFileWithNewLocation)
         {
-            throw new NotImplementedException();
+            CopyOrMoveFile(
+                fileToBeCopied,
+                otherFileWithNewLocation,
+                "COPY",
+                System.Threading.Timeout.Infinite);
         }
 
         public void CopyFileInformation(
@@ -115,10 +110,13 @@ namespace RepositorySync
 
         public void MoveFile(
             ManifestFileInfo fileToBeMoved,
-            IRepositoryProxy otherRepositoryWithNewLocation,
             ManifestFileInfo otherFileWithNewLocation)
         {
-            throw new NotImplementedException();
+            CopyOrMoveFile(
+                fileToBeMoved,
+                otherFileWithNewLocation,
+                "MOVE",
+                System.Threading.Timeout.Infinite);
         }
 
         public void CopyManifestInformation(IRepositoryProxy otherRepository)
@@ -177,6 +175,24 @@ namespace RepositorySync
 
         // Helper methods
 
+        protected void CreateTempDirectory()
+        {
+            try
+            {
+                String systemTempPath = Path.GetTempPath();
+                DirectoryInfo systemTempDir = new DirectoryInfo(systemTempPath);
+
+                TempDirectory = systemTempDir.CreateSubdirectory(
+                    Path.GetRandomFileName());
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(
+                    "Could not create temporary directory.",
+                    ex);
+            }
+        }
+
         protected void GetRemoteManifest(
             String uriString,
             Manifest otherManifest = null)
@@ -226,22 +242,52 @@ namespace RepositorySync
                 response.GetResponseStream());
         }
 
-        protected void CreateTempDirectory()
+        protected void SetStandardFileHeaders(
+            HttpWebRequest request,
+            ManifestFileInfo file)
         {
-            try
-            {
-                String systemTempPath = Path.GetTempPath();
-                DirectoryInfo systemTempDir = new DirectoryInfo(systemTempPath);
+            request.Headers[RemoteRepositoryProxy.LastModifiedUtcHeaderName] =
+                    file.LastModifiedUtc.Ticks.ToString();
 
-                TempDirectory = systemTempDir.CreateSubdirectory(
-                    Path.GetRandomFileName());
-            }
-            catch (Exception ex)
-            {
-                throw new Exception(
-                    "Could not create temporary directory.",
-                    ex);
-            }
+            request.Headers[RemoteRepositoryProxy.RegisteredUtcHeaderName] =
+                file.RegisteredUtc.Ticks.ToString();
+
+            request.Headers[RemoteRepositoryProxy.FileHashHeaderName] =
+                file.FileHash.HashType +
+                ":" +
+                file.FileHash.ToString();
+        }
+
+        public void CopyOrMoveFile(
+            ManifestFileInfo fileToBeCopied,
+            ManifestFileInfo otherFileWithNewLocation,
+            String method,
+            int timeout)
+        {
+            String manifestPath =
+                Manifest.MakeStandardPathString(fileToBeCopied);
+
+            // Remove the leading '.' from the relative path
+            String uriPath =
+                manifestPath.Substring(1, manifestPath.Length - 1);
+
+            Uri requestUri = new Uri(BaseUri.ToString() + uriPath);
+
+            HttpWebRequest request =
+                (HttpWebRequest)WebRequest.Create(requestUri);
+
+            request.Method = method;
+            request.Timeout = timeout;
+
+            SetStandardFileHeaders(request, otherFileWithNewLocation);
+
+            request.Headers[RemoteRepositoryProxy.DestinationPathHeaderName] =
+                Manifest.MakeStandardPathString(otherFileWithNewLocation);
+
+            HttpWebResponse response =
+                (HttpWebResponse)request.GetResponse();
+
+            // TODO: Handle error?
         }
 
 
@@ -258,6 +304,7 @@ namespace RepositorySync
         public static String LastModifiedUtcHeaderName;
         public static String RegisteredUtcHeaderName;
         public static String FileHashHeaderName;
+        public static String DestinationPathHeaderName;
 
         static RemoteRepositoryProxy()
         {
@@ -266,6 +313,7 @@ namespace RepositorySync
             LastModifiedUtcHeaderName = "Rep-LastModifiedUtc";
             RegisteredUtcHeaderName = "Rep-RegisteredUtc";
             FileHashHeaderName = "Rep-FileHash";
+            DestinationPathHeaderName = "Rep-DestinationPath";
         }
     }
 }
