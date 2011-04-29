@@ -10,6 +10,7 @@ using HttpServer;
 using HttpServer.HttpModules;
 using RepositoryManifest;
 using RepositorySync;
+using Utilities;
 
 
 namespace RepositoryDaemon
@@ -69,6 +70,8 @@ namespace RepositoryDaemon
         {
             LoadRepositories();
 
+            HttpRequest.StreamFactory = HttpRequestStreamFactory;
+
             // TODO: Specify our address
             HttpServer.HttpListener listener =
                 HttpServer.HttpListener.Create(
@@ -126,10 +129,10 @@ namespace RepositoryDaemon
 
             foreach (String nextKey in request.Headers.Keys)
             {
-                Console.WriteLine(
+                System.Console.WriteLine(
                     nextKey + "=" + request.Headers[nextKey]);
             }
-            Console.WriteLine();
+            System.Console.WriteLine();
 
 
             // Handle methods
@@ -182,7 +185,9 @@ namespace RepositoryDaemon
                     memStream.Seek(0, SeekOrigin.Begin);
                     response.ContentLength = memStream.Length;
                     response.SendHeaders();
+                    //StreamUtilities.CopyStream(memStream, context.Stream);
                     memStream.CopyTo(context.Stream);
+                    
                     context.Stream.Close();                    
                 }
                 else
@@ -197,7 +202,9 @@ namespace RepositoryDaemon
                     {
                         response.ContentLength = stream.Length;
                         response.SendHeaders();
+                        //StreamUtilities.CopyStream(stream, context.Stream);
                         stream.CopyTo(context.Stream);
+
                         context.Stream.Close();
                     }
                 }
@@ -219,25 +226,20 @@ namespace RepositoryDaemon
         {
             try
             {
+                // Close the file
+                request.Body.Close();
+
                 LocalRepositoryState repoState = GetRepositoryFromRequest(request);
 
                 // TODO: Authenticate based on request address
+                // ...delete temp file if not authenticated...
+                // Better to authenticate when the headers are received...
 
                 string tempFilePath = GetTempFilePathFromRequest(request);
-
-                using (FileStream fileStream =
-                    new FileStream(
-                        tempFilePath,
-                        FileMode.Create))
-                {
-                    request.Body.CopyTo(fileStream);
-                    request.Body.Close();
-                }
+                FileInfo tempFile = new FileInfo(tempFilePath);
 
                 String newFilePath = GetLocalFilePathFromRequest(request);
                 String directoryPath = Path.GetDirectoryName(newFilePath);
-
-                FileInfo tempFile = new FileInfo(tempFilePath);
 
                 try
                 {
@@ -291,7 +293,7 @@ namespace RepositoryDaemon
                     ex.ToString(),
                     "text/plain");
 
-                Console.WriteLine(ex.ToString());
+                System.Console.WriteLine(ex.ToString());
             }
         }
 
@@ -425,7 +427,7 @@ namespace RepositoryDaemon
                     ex.ToString(),
                     "text/plain");
 
-                Console.WriteLine(ex.ToString());
+                System.Console.WriteLine(ex.ToString());
             }
         }
 
@@ -553,6 +555,17 @@ namespace RepositoryDaemon
                 fileHashParts[1]);
 
             return tempFilePath;
+        }
+
+        protected Stream HttpRequestStreamFactory(HttpRequest request)
+        {
+            if (request.Method == "PUT")
+            {
+                String tempFilePath = GetTempFilePathFromRequest(request);
+                return new FileStream(tempFilePath, FileMode.Create);
+            }
+
+            return new MemoryStream();
         }
 
         protected String GetLocalDestinationFilePathFromRequest(

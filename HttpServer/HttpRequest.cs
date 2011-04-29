@@ -8,11 +8,23 @@ using HttpServer.FormDecoders;
 
 namespace HttpServer
 {
+    // DMO
+    public delegate Stream StreamFactory(HttpRequest request);
+
     /// <summary>
     /// Contains server side HTTP request information.
     /// </summary>
     public class HttpRequest : IHttpRequest
     {
+        // DMO
+        public static Stream StreamFactoryMethod(HttpRequest request)
+        {
+            return new MemoryStream();
+        }
+        public static StreamFactory StreamFactory = StreamFactoryMethod;
+
+
+
         /// <summary>
         /// Chars used to split an URL path into multiple parts.
         /// </summary>
@@ -431,6 +443,12 @@ namespace HttpServer
         /// <exception cref="ArgumentOutOfRangeException"><c>offset</c> is out of range.</exception>
         public int AddToBody(byte[] bytes, int offset, int length)
         {
+            // DMO
+            if (_body.Length == 0)
+            {
+                _body = StreamFactory(this);
+            }
+
             if (bytes == null)
                 throw new ArgumentNullException("bytes");
             if (offset + length > bytes.Length)

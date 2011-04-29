@@ -6,6 +6,7 @@ using System.Net;
 using System.Text;
 
 using RepositoryManifest;
+using Utilities;
 
 
 namespace RepositorySync
@@ -47,16 +48,19 @@ namespace RepositorySync
                 (HttpWebRequest)WebRequest.Create(requestUri);
 
             request.Method = "PUT";
-            request.Timeout = RequestTimeout;
+            request.Timeout = System.Threading.Timeout.Infinite;
+
+            request.AllowWriteStreamBuffering = false;
 
             SetStandardFileHeaders(request, sourceManifestFile);
-
-            // TODO: Use SendChunked?
 
             using (FileStream fileStream = sourceFile.OpenRead())
             {
                 request.ContentLength = fileStream.Length;
+
+                //StreamUtilities.CopyStream(fileStream, request.GetRequestStream());
                 fileStream.CopyTo(request.GetRequestStream());
+                
                 request.GetRequestStream().Close();
             }
 
@@ -165,7 +169,9 @@ namespace RepositorySync
                     tempFilePath,
                     FileMode.Create))
             {
+                //StreamUtilities.CopyStream(response.GetResponseStream(), fileStream);
                 response.GetResponseStream().CopyTo(fileStream);
+
                 response.GetResponseStream().Close();
             }
 
