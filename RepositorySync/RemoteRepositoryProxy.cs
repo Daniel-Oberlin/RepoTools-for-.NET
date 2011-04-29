@@ -49,7 +49,6 @@ namespace RepositorySync
 
             request.Method = "PUT";
             request.Timeout = System.Threading.Timeout.Infinite;
-
             request.AllowWriteStreamBuffering = false;
 
             SetStandardFileHeaders(request, sourceManifestFile);
@@ -109,7 +108,30 @@ namespace RepositorySync
             ManifestFileInfo fileToBeUpdated,
             ManifestFileInfo otherFileWithNewFileInfo)
         {
-            throw new NotImplementedException();
+            String manifestPath =
+                Manifest.MakeStandardPathString(fileToBeUpdated);
+
+            // Remove the leading '.' from the relative path
+            String uriPath =
+                manifestPath.Substring(1, manifestPath.Length - 1);
+
+            Uri requestUri = new Uri(BaseUri.ToString() + uriPath);
+
+            HttpWebRequest request =
+                (HttpWebRequest)WebRequest.Create(requestUri);
+
+            request.Method = "SETFILEINFO";
+            request.Timeout = System.Threading.Timeout.Infinite;
+            request.AllowWriteStreamBuffering = false;
+
+            SetStandardFileHeaders(request, otherFileWithNewFileInfo);
+            request.ContentLength = 0;
+            request.GetRequestStream().Close();
+
+            HttpWebResponse response =
+                (HttpWebResponse)request.GetResponse();
+
+            // TODO: Handle error?
         }
 
         public void MoveFile(
@@ -125,7 +147,35 @@ namespace RepositorySync
 
         public void CopyManifestInformation(IRepositoryProxy otherRepository)
         {
-            throw new NotImplementedException();
+            // Clone the manifest and all of its information
+            Manifest dummyManifest = new Manifest(otherRepository.Manifest);
+
+            // Remove the files before we send it over because all we care about is the info
+            dummyManifest.RootDirectory.Files.Clear();
+            dummyManifest.RootDirectory.Subdirectories.Clear();
+
+            Uri requestUri = new Uri(BaseUri.ToString());
+
+            HttpWebRequest request =
+                (HttpWebRequest)WebRequest.Create(requestUri);
+
+            request.Method = "SETMANIFESTINFO";
+            request.Timeout = System.Threading.Timeout.Infinite;
+            request.AllowWriteStreamBuffering = false;
+
+            MemoryStream memStream = new MemoryStream();
+            dummyManifest.WriteManifestStream(memStream);
+
+            memStream.Seek(0, SeekOrigin.Begin);
+            request.ContentLength = memStream.Length;
+
+            memStream.CopyTo(request.GetRequestStream());
+            request.GetRequestStream().Close();
+
+            HttpWebResponse response =
+                (HttpWebResponse)request.GetResponse();
+
+            // TODO: Handle error?
         }
 
 
@@ -154,8 +204,8 @@ namespace RepositorySync
             HttpWebRequest request =
                 (HttpWebRequest)WebRequest.Create(requestUri);
 
-            request.Timeout = RequestTimeout;
             request.Method = "GET";
+            request.Timeout = RequestTimeout;
 
             HttpWebResponse response =
                 (HttpWebResponse)request.GetResponse();

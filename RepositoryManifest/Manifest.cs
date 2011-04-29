@@ -377,6 +377,7 @@ namespace RepositoryManifest
 
         protected void DoAnyUpgradeMaintenance()
         {
+            /*
             DateTime blankTime = new DateTime();
 
             // Move from using byte array to FileHash class
@@ -394,40 +395,7 @@ namespace RepositoryManifest
                 foreach (ManifestFileInfo nextFileInfo in
                     currentDir.Files.Values)
                 {
-                    //if (nextFileInfo.FileHash == null)
-                    //{
-                    //    nextFileInfo.FileHash =
-                    //        new FileHash(
-                    //            nextFileInfo.Hash,
-                    //            nextFileInfo.HashType);
-
-                    //    nextFileInfo.Hash = null;
-                    //    nextFileInfo.HashType = null;
-
-                    //    upgraded = true;
-                    //}
-
-                    //if (nextFileInfo.CreationUtc == blankTime)
-                    //{
-                    //    FileInfo file = new FileInfo(
-                    //        MakeNativePathString(nextFileInfo));
-
-                    //    nextFileInfo.CreationUtc =
-                    //        file.CreationTimeUtc;
-
-                    //    upgraded = true;
-                    //}
-
-                    if (nextFileInfo.RegisteredUtc == blankTime)
-                    {
-                        FileInfo file = new FileInfo(
-                            MakeNativePathString(nextFileInfo));
-
-                        nextFileInfo.RegisteredUtc =
-                            file.CreationTimeUtc;
-
-                        upgraded = true;
-                    }
+                    // DO SOMETHING
                 }
 
                 foreach (ManifestDirectoryInfo nextDir in
@@ -441,6 +409,7 @@ namespace RepositoryManifest
             {
                 Console.WriteLine("Manifest upgraded.");
             }
+             * */
         }
 
 

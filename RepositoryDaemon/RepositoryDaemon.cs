@@ -154,6 +154,14 @@ namespace RepositoryDaemon
                 case "MOVE":
                     HandleCopyOrMoveRequest(context, request);
                     break;
+
+                case "SETMANIFESTINFO":
+                    HandleSetManifestInfoRequest(context, request);
+                    break;
+
+                case "SETFILEINFO":
+                    HandleSetFileInfoRequest(context, request);
+                    break;
             }
         }
 
@@ -415,6 +423,102 @@ namespace RepositoryDaemon
                     "HTTP/1.0",
                     HttpStatusCode.OK,
                     "File accepted",
+                    "",
+                    "text/plain");
+            }
+            catch (Exception ex)
+            {
+                context.Respond(
+                    "HTTP/1.0",
+                    HttpStatusCode.InternalServerError,
+                    "Internal server error",
+                    ex.ToString(),
+                    "text/plain");
+
+                System.Console.WriteLine(ex.ToString());
+            }
+        }
+
+        protected void HandleSetManifestInfoRequest(
+            HttpClientContext context,
+            HttpRequest request)
+        {
+            try
+            {
+                LocalRepositoryState repoState = GetRepositoryFromRequest(request);
+
+                // TODO: Authenticate based on request address
+                // ...delete temp file if not authenticated...
+                // Better to authenticate when the headers are received...
+
+                Stream infoStream = request.Body;
+                infoStream.Seek(0, SeekOrigin.Begin);
+
+                Manifest dummyManifest =
+                    Manifest.ReadManifestStream(infoStream); 
+
+                lock (repoState.Manifest)
+                {
+                    repoState.Manifest.CopyManifestInfoFrom(dummyManifest);
+                    repoState.SetManifestChanged();
+                }
+
+                context.Respond(
+                    "HTTP/1.0",
+                    HttpStatusCode.OK,
+                    "Info accepted",
+                    "",
+                    "text/plain");
+            }
+            catch (Exception ex)
+            {
+                // TODO: Make this a method
+                context.Respond(
+                    "HTTP/1.0",
+                    HttpStatusCode.InternalServerError,
+                    "Internal server error",
+                    ex.ToString(),
+                    "text/plain");
+
+                System.Console.WriteLine(ex.ToString());
+            }
+        }
+
+        protected void HandleSetFileInfoRequest(
+            HttpClientContext context,
+            HttpRequest request)
+        {
+            try
+            {
+                LocalRepositoryState repoState = GetRepositoryFromRequest(request);
+
+                // TODO: Authenticate based on request address
+                // ...delete temp file if not authenticated...
+                // Better to authenticate when the headers are received...
+
+                String newFilePath = GetLocalFilePathFromRequest(request);
+                FileInfo newFile = new FileInfo(newFilePath);
+
+                lock (repoState.Manifest)
+                {
+                    ManifestFileInfo manFileInfo =
+                        GetOrMakeManifestFileInfoFromRequest(
+                            repoState.Manifest,
+                            request,
+                            false);
+
+                    SetManifestFileInfo(manFileInfo, request, newFile);
+
+                    newFile.LastWriteTimeUtc =
+                        manFileInfo.LastModifiedUtc;
+
+                    repoState.SetManifestChanged();
+                }
+
+                context.Respond(
+                    "HTTP/1.0",
+                    HttpStatusCode.OK,
+                    "Info accepted",
                     "",
                     "text/plain");
             }
