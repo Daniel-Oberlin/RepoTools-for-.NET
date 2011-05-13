@@ -637,7 +637,7 @@ namespace RepositoryDaemon
             String filePath = Settings.GetRepositoryFromGuid(repoGuid).RepositoryPath;
             for (int i = 1; i < request.UriParts.Length; i++)
             {
-                filePath = Path.Combine(filePath, request.UriParts[i]);
+                filePath = Path.Combine(filePath, Uri.UnescapeDataString(request.UriParts[i]));
             }
 
             return filePath;

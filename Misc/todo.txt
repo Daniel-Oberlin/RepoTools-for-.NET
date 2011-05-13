@@ -13,11 +13,12 @@ rt:
 
 
 rs:
-	catch top level exceptions and see if this allows for proper cleanup of temp directories
 	repair - define and implement
 	allow non-default manifest names and locations
 	Check for copies without moves
 	Keep directories and manifest directories clean - remove when empty
+	Allow contributing files without a source repository
+	Allow founding a new repository
 
 
 red:
@@ -30,7 +31,8 @@ red:
 	Consider thread-locking manifest file object during entire operation
 	Keep directories and manifest directories clean - remove when empty
 	Allow changing flush interval
-
+	Allow founding a new repository
+	Cleanup empty temp directories - name with a prefix:
 
 
 

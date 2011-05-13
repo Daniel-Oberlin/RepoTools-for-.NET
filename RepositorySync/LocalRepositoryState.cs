@@ -23,15 +23,16 @@ namespace RepositorySync
         public LocalRepositoryState(
             DirectoryInfo rootDirectory)
         {
+
+            ManifestFileLock = new object();
+            myManifestChangedLock = new object();
+            myManifestChanged = false;
+
             RootDirectory = rootDirectory;
 
             LoadManifest();
+            RemoveExtraTempDirectories();
             CreateTempDirectory();
-
-            ManifestFileLock = new object();
-
-            myManifestChangedLock = new object();
-            myManifestChanged = false;
         }
 
         /// <summary>
@@ -41,15 +42,18 @@ namespace RepositorySync
         {
             Exception exception = null;
 
-            try
+            if (TempDirectory != null)
             {
-                TempDirectory.Delete(true);
-            }
-            catch (Exception ex)
-            {
-                if (exception == null)
+                try
                 {
-                    exception = ex;
+                    TempDirectory.Delete(true);
+                }
+                catch (Exception ex)
+                {
+                    if (exception == null)
+                    {
+                        exception = ex;
+                    }
                 }
             }
 
@@ -63,7 +67,7 @@ namespace RepositorySync
 
         public void FlushManifest()
         {
-            if (ManifestChanged)
+            if (ManifestChanged && Manifest != null)
             {
                 Manifest manifestClone;
                 lock (Manifest)
@@ -119,7 +123,7 @@ namespace RepositorySync
             try
             {
                 TempDirectory = RootDirectory.CreateSubdirectory(
-                    "temp-" +
+                    theTempDirectoryPrefix +
                     Path.GetRandomFileName());
             }
             catch (Exception ex)
@@ -127,6 +131,20 @@ namespace RepositorySync
                 throw new Exception(
                     "Could not create temporary directory in repository.",
                     ex);
+            }
+        }
+
+        protected void RemoveExtraTempDirectories()
+        {
+            foreach (DirectoryInfo nextSubDirectory in
+                RootDirectory.GetDirectories())
+            {
+                if (nextSubDirectory.Name.StartsWith(theTempDirectoryPrefix) &&
+                    nextSubDirectory.GetFiles().Count() == 0 &&
+                    nextSubDirectory.GetDirectories().Count() == 0)
+                {
+                    nextSubDirectory.Delete();
+                }
             }
         }
 
@@ -186,5 +204,10 @@ namespace RepositorySync
 
         protected bool myManifestChanged;
         protected object myManifestChangedLock;
+
+
+        // Static
+
+        static protected String theTempDirectoryPrefix = "temp-";
     }
 }

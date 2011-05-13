@@ -63,7 +63,7 @@ namespace RepositorySync
 
                 if (sourceRep == null)
                 {
-                    //try
+                    try
                     {
                         sourceRep = new RemoteRepositoryProxy(
                             args[1],
@@ -71,15 +71,15 @@ namespace RepositorySync
 
                         otherProxy = sourceRep;
                     }
-                    //catch (Exception)
-                    //{
-                    //    // TODO
-                    //}
+                    catch (Exception)
+                    {
+                        // TODO
+                    }
                 }
 
                 if (destRep == null)
                 {
-                    //try
+                    try
                     {
                         destRep = new RemoteRepositoryProxy(
                             args[2],
@@ -87,17 +87,27 @@ namespace RepositorySync
 
                         otherProxy = destRep;
                     }
-                    //catch (Exception)
-                    //{
-                    //    // TODO
-                    //}
+                    catch (Exception)
+                    {
+                        // TODO
+                    }
                 }
             }
 
-            if (sourceRep == null || destRep == null)
+            if (sourceRep == null && destRep == null)
             {
-                // Give the user some help if they need it
-                commandArg = "help";
+                console.WriteLine("Could not resolve a source and destination repository.");
+                Environment.Exit(1);
+            }
+            else if (sourceRep == null)
+            {
+                console.WriteLine("Could not resolve a source repository.");
+                Environment.Exit(1);
+            }
+            else if (destRep == null)
+            {
+                console.WriteLine("Could not resolve a destination repository.");
+                Environment.Exit(1);
             }
 
             RepositorySync syncTool =

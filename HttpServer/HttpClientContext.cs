@@ -210,8 +210,8 @@ namespace HttpServer
         {
             get { return _log; }
             set 
-			{ 
-				_log = value ?? NullLogWriter.Instance;
+			{
+                _log = value ?? NullLogWriter.Instance;
 				_parser.LogWriter = _log;
 			}
         }
@@ -310,7 +310,8 @@ namespace HttpServer
 #if DEBUG
 #pragma warning disable 219
                 string temp = Encoding.ASCII.GetString(_buffer, 0, _bytesLeft);
-                LogWriter.Write(this, LogPrio.Trace, "Received: " + temp);
+                // DMO TEMP
+                //LogWriter.Write(this, LogPrio.Trace, "Received: " + temp);
 #pragma warning restore 219
 #endif
                 int offset = _parser.Parse(_buffer, 0, _bytesLeft);
@@ -350,7 +351,9 @@ namespace HttpServer
                     Stream.BeginRead(_buffer, _bytesLeft, _buffer.Length - _bytesLeft, OnReceive, null);
                 else
                 {
-                    _log.Write(this, LogPrio.Warning, "Could not read any more from the socket.");
+                    // DMO
+                    //_log.Write(this, LogPrio.Warning, "Could not read any more from the socket.");
+                    _log.Write(this, LogPrio.Trace, "Finished reading from the socket.");
                     Disconnect(SocketError.Success);
                 }
             }

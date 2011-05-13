@@ -384,8 +384,12 @@ namespace HttpServer
                         AcceptTypes[i] = AcceptTypes[i].Trim();
                     break;
                 case "content-length":
-                    int t;
-                    if (!int.TryParse(value, out t))
+                    // DMO
+                    //int t;
+                    //if (!int.TryParse(value, out t))
+                    //    throw new BadRequestException("Invalid content length.");
+                    long t;
+                    if (!long.TryParse(value, out t))
                         throw new BadRequestException("Invalid content length.");
                     ContentLength = t;
                     break; //todo: mayby throw an exception

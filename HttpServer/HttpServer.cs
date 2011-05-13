@@ -249,7 +249,7 @@ namespace HttpServer
             }
 			set
 			{
-				_logWriter = value ?? NullLogWriter.Instance;
+                _logWriter = value ?? NullLogWriter.Instance;
 				foreach (HttpModule module in _modules)
 					module.SetLogWriter(_logWriter);
 			}

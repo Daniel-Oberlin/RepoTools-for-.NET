@@ -23,7 +23,10 @@ namespace RepositorySync
 
         ~RemoteRepositoryProxy()
         {
-            TempDirectory.Delete(true);
+            if (TempDirectory != null)
+            {
+                TempDirectory.Delete(true);
+            }
         }
 
         public Manifest Manifest { protected set; get; }
@@ -66,6 +69,9 @@ namespace RepositorySync
             HttpWebResponse response =
                 (HttpWebResponse)request.GetResponse();
 
+            response.Close();
+
+            //System.Threading.Thread.Sleep(20000);
             // TODO: Handle error?
         }
 
@@ -89,6 +95,8 @@ namespace RepositorySync
 
             HttpWebResponse response =
                 (HttpWebResponse)request.GetResponse();
+
+            response.Close();
 
             // TODO: Handle error?
         }
@@ -130,6 +138,8 @@ namespace RepositorySync
 
             HttpWebResponse response =
                 (HttpWebResponse)request.GetResponse();
+
+            response.Close();
 
             // TODO: Handle error?
         }
@@ -174,6 +184,8 @@ namespace RepositorySync
 
             HttpWebResponse response =
                 (HttpWebResponse)request.GetResponse();
+
+            response.Close();
 
             // TODO: Handle error?
         }
@@ -296,6 +308,8 @@ namespace RepositorySync
 
             Manifest = Manifest.ReadManifestStream(
                 response.GetResponseStream());
+
+            response.Close();
         }
 
         protected void SetStandardFileHeaders(
@@ -342,6 +356,8 @@ namespace RepositorySync
 
             HttpWebResponse response =
                 (HttpWebResponse)request.GetResponse();
+
+            response.Close();
 
             // TODO: Handle error?
         }

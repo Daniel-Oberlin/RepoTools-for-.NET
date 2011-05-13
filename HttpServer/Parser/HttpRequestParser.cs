@@ -13,7 +13,9 @@ namespace HttpServer.Parser
         private readonly HeaderEventArgs _headerArgs = new HeaderEventArgs();
         private ILogWriter _log;
         private readonly RequestLineEventArgs _requestLineArgs = new RequestLineEventArgs();
-        private int _bodyBytesLeft;
+        // DMO
+        //private int _bodyBytesLeft;
+        private long _bodyBytesLeft;
         private string _curHeaderName = string.Empty;
         private string _curHeaderValue = string.Empty;
 
@@ -36,7 +38,11 @@ namespace HttpServer.Parser
         private int AddToBody(byte[] buffer, int offset, int count)
         {
 			// got all bytes we need, or just a few of them?
-            int bytesUsed = count > _bodyBytesLeft ? _bodyBytesLeft : count;
+            // DMO: Ouch!  But I think we'll never exceed this in a single call.
+            //int bytesUsed = count > _bodyBytesLeft ? _bodyBytesLeft : count;
+            long bytesUsedLong = count > _bodyBytesLeft ? _bodyBytesLeft : count;
+            int bytesUsed = (int)bytesUsedLong;
+
             _bodyArgs.Buffer = buffer;
             _bodyArgs.Offset = offset;
 			_bodyArgs.Count = bytesUsed;
@@ -71,7 +77,7 @@ namespace HttpServer.Parser
     	public ILogWriter LogWriter
     	{
 			get { return _log; }
-			set { _log = value ?? NullLogWriter.Instance; }
+            set { _log = value ?? NullLogWriter.Instance; }
     	}
 
     	/// <summary>
@@ -138,7 +144,9 @@ namespace HttpServer.Parser
             _headerArgs.Value = value;
             if (string.Compare(name, "content-length", true) == 0)
             {
-                if (!int.TryParse(value, out _bodyBytesLeft))
+                // DMO
+                //if (!int.TryParse(value, out _bodyBytesLeft))
+                if (!long.TryParse(value, out _bodyBytesLeft))
                     throw new BadRequestException("Content length is not a number.");
             }
 
