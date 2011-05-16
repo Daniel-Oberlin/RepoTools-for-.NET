@@ -20,7 +20,7 @@ namespace HttpServer
         private readonly SslProtocols _sslProtocol = SslProtocols.Default;
         private readonly bool _requireClientCerts;
         private TcpListener _listener;
-        private ILogWriter _logWriter = NullLogWriter.Instance;
+        private ILogWriter _logWriter = DefaultLogWriter.Instance;
         private int _pendingAccepts;
         private bool _shutdown;
 
@@ -79,7 +79,7 @@ namespace HttpServer
             get { return _logWriter; }
             set
             {
-                _logWriter = value ?? NullLogWriter.Instance;
+                _logWriter = value ?? DefaultLogWriter.Instance;
                 if (_certificate != null)
                     _logWriter.Write(this, LogPrio.Info,
                                      "HTTPS(" + _sslProtocol + ") listening on " + _address + ":" + _port);

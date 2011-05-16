@@ -69,7 +69,7 @@ namespace HttpServer
             _bufferSize = bufferSize;
 			RemoteAddress = remoteEndPoint.Address.ToString();
 			RemotePort = remoteEndPoint.Port.ToString();
-            _log = NullLogWriter.Instance;
+            _log = DefaultLogWriter.Instance;
             _parser = parserFactory.CreateParser(_log);
             _parser.RequestCompleted += OnRequestCompleted;
             _parser.RequestLineReceived += OnRequestLine;
@@ -211,7 +211,7 @@ namespace HttpServer
             get { return _log; }
             set 
 			{
-                _log = value ?? NullLogWriter.Instance;
+                _log = value ?? DefaultLogWriter.Instance;
 				_parser.LogWriter = _log;
 			}
         }

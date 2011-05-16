@@ -148,4 +148,15 @@ namespace HttpServer
         public void Write(object source, LogPrio prio, string message)
         {}
     }
+
+    public class DefaultLogWriter
+    {
+        public static ILogWriter Instance
+        {
+            get
+            {
+                return NullLogWriter.Instance;
+            }
+        }
+    }
 }

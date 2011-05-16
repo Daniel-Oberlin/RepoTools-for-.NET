@@ -71,7 +71,7 @@ namespace HttpServer
         public static HttpListener Create(IPAddress address, int port)
         {
             RequestParserFactory requestFactory = new RequestParserFactory();
-            HttpContextFactory factory = new HttpContextFactory(NullLogWriter.Instance, 16384, requestFactory);
+            HttpContextFactory factory = new HttpContextFactory(DefaultLogWriter.Instance, 16384, requestFactory);
             return new HttpListener(address, port, factory);
         }
 
@@ -85,7 +85,7 @@ namespace HttpServer
         public static HttpListener Create(IPAddress address, int port, X509Certificate certificate)
         {
             RequestParserFactory requestFactory = new RequestParserFactory();
-            HttpContextFactory factory = new HttpContextFactory(NullLogWriter.Instance, 16384, requestFactory);
+            HttpContextFactory factory = new HttpContextFactory(DefaultLogWriter.Instance, 16384, requestFactory);
             return new HttpListener(address, port, factory, certificate);
         }
 
@@ -103,7 +103,7 @@ namespace HttpServer
             RemoteCertificateValidationCallback clientCertCallback, SslProtocols protocol, bool requireClientCerts)
         {
             RequestParserFactory requestFactory = new RequestParserFactory();
-            HttpContextFactory factory = new HttpContextFactory(NullLogWriter.Instance, 16384, requestFactory);
+            HttpContextFactory factory = new HttpContextFactory(DefaultLogWriter.Instance, 16384, requestFactory);
             return new HttpListener(address, port, factory, certificate, clientCertCallback, protocol, requireClientCerts);
         }
 

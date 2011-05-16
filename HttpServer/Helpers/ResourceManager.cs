@@ -19,7 +19,7 @@ namespace HttpServer.Helpers
 		/// </summary>
 		public ResourceManager()
 		{
-			_logger = NullLogWriter.Instance;
+			_logger = DefaultLogWriter.Instance;
 		}
 
 		/// <summary>
@@ -28,7 +28,7 @@ namespace HttpServer.Helpers
 		/// <param name="writer">logger.</param>
 		public ResourceManager(ILogWriter writer)
 		{
-            _logger = writer ?? NullLogWriter.Instance;
+            _logger = writer ?? DefaultLogWriter.Instance;
 		}
 
 		/// <summary>

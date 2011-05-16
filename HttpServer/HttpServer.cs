@@ -60,7 +60,7 @@ namespace HttpServer
         private string _serverName = "SeeSharpWebServer";
         private string _sessionCookieName = "__tiny_sessid";
         private IHttpSessionStore _sessionStore;
-        private ILogWriter _logWriter = NullLogWriter.Instance;
+        private ILogWriter _logWriter = DefaultLogWriter.Instance;
         private int _backLog = 10;
 		private ExceptionHandler _exceptionHandler;
         private readonly IComponentProvider _components;
@@ -244,12 +244,12 @@ namespace HttpServer
 			get
             {
                 if (_logWriter == null)
-                    _logWriter = _components.Get<ILogWriter>() ?? NullLogWriter.Instance;
+                    _logWriter = _components.Get<ILogWriter>() ?? DefaultLogWriter.Instance;
                 return _logWriter;
             }
 			set
 			{
-                _logWriter = value ?? NullLogWriter.Instance;
+                _logWriter = value ?? DefaultLogWriter.Instance;
 				foreach (HttpModule module in _modules)
 					module.SetLogWriter(_logWriter);
 			}

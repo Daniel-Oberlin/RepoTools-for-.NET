@@ -15,7 +15,7 @@ namespace HttpServer.HttpModules
     /// </remarks>
     public abstract class HttpModule
     {
-        private ILogWriter _log = NullLogWriter.Instance;
+        private ILogWriter _log = DefaultLogWriter.Instance;
 
         /// <summary>
         /// Method that process the url
@@ -44,7 +44,7 @@ namespace HttpServer.HttpModules
         /// <param name="writer">logwriter to use.</param>
         public void SetLogWriter(ILogWriter writer)
         {
-            _log = writer ?? NullLogWriter.Instance;
+            _log = writer ?? DefaultLogWriter.Instance;
         }
 
         /// <summary>

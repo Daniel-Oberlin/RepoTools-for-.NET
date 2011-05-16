@@ -25,7 +25,7 @@ namespace HttpServer.Parser
         /// <param name="logWriter">delegate receiving log entries.</param>
         public HttpRequestParser(ILogWriter logWriter)
         {
-            _log = logWriter ?? NullLogWriter.Instance;
+            _log = logWriter ?? DefaultLogWriter.Instance;
         }
 
         /// <summary>
@@ -77,7 +77,7 @@ namespace HttpServer.Parser
     	public ILogWriter LogWriter
     	{
 			get { return _log; }
-            set { _log = value ?? NullLogWriter.Instance; }
+            set { _log = value ?? DefaultLogWriter.Instance; }
     	}
 
     	/// <summary>
