@@ -442,9 +442,9 @@ namespace RepositoryTool
 
                             console.WriteLine("Total number of files:         " + tool.Manifest.CountFiles().ToString("N", nfi));
                             console.WriteLine("Total number of bytes:         " + tool.Manifest.CountBytes().ToString("N", nfi));
-                            console.WriteLine("Ignoring these file patterns:");
                             if (tool.Manifest.IgnoreList.Count > 0)
                             {
+                                console.WriteLine("Ignoring these file patterns:");
                                 foreach (String nextIgnore in tool.Manifest.IgnoreList)
                                 {
                                     console.WriteLine("   " + nextIgnore);

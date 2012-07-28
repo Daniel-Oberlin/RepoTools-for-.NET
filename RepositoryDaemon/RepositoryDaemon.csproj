@@ -86,6 +86,7 @@
     </Compile>
     <Compile Include="RepositoryDaemon.cs" />
     <Compile Include="RepositoryInfo.cs" />
+    <Compile Include="User.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\HttpServer\HttpServer.csproj">

@@ -10,18 +10,20 @@ rt:
 	Search upwards for manifest to allow narrow update, validate, etc.
 	Utilize manifest information modified date
 	Remove deprecated fields from ManifestFileInfo
+	Locking of files - read-only
 
 
 rs:
+	Allow founding a new repository
+	Check files on both ends as they are sent/received - stream splitter
 	repair - define and implement
 	allow non-default manifest names and locations
 	Check for copies without moves
 	Keep directories and manifest directories clean - remove when empty
 	Allow contributing files without a source repository
-	Allow founding a new repository
 
 
-red:
+red: -> rename to repoServer, and make serparate repoDaemon...?
 	Add logging flag
 	catch top level exceptions and see if this allows for proper cleanup of temp directories
 	authentication via request address
@@ -33,6 +35,13 @@ red:
 	Allow changing flush interval
 	Allow founding a new repository
 	Cleanup empty temp directories - name with a prefix:
+
+repoDaemon:
+	...
+
+rv:
+	Repository vault
+		
 
 
 

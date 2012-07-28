@@ -12,10 +12,12 @@ namespace RepositoryDaemon
     {
         public DaemonSettings()
         {
+            Users = new Dictionary<string, User>();
+            UserHomePaths = new Dictionary<User, List<string>>();
+            HostToUser = new Dictionary<string, User>();
+
             GuidToRepository = new Dictionary<Guid, RepositoryInfo>();
             NameToRepository = new Dictionary<string, RepositoryInfo>();
-
-            FieldLockObject = new object();
 
             ManifestFlushIntervalSeconds =
                 DefaultManifestFlushIntervalSeconds;
@@ -146,7 +148,7 @@ namespace RepositoryDaemon
         {
             set
             {
-                lock (FieldLockObject)
+                lock (this)
                 {
                     myManifestFlushIntervalSeconds = value;
                 }
@@ -154,10 +156,25 @@ namespace RepositoryDaemon
 
             get
             {
-                lock (FieldLockObject)
+                lock (this)
                 {
                     return myManifestFlushIntervalSeconds;
                 }
+            }
+        }
+
+        public User AddUser(string userName)
+        {
+            lock (this)
+            {
+                if (Users.ContainsKey(userName))
+                {
+                    return null;
+                }
+
+                User newUser = new User(userName, false);
+                Users.Add(userName, newUser);
+                return newUser;
             }
         }
 
@@ -210,12 +227,14 @@ namespace RepositoryDaemon
             }
         }
 
+        public Dictionary<string, User> Users { private set; get; }
+        public Dictionary<User, List<String>> UserHomePaths { private set; get; }
+        public Dictionary<String, User> HostToUser { private set; get; }
+
         protected Dictionary<Guid, RepositoryInfo> GuidToRepository { private set; get; }
         protected Dictionary<String, RepositoryInfo> NameToRepository { private set; get; }
 
         internal String DaemonSettingsFilePath { set; get; }
-
-        private object FieldLockObject { set; get; }
 
 
         // Static

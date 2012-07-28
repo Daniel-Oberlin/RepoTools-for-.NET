@@ -5,6 +5,13 @@ using System.Text;
 
 namespace RepositoryDaemon
 {
+    public enum UserPrivilige
+    {
+        None = 0,
+        Read = 1,
+        Write = 2
+    }
+
     /// <summary>
     /// Information about a repository that is registered with the daemon
     /// </summary>
@@ -36,6 +43,7 @@ namespace RepositoryDaemon
             Name = name;
             RepositoryPath = repositoryPath;
             ManifestPath = manifestPath;
+            UserPriviligeList = new Dictionary<User, UserPrivilige>();
         }
 
         /// <summary>
@@ -57,5 +65,11 @@ namespace RepositoryDaemon
         /// The full path to the repository manifest file
         /// </summary>
         public String ManifestPath { private set; get; }
+
+        /// <summary>
+        /// List of priviliges for users
+        /// </summary>
+        public Dictionary<User, UserPrivilige>
+            UserPriviligeList { private set; get; }
     }
 }

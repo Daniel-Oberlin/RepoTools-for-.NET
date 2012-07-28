@@ -13,7 +13,47 @@ COMMANDS:
     help
         Show this description of commands and options.
 
+    start
+        Start the daemon.
+
+    addRepo repositoryPath [options]
+        Add a repository to the daemon.
+
+    remRepo repositoryPath
+        Remove a repository from the daemon.
+
+	repo repositoryName [options]
+		Manage repository.
+
+	addUser userName [options]
+		Add a user to the daemon.
+
+	remUser userName
+		Remove a user from the daemon.
+
+	user userName [options]
+		Manage user.
+		
+    info
+        Show information about the repositories managed by the daemon.
+     
+
 OPTIONS:
+
+	-grantAdmin
+		Grant administration priviliges for the user.
+
+	-revokeAdmin
+		Revoke administration priviliges for the user.
+
+	-addUserHost hostAddress
+		Add a host address which authenticates the user.
+
+	-remUserHost hostAddress
+		Remove a host address which authenticates the user.
+
+	-userPriv userName [none|read|write]
+		Set a users privilige for a repository.
 
     -silent
         Don't output anything.  Exit code may still be checked by a script.

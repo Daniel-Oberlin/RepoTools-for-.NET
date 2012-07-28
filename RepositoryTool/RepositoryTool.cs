@@ -595,7 +595,7 @@ namespace RepositoryTool
                 System.Text.RegularExpressions.Regex regex =
                     new System.Text.RegularExpressions.Regex(nextExpression);
 
-                if (regex.Matches(fileName).Count > 0)
+                if (regex.IsMatch(fileName))
                 {
                     return true;
                 }

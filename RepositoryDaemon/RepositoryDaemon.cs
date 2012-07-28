@@ -24,7 +24,11 @@ namespace RepositoryDaemon
             GuidToRepository = new Dictionary<Guid, LocalRepositoryState>();
         }
 
-        public void AddRepository(
+        // DMO:
+        // Duplicate checking logic is inconsistent between users and
+        // repositories.
+
+        public RepositoryInfo AddRepository(
             String repositoryPath,
             String manifestPath = null)
         {
@@ -56,6 +60,8 @@ namespace RepositoryDaemon
                     fullManifestPath);
 
             Settings.AddRepository(repoInfo);
+
+            return repoInfo;
         }
 
         public void RemoveRepository(String manifestPath)
@@ -64,6 +70,48 @@ namespace RepositoryDaemon
                 Manifest.ReadManifestFile(manifestPath);
 
             Settings.RemoveRepository(manifest.Guid);
+        }
+
+        public User AddUser(string userName, bool isAdministrator = false)
+        {
+            return Settings.AddUser(userName);
+        }
+
+        public User RemoveUser(string userName)
+        {
+            if (Settings.Users.ContainsKey(userName) == false)
+            {
+                return null;
+            }
+
+            User remUser = Settings.Users[userName];
+            Settings.Users.Remove(userName);
+
+            if (Settings.UserHomePaths.ContainsKey(remUser))
+            {
+                Settings.UserHomePaths.Remove(remUser);
+            }
+
+            Dictionary<String, User> HostToUserClone =
+                new Dictionary<string, User>(Settings.HostToUser);
+
+            foreach (string nextHost in HostToUserClone.Keys)
+            {
+                if (HostToUserClone[nextHost] == remUser)
+                {
+                    Settings.HostToUser.Remove(nextHost);
+                }
+            }
+
+            foreach (RepositoryInfo nextRepo in Settings.GetRepositories())
+            {
+                if (nextRepo.UserPriviligeList.ContainsKey(remUser))
+                {
+                    nextRepo.UserPriviligeList.Remove(remUser);
+                }
+            }
+
+            return remUser;
         }
 
         public void Start()
