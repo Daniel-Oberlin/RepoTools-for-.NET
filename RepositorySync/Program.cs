@@ -29,6 +29,12 @@ namespace RepositorySync
                 commandArg = args[argIndex++];
             }
 
+            if (commandArg == "help")
+            {
+                console.Write(Properties.Resources.RepositorySyncHelp);
+                Environment.Exit(exitCode);
+            }
+
             if (args.Length >= 3)
             {
                 argIndex += 2;
@@ -40,6 +46,8 @@ namespace RepositorySync
                     sourceRep = new LocalRepositoryProxy(
                         new System.IO.DirectoryInfo(
                             args[1]));
+
+                    sourceRep.Manifest.RemoveEntriesWithNullHash();
 
                     otherProxy = sourceRep;
                 }
@@ -53,6 +61,8 @@ namespace RepositorySync
                     destRep = new LocalRepositoryProxy(
                         new System.IO.DirectoryInfo(
                             args[2]));
+
+                    destRep.Manifest.RemoveEntriesWithNullHash();
 
                     otherProxy = destRep;
                 }
@@ -69,6 +79,8 @@ namespace RepositorySync
                             args[1],
                             otherProxy.Manifest);
 
+                        sourceRep.Manifest.RemoveEntriesWithNullHash();
+
                         otherProxy = sourceRep;
                     }
                     catch (Exception)
@@ -84,6 +96,8 @@ namespace RepositorySync
                         destRep = new RemoteRepositoryProxy(
                             args[2],
                             otherProxy.Manifest);
+
+                        destRep.Manifest.RemoveEntriesWithNullHash();
 
                         otherProxy = destRep;
                     }
@@ -132,7 +146,6 @@ namespace RepositorySync
                 case "sync":
                 case "mirror":
                 case "repair":
-                case "help":
                     break;
 
                 default:
@@ -180,10 +193,6 @@ namespace RepositorySync
 
                 case "repair":
                     console.WriteLine("TODO: repair is unimplemented.");
-                    break;
-
-                case "help":
-                    console.Write(Properties.Resources.RepositorySyncHelp);
                     break;
             }
 

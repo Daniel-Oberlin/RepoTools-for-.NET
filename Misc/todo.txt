@@ -21,6 +21,7 @@ rs:
 	Check for copies without moves
 	Keep directories and manifest directories clean - remove when empty
 	Allow contributing files without a source repository
+	Make -preview work
 
 
 red: -> rename to repoServer, and make serparate repoDaemon...?

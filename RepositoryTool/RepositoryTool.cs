@@ -148,6 +148,7 @@ namespace RepositoryTool
                         ChangedFiles.Add(nextManFileInfo);
                     }
                     else if (AlwaysCheckHash == true ||
+                        nextManFileInfo.FileHash == null ||
                         nextFileInfo.LastWriteTimeUtc != nextManFileInfo.LastModifiedUtc ||
                         nextFileInfo.Length != nextManFileInfo.FileLength)
                     {
@@ -156,9 +157,15 @@ namespace RepositoryTool
                         Exception exception = null;
                         try
                         {
+                            string hashType = Manifest.DefaultHashMethod;
+                            if (nextManFileInfo.FileHash != null)
+                            {
+                                hashType = nextManFileInfo.FileHash.HashType;
+                            }
+
                             checkHash = ComputeHash(
                                 nextFileInfo,
-                                nextManFileInfo.FileHash.HashType);
+                                hashType);
                         }
                         catch (Exception ex)
                         {
@@ -174,7 +181,12 @@ namespace RepositoryTool
                         }
                         else
                         {
-                            if (checkHash.Equals(nextManFileInfo.FileHash) == false)
+                            if (nextManFileInfo.FileHash == null)
+                            {
+                                Write(" [NULL HASH IN MANIFEST]");
+                                ChangedFiles.Add(nextManFileInfo);
+                            }
+                            else if (checkHash.Equals(nextManFileInfo.FileHash) == false)
                             {
                                 Write(" [DIFFERENT]");
                                 ChangedFiles.Add(nextManFileInfo);

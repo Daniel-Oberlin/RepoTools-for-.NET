@@ -375,6 +375,38 @@ namespace RepositoryManifest
             return byteCount;
         }
 
+        public void RemoveEntriesWithNullHash(ManifestDirectoryInfo currentDir = null)
+        {
+            if (currentDir == null)
+            {
+                currentDir = RootDirectory;
+            }
+
+            List<ManifestFileInfo> removeFiles =
+                new List<ManifestFileInfo>();
+
+            foreach (ManifestFileInfo nextFileInfo in
+                currentDir.Files.Values)
+            {
+                if (nextFileInfo.FileHash == null)
+                {
+                    removeFiles.Add(nextFileInfo);
+                }
+            }
+
+            foreach (ManifestFileInfo nextRemoveFile in
+                removeFiles)
+            {
+                currentDir.Files.Remove(nextRemoveFile.Name);
+            }
+
+            foreach (ManifestDirectoryInfo nextDirInfo in
+                currentDir.Subdirectories.Values)
+            {
+                RemoveEntriesWithNullHash(nextDirInfo);
+            }
+        }
+
         protected void DoAnyUpgradeMaintenance()
         {
             /*
