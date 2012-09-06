@@ -537,14 +537,14 @@ namespace RepositoryTool
 
                 manifest.IgnoreList.Add(
                     "^" +
-                    System.Text.RegularExpressions.Regex.Escape(ManifestStandardFilePath) +
+                    System.Text.RegularExpressions.Regex.Escape(Manifest.DefaultManifestFileName) +
                     "$");
             }
 
             return manifest;
         }
 
-        protected void WriteLine(String message)
+    protected void WriteLine(String message)
         {
             Write(message + "\r\n");
         }

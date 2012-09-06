@@ -462,7 +462,7 @@ namespace RepositoryManifest
         /// </summary>
         static Manifest()
         {
-            DefaultManifestFileName = ".repositoryManifest";
+            DefaultManifestFileName = "./.repositoryManifest";
             StandardPathDelimeterString = "/";
         }
 
