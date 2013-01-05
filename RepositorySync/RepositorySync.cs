@@ -454,7 +454,7 @@ namespace RepositorySync
                     ManifestFileInfo nextDestFile =
                         LastModifiedDateFiles[nextSourceFile];
 
-                    Write(
+                    WriteLine(
                         "Updating dest information: " +
                         Manifest.MakeStandardPathString(nextSourceFile));
 
@@ -472,7 +472,7 @@ namespace RepositorySync
                     ManifestFileInfo nextDestFile =
                         LastModifiedDateFiles[nextSourceFile];
 
-                    Write(
+                    WriteLine(
                         "Updating dest information: " +
                         Manifest.MakeStandardPathString(nextSourceFile));
 
