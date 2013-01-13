@@ -146,7 +146,9 @@
     <None Include="app.config" />
     <None Include="RepositoryToolHelp.txt" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Content Include="Bugs.txt" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>copy RepositoryTool.exe rt.exe</PostBuildEvent>

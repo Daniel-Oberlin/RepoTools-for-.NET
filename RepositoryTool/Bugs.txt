@@ -1,0 +1,5 @@
+﻿HIGH:
+Using "-groom -all" will remove the manifest file
+
+LOW:
+Some options like -ignore will crash the program when there are no subsequent options
