@@ -128,15 +128,24 @@ namespace RepositoryTool
                         break;
                         
                     case "-name":
-                        repositoryName = args[argIndex++];
+                        if (HasAnotherArgument(args, argIndex, console) == true)
+                        {
+                            repositoryName = args[argIndex++];
+                        }
                         break;
 
                     case "-description":
-                        repositoryDescription = args[argIndex++];
+                        if (HasAnotherArgument(args, argIndex, console) == true)
+                        {
+                            repositoryDescription = args[argIndex++];
+                        }
                         break;
 
                     case "-hashMethod":
-                        hashMethod = args[argIndex++];
+                        if (HasAnotherArgument(args, argIndex, console) == true)
+                        {
+                            hashMethod = args[argIndex++];
+                        }
                         break;
 
                     case "-backDate":
@@ -152,15 +161,24 @@ namespace RepositoryTool
                         break;
 
                     case "-ignore":
-                        ignoreList.Add(args[argIndex++]);
+                        if (HasAnotherArgument(args, argIndex, console) == true)
+                        {
+                            ignoreList.Add(args[argIndex++]);
+                        }
                         break;
 
                     case "-dontIgnore":
-                        dontIgnoreList.Add(args[argIndex++]);
+                        if (HasAnotherArgument(args, argIndex, console) == true)
+                        {
+                            dontIgnoreList.Add(args[argIndex++]);
+                        }
                         break;
 
                     case "-manifestFile":
-                        manifestFilePathNotRecursive = args[argIndex++];
+                        if (HasAnotherArgument(args, argIndex, console) == true)
+                        {
+                            manifestFilePathNotRecursive = args[argIndex++];
+                        }
                         break;
 
                     case "-force":
@@ -642,6 +660,18 @@ namespace RepositoryTool
             {
                 FindManifests(nextSubDirectory, filePaths);
             }
+        }
+
+        static bool HasAnotherArgument(string[] args, int argIndex, Utilities.Console console)
+        {
+            if (argIndex <= args.Length)
+            {
+                console.WriteLine("Missing argument for option.");
+                int exitCode = 1;
+                Environment.Exit(exitCode);
+            }
+
+            return true;
         }
     }
 }
