@@ -448,9 +448,14 @@ namespace RepositoryManifest
         // Static
 
         /// <summary>
-        /// The default filename for a manifest
+        /// The default file path for a manifest
         /// </summary>
         public static String DefaultManifestFileName;
+
+        /// <summary>
+        /// The default file path for a manifest
+        /// </summary>
+        public static String DefaultManifestStandardFilePath;
 
         /// <summary>
         /// The path delimeter string for standard pathnames
@@ -462,8 +467,13 @@ namespace RepositoryManifest
         /// </summary>
         static Manifest()
         {
-            DefaultManifestFileName = "./.repositoryManifest";
             StandardPathDelimeterString = "/";
+
+            DefaultManifestFileName = ".repositoryManifest";
+
+            DefaultManifestStandardFilePath = "." +
+                StandardPathDelimeterString +
+                DefaultManifestFileName;
         }
 
         /// <summary>

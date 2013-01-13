@@ -39,9 +39,12 @@ namespace RepositoryDaemon
 
             if (manifestPath == null)
             {
+                // Here we are using a trick that a standard file path can be
+                // interpreted correctly as the latter part of a native path in
+                // MS-DOS.
                 fullManifestPath = Path.Combine(
                     fullRepositoryPath,
-                    Manifest.DefaultManifestFileName);
+                    Manifest.DefaultManifestStandardFilePath);
             }
             else
             {

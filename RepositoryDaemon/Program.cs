@@ -116,10 +116,13 @@ namespace RepositoryDaemon
 
                 case "remRepo":
                     // TODO: Allow for separate manifest and repository paths
+                    // Here we are using a trick that a standard file path can be
+                    // interpreted correctly as the latter part of a native path in
+                    // MS-DOS.
                     String manifestPath =
                         System.IO.Path.Combine(
                             commandTarget,
-                            RepositoryManifest.Manifest.DefaultManifestFileName);
+                            RepositoryManifest.Manifest.DefaultManifestStandardFilePath);
                     daemon.RemoveRepository(manifestPath);
                     break;
 

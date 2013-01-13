@@ -58,11 +58,14 @@ namespace RepositoryTool
                     console.Write(message);
                 };
 
-            // Default manifest file name located in current directory
+            // Default manifest file name located in current directory.
+            // Here we are using a trick that a standard file path can be
+            // interpreted correctly as the latter part of a native path in
+            // MS-DOS.
             String manifestFilePathNotRecursive =
                 Path.Combine(
                     System.IO.Directory.GetCurrentDirectory(),
-                    Manifest.DefaultManifestFileName);
+                    Manifest.DefaultManifestStandardFilePath);
 
             bool ignoreDate = false;
             bool ignoreNew = false;
@@ -622,10 +625,13 @@ namespace RepositoryTool
             DirectoryInfo nextDirectory,
             List<String> filePaths)
         {
+            // Here we are using a trick that a standard file path can be
+            // interpreted correctly as the latter part of a native path in
+            // MS-DOS.
             String checkManifestPath =
                 Path.Combine(
                     nextDirectory.FullName,
-                    Manifest.DefaultManifestFileName);
+                    Manifest.DefaultManifestStandardFilePath);
 
             if (File.Exists(checkManifestPath))
             {

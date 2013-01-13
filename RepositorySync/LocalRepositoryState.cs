@@ -101,10 +101,13 @@ namespace RepositorySync
 
         protected void LoadManifest()
         {
+            // Here we are using a trick that a standard file path can be
+            // interpreted correctly as the latter part of a native path in
+            // MS-DOS.
             ManifestFilePath =
                 Path.Combine(
                     RootDirectory.FullName,
-                    Manifest.DefaultManifestFileName);
+                    Manifest.DefaultManifestStandardFilePath);
 
             try
             {

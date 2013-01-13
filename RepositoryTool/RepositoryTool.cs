@@ -537,7 +537,7 @@ namespace RepositoryTool
 
                 manifest.IgnoreList.Add(
                     "^" +
-                    System.Text.RegularExpressions.Regex.Escape(Manifest.DefaultManifestFileName) +
+                    System.Text.RegularExpressions.Regex.Escape(Manifest.DefaultManifestStandardFilePath) +
                     "$");
             }
 
@@ -652,7 +652,6 @@ namespace RepositoryTool
 
         public static String ManifestFileName;
         public static String ManifestNativeFilePath;
-        public static String ManifestStandardFilePath;
         public static String PrototypeManifestFileName;
         public static String NewHashType;
 
@@ -662,11 +661,6 @@ namespace RepositoryTool
                 Path.Combine(
                     ".",
                     Manifest.DefaultManifestFileName);
-
-            ManifestStandardFilePath =
-                "." +
-                Manifest.StandardPathDelimeterString +
-                ManifestFileName;
 
             PrototypeManifestFileName = ".manifestPrototype";
             NewHashType = "MD5";
