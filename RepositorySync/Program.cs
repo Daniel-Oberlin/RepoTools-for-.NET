@@ -19,7 +19,7 @@ namespace RepositorySync
             DateTime startTime = DateTime.Now;
 
             int argIndex = 0;
-            string commandArg = "";
+            string commandArg = "help";
 
             IRepositoryProxy sourceRep = null;
             IRepositoryProxy destRep = null;
