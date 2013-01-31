@@ -101,7 +101,7 @@ namespace RepositoryTool
 
                 foreach (FileInfo nextFileInfo in fileList)
                 {
-                    fileDict.Add(nextFileInfo.Name, nextFileInfo);
+                    fileDict.Add(nextFileInfo.Name.Normalize(), nextFileInfo);
                 }
 
                 DirectoryInfo[] dirList =
@@ -109,7 +109,7 @@ namespace RepositoryTool
 
                 foreach (DirectoryInfo nextDirInfo in dirList)
                 {
-                    dirDict.Add(nextDirInfo.Name, nextDirInfo);
+                    dirDict.Add(nextDirInfo.Name.Normalize(), nextDirInfo);
                 }
             }
 
@@ -265,11 +265,11 @@ namespace RepositoryTool
             // Look for new files
             foreach (FileInfo nextFileInfo in fileDict.Values)
             {
-                if (currentManfestDirInfo.Files.ContainsKey(nextFileInfo.Name) == false)
+                if (currentManfestDirInfo.Files.ContainsKey(nextFileInfo.Name.Normalize()) == false)
                 {
                     ManifestFileInfo newManFileInfo =
                        new ManifestFileInfo(
-                           nextFileInfo.Name,
+                           nextFileInfo.Name.Normalize(),
                            currentManfestDirInfo);
 
                     Write(Manifest.MakeStandardPathString(newManFileInfo));
@@ -350,10 +350,10 @@ namespace RepositoryTool
             // Recurse looking for new directories
             foreach (DirectoryInfo nextDirInfo in dirDict.Values)
             {
-                if (currentManfestDirInfo.Subdirectories.ContainsKey(nextDirInfo.Name) == false)
+                if (currentManfestDirInfo.Subdirectories.ContainsKey(nextDirInfo.Name.Normalize()) == false)
                 {
                     ManifestDirectoryInfo nextManDirInfo = new ManifestDirectoryInfo(
-                        nextDirInfo.Name,
+                        nextDirInfo.Name.Normalize(),
                         currentManfestDirInfo);
 
                     currentManfestDirInfo.Subdirectories.Add(
@@ -544,7 +544,7 @@ namespace RepositoryTool
             return manifest;
         }
 
-    protected void WriteLine(String message)
+        protected void WriteLine(String message)
         {
             Write(message + "\r\n");
         }

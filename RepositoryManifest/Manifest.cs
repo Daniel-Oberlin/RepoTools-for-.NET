@@ -526,7 +526,7 @@ namespace RepositoryManifest
         {
             return Path.Combine(
                 MakeNativePathString(fileInfo.ParentDirectory),
-                fileInfo.Name);
+                fileInfo.Name).Normalize();
         }
 
         /// <summary>
@@ -546,7 +546,7 @@ namespace RepositoryManifest
             {
                 pathString = Path.Combine(
                     MakeNativePathString(directoryInfo.ParentDirectory),
-                    pathString);
+                    pathString).Normalize();
             }
 
             return pathString;
