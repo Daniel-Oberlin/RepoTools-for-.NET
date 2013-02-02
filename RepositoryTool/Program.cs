@@ -656,9 +656,16 @@ namespace RepositoryTool
                 filePaths.Add(checkManifestPath);
             }
 
-            foreach (DirectoryInfo nextSubDirectory in nextDirectory.GetDirectories())
+            try
             {
-                FindManifests(nextSubDirectory, filePaths);
+                foreach (DirectoryInfo nextSubDirectory in nextDirectory.GetDirectories())
+                {
+                    FindManifests(nextSubDirectory, filePaths);
+                }
+            }
+            catch (System.UnauthorizedAccessException ex)
+            {
+                // Do nothing
             }
         }
 
