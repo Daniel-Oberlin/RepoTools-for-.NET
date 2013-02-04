@@ -663,7 +663,7 @@ namespace RepositoryTool
                     FindManifests(nextSubDirectory, filePaths);
                 }
             }
-            catch (System.UnauthorizedAccessException ex)
+            catch (System.UnauthorizedAccessException)
             {
                 // Do nothing
             }

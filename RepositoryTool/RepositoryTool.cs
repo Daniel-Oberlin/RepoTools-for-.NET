@@ -149,7 +149,7 @@ namespace RepositoryTool
                     }
                     else if (AlwaysCheckHash == true ||
                         nextManFileInfo.FileHash == null ||
-                        nextFileInfo.LastWriteTimeUtc != nextManFileInfo.LastModifiedUtc ||
+                        CompareLastModifiedDates(nextFileInfo.LastWriteTimeUtc, nextManFileInfo.LastModifiedUtc) == false ||
                         nextFileInfo.Length != nextManFileInfo.FileLength)
                     {
                         FileHash checkHash = null;
@@ -193,7 +193,9 @@ namespace RepositoryTool
                             }
                             else
                             {
-                                if (nextFileInfo.LastWriteTimeUtc != nextManFileInfo.LastModifiedUtc)
+                                if (CompareLastModifiedDates(
+                                    nextFileInfo.LastWriteTimeUtc,
+                                    nextManFileInfo.LastModifiedUtc) == false)
                                 {
                                     Write(" [LAST MODIFIED DATE]");
                                     LastModifiedDateFiles.Add(nextManFileInfo);
@@ -616,6 +618,24 @@ namespace RepositoryTool
             return false;
         }
 
+        // When copying NTFS files over to OSX, "last modified" dates can
+        // be slightly different up to almost 1 second.  It seems like many
+        // smaller files get the date copied exactly.  For the other files,
+        // it almost seems like any precision higher than 1 second is ignored
+        // because the time differences are uniformly and randomly distributed
+        // between 0s and 1s.  So we choose a small tolerance and allow for
+        // the dates to vary slightly from those recorded in the manifest.
+        protected bool CompareLastModifiedDates(DateTime date1, DateTime date2)
+        {
+            if (Math.Abs(date1.Subtract(date2).Ticks) >
+                Math.Abs(LastModifiedDateTolerance.Ticks))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
 
 
         // Data members and accessors
@@ -654,6 +674,7 @@ namespace RepositoryTool
         public static String ManifestNativeFilePath;
         public static String PrototypeManifestFileName;
         public static String NewHashType;
+        public static TimeSpan LastModifiedDateTolerance;
 
         static RepositoryTool()
         {
@@ -664,6 +685,9 @@ namespace RepositoryTool
 
             PrototypeManifestFileName = ".manifestPrototype";
             NewHashType = "MD5";
+
+            // Tolerate up to one second of difference
+            LastModifiedDateTolerance = new TimeSpan(0, 0, 1);
         }
     }
 }
