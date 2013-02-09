@@ -147,7 +147,7 @@
     <None Include="RepositoryToolHelp.txt" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Bugs.txt" />
+    <Content Include="TODO.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
