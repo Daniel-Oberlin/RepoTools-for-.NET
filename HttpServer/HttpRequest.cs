@@ -49,6 +49,9 @@ namespace HttpServer
         private Uri _uri = null;
         private string _uriPath;
 
+        // DMO
+        public string _uriRawPath;
+
         /// <summary>
         /// Gets or sets a value indicating whether this <see cref="HttpRequest"/> is secure.
         /// </summary>
@@ -63,6 +66,9 @@ namespace HttpServer
             get { return _uriPath; }
             set
             {
+                // DMO
+                _uriRawPath = value;
+
                 _uriPath = value;
                 int pos = _uriPath.IndexOf('?');
                 if (pos != -1)

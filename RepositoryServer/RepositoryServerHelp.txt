@@ -1,0 +1,59 @@
+﻿REPOSERVER - Repository Server for Validated Data
+
+This tool allows for...
+
+
+SYNTAX:
+
+repoServer command [option] ...
+
+
+COMMANDS:
+
+    help
+        Show this description of commands and options.
+
+    start
+        Start the server.
+
+    addRepo repositoryPath [options]
+        Add a repository to the server.
+
+    remRepo repositoryPath
+        Remove a repository from the server.
+
+	repo repositoryName [options]
+		Manage repository.
+
+	addUser userName [options]
+		Add a user to the server.
+
+	remUser userName
+		Remove a user from the server.
+
+	user userName [options]
+		Manage user.
+		
+    info
+        Show information about the repositories managed by the server.
+     
+
+OPTIONS:
+
+	-grantAdmin
+		Grant administration priviliges for the user.
+
+	-revokeAdmin
+		Revoke administration priviliges for the user.
+
+	-addUserHost hostAddress
+		Add a host address which authenticates the user.
+
+	-remUserHost hostAddress
+		Remove a host address which authenticates the user.
+
+	-userPriv userName [none|read|write]
+		Set a users privilige for a repository.
+
+    -silent
+        Don't output anything.  Exit code may still be checked by a script.

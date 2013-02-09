@@ -1,0 +1,5 @@
+﻿HIGH:
+...
+
+LOW:
+Check argument count for command line args - copy implementation from other tools

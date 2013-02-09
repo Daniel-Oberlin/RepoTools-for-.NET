@@ -38,14 +38,7 @@ namespace RepositorySync
             FileInfo sourceFile =
                 sourceRepository.GetFile(sourceManifestFile);
 
-            String manifestPath =
-                Manifest.MakeStandardPathString(sourceManifestFile);
-
-            // Remove the leading '.' from the relative path
-            String uriPath =
-                manifestPath.Substring(1, manifestPath.Length - 1);
-
-            Uri requestUri = new Uri(BaseUri.ToString() + uriPath);
+            Uri requestUri = MakeRemoteUri(sourceManifestFile);
 
             HttpWebRequest request =
                 (HttpWebRequest)WebRequest.Create(requestUri);
@@ -77,14 +70,7 @@ namespace RepositorySync
 
         public void RemoveFile(ManifestFileInfo removeManifestFile)
         {
-            String manifestPath =
-                Manifest.MakeStandardPathString(removeManifestFile);
-
-            // Remove the leading '.' from the relative path
-            String uriPath =
-                manifestPath.Substring(1, manifestPath.Length - 1);
-
-            Uri requestUri = new Uri(BaseUri.ToString() + uriPath);
+            Uri requestUri = MakeRemoteUri(removeManifestFile);
 
             HttpWebRequest request =
                 (HttpWebRequest)WebRequest.Create(requestUri);
@@ -116,14 +102,7 @@ namespace RepositorySync
             ManifestFileInfo fileToBeUpdated,
             ManifestFileInfo otherFileWithNewFileInfo)
         {
-            String manifestPath =
-                Manifest.MakeStandardPathString(fileToBeUpdated);
-
-            // Remove the leading '.' from the relative path
-            String uriPath =
-                manifestPath.Substring(1, manifestPath.Length - 1);
-
-            Uri requestUri = new Uri(BaseUri.ToString() + uriPath);
+            Uri requestUri = MakeRemoteUri(fileToBeUpdated);
 
             HttpWebRequest request =
                 (HttpWebRequest)WebRequest.Create(requestUri);
@@ -204,14 +183,7 @@ namespace RepositorySync
             ManifestFileInfo copyFile, 
             DirectoryInfo copyToDirectory)
         {
-            String manifestPath =
-                Manifest.MakeStandardPathString(copyFile);
-
-            // Remove the leading '.' from the relative path
-            String uriPath =
-                manifestPath.Substring(1, manifestPath.Length - 1);
-
-            Uri requestUri = new Uri(BaseUri.ToString() + uriPath);
+            Uri requestUri = MakeRemoteUri(copyFile);
 
             HttpWebRequest request =
                 (HttpWebRequest)WebRequest.Create(requestUri);
@@ -334,14 +306,7 @@ namespace RepositorySync
             String method,
             int timeout)
         {
-            String manifestPath =
-                Manifest.MakeStandardPathString(fileToBeCopied);
-
-            // Remove the leading '.' from the relative path
-            String uriPath =
-                manifestPath.Substring(1, manifestPath.Length - 1);
-
-            Uri requestUri = new Uri(BaseUri.ToString() + uriPath);
+            Uri requestUri = MakeRemoteUri(fileToBeCopied);
 
             HttpWebRequest request =
                 (HttpWebRequest)WebRequest.Create(requestUri);
@@ -362,6 +327,22 @@ namespace RepositorySync
             // TODO: Handle error?
         }
 
+        protected Uri MakeRemoteUri(ManifestFileInfo remoteFile)
+        {
+            String manifestPath =
+                Manifest.MakeStandardPathString(remoteFile);
+
+            // Remove the leading '.' from the relative path
+            String uriPath =
+                manifestPath.Substring(1, manifestPath.Length - 1);
+
+            String escapedUriPath = System.Uri.EscapeDataString(uriPath);
+            System.Console.WriteLine(escapedUriPath);
+
+            Uri uri = new Uri(BaseUri.ToString() + escapedUriPath);
+
+            return uri;
+        }
 
         // Accessors
 
