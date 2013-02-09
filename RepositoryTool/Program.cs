@@ -671,7 +671,7 @@ namespace RepositoryTool
 
         static bool HasAnotherArgument(string[] args, int argIndex, Utilities.Console console)
         {
-            if (argIndex <= args.Length)
+            if (argIndex >= args.Length)
             {
                 console.WriteLine("Missing argument for option.");
                 int exitCode = 1;
