@@ -340,7 +340,7 @@ namespace RepositoryTool
                             DateTime.Now.ToUniversalTime();
 
                         currentManfestDirInfo.Files.Add(
-                            nextFileInfo.Name,
+                            nextFileInfo.Name.Normalize(),
                             newManFileInfo);
                     }
 

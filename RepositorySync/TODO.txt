@@ -1,5 +1,5 @@
 ﻿HIGH:
-...
+Keep Manifest updated intermediately so that information doesn't get lost when errors are encountered or the program is terminated abnormally
 
 LOW:
 ...

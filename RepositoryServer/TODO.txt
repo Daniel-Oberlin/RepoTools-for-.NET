@@ -1,5 +1,6 @@
 ﻿HIGH:
-...
+Sync gets hung up, times out, and stops after a while
+
 
 LOW:
 Check argument count for command line args - copy implementation from other tools
