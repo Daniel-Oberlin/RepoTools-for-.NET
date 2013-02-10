@@ -163,15 +163,13 @@ namespace RepositoryServer
                     break;
 
                 case "start":
+                    /*
                     TaskDelegate startDelegate = server.Start;
                     startDelegate.BeginInvoke(null, null);
-
-                    console.WriteLine("Press enter to terminate...");
-                    Console.ReadLine();
-                    
-                    /*
-                    server.Start();
                     */
+                    
+                    console.WriteLine("Press control-c to terminate...");
+                    server.Start();
 
                     break;
             }

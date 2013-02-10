@@ -23,7 +23,6 @@ namespace RepositorySync
         public LocalRepositoryState(
             DirectoryInfo rootDirectory)
         {
-
             ManifestFileLock = new object();
             myManifestChangedLock = new object();
             myManifestChanged = false;
@@ -33,12 +32,24 @@ namespace RepositorySync
             LoadManifest();
             RemoveExtraTempDirectories();
             CreateTempDirectory();
+
+            // There might not be a console present, but I guess it doesn't
+            // hurt to put this here.
+            Console.CancelKeyPress += delegate
+            {
+                CleanupBeforeExit();
+            };
         }
 
         /// <summary>
         /// Finalizer removes temp directory and writes manifest
         /// </summary>
         ~LocalRepositoryState()
+        {
+            CleanupBeforeExit();
+        }
+
+        public void CleanupBeforeExit()
         {
             Exception exception = null;
 
