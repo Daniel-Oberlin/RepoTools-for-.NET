@@ -244,8 +244,8 @@ namespace RepositoryServer
                     memStream.Seek(0, SeekOrigin.Begin);
                     response.ContentLength = memStream.Length;
                     response.SendHeaders();
-                    //StreamUtilities.CopyStream(memStream, context.Stream);
-                    memStream.CopyTo(context.Stream);
+                    StreamUtilities.CopyStream(memStream, context.Stream);
+                    //memStream.CopyTo(context.Stream);
                     
                     context.Stream.Close();                    
                 }
@@ -261,8 +261,8 @@ namespace RepositoryServer
                     {
                         response.ContentLength = stream.Length;
                         response.SendHeaders();
-                        //StreamUtilities.CopyStream(stream, context.Stream);
-                        stream.CopyTo(context.Stream);
+                        StreamUtilities.CopyStream(stream, context.Stream);
+                        //stream.CopyTo(context.Stream);
 
                         context.Stream.Close();
                     }

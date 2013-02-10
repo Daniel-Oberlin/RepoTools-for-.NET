@@ -470,7 +470,7 @@ namespace RepositorySync
                 if (infoUpdatedFiles.Contains(nextSourceFile) == false)
                 {
                     ManifestFileInfo nextDestFile =
-                        LastModifiedDateFiles[nextSourceFile];
+                        RegisteredDateFiles[nextSourceFile];
 
                     WriteLine(
                         "Updating dest information: " +

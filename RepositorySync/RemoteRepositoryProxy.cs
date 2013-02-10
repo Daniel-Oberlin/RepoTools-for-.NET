@@ -53,8 +53,8 @@ namespace RepositorySync
             {
                 request.ContentLength = fileStream.Length;
 
-                //StreamUtilities.CopyStream(fileStream, request.GetRequestStream());
-                fileStream.CopyTo(request.GetRequestStream());
+                StreamUtilities.CopyStream(fileStream, request.GetRequestStream());
+                //fileStream.CopyTo(request.GetRequestStream());
                 
                 request.GetRequestStream().Close();
             }
@@ -64,7 +64,6 @@ namespace RepositorySync
 
             response.Close();
 
-            //System.Threading.Thread.Sleep(20000);
             // TODO: Handle error?
         }
 
@@ -203,8 +202,8 @@ namespace RepositorySync
                     tempFilePath,
                     FileMode.Create))
             {
-                //StreamUtilities.CopyStream(response.GetResponseStream(), fileStream);
-                response.GetResponseStream().CopyTo(fileStream);
+                StreamUtilities.CopyStream(response.GetResponseStream(), fileStream);
+                //response.GetResponseStream().CopyTo(fileStream);
 
                 response.GetResponseStream().Close();
             }
@@ -337,7 +336,6 @@ namespace RepositorySync
                 manifestPath.Substring(1, manifestPath.Length - 1);
 
             String escapedUriPath = System.Uri.EscapeDataString(uriPath);
-            System.Console.WriteLine(escapedUriPath);
 
             Uri uri = new Uri(BaseUri.ToString() + escapedUriPath);
 

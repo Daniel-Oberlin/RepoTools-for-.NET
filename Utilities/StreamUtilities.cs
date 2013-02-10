@@ -8,7 +8,7 @@ namespace Utilities
 {
     public class StreamUtilities
     {
-        public static void CopyStream(Stream fromStream, Stream toStream, int chunkSize = 8192)
+        public static void CopyStream(Stream fromStream, Stream toStream, int chunkSize = 1024)
         {
             byte[] buffer = new byte[chunkSize];
             int bytesRead = fromStream.Read(buffer, 0, chunkSize);
