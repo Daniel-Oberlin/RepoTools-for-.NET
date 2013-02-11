@@ -40,29 +40,46 @@ namespace RepositorySync
 
             Uri requestUri = MakeRemoteUri(sourceManifestFile);
 
-            HttpWebRequest request =
-                (HttpWebRequest)WebRequest.Create(requestUri);
-
-            request.Method = "PUT";
-            request.Timeout = System.Threading.Timeout.Infinite;
-            request.AllowWriteStreamBuffering = false;
-
-            SetStandardFileHeaders(request, sourceManifestFile);
-
-            using (FileStream fileStream = sourceFile.OpenRead())
+            int retries = 0;
+            bool success = false;
+            do
             {
-                request.ContentLength = fileStream.Length;
 
-                StreamUtilities.CopyStream(fileStream, request.GetRequestStream());
-                //fileStream.CopyTo(request.GetRequestStream());
-                
-                request.GetRequestStream().Close();
-            }
+                try
+                {
+                    HttpWebRequest request =
+                        (HttpWebRequest)WebRequest.Create(requestUri);
 
-            HttpWebResponse response =
-                (HttpWebResponse)request.GetResponse();
+                    request.Method = "PUT";
+                    request.Timeout = System.Threading.Timeout.Infinite;
+                    request.AllowWriteStreamBuffering = false;
 
-            response.Close();
+                    SetStandardFileHeaders(request, sourceManifestFile);
+
+                    using (FileStream fileStream = sourceFile.OpenRead())
+                    {
+                        request.ContentLength = fileStream.Length;
+                        StreamUtilities.CopyStream(fileStream, request.GetRequestStream());
+                        request.GetRequestStream().Close();
+                    }
+
+                    HttpWebResponse response =
+                        (HttpWebResponse)request.GetResponse();
+
+                    response.Close();
+                    success = true;
+                }
+                catch (System.Net.WebException ex)
+                {
+                    if (++retries > MaxNumberOfRequestRetries)
+                    {
+                        throw ex;
+                    }
+
+                    System.Threading.Thread.Sleep(RequestRetryWaitInterval);
+                }
+
+            } while (success == false);
 
             // TODO: Handle error?
         }
@@ -157,7 +174,7 @@ namespace RepositorySync
             memStream.Seek(0, SeekOrigin.Begin);
             request.ContentLength = memStream.Length;
 
-            memStream.CopyTo(request.GetRequestStream());
+            StreamUtilities.CopyStream(memStream, request.GetRequestStream());
             request.GetRequestStream().Close();
 
             HttpWebResponse response =
@@ -184,29 +201,49 @@ namespace RepositorySync
         {
             Uri requestUri = MakeRemoteUri(copyFile);
 
-            HttpWebRequest request =
-                (HttpWebRequest)WebRequest.Create(requestUri);
-
-            request.Method = "GET";
-            request.Timeout = RequestTimeout;
-
-            HttpWebResponse response =
-                (HttpWebResponse)request.GetResponse();
-
-            string tempFilePath = Path.Combine(
-                TempDirectory.FullName,
-                copyFile.FileHash.ToString());
-
-            using (FileStream fileStream =
-                new FileStream(
-                    tempFilePath,
-                    FileMode.Create))
+            int retries = 0;
+            bool success = false;
+            string tempFilePath = null;
+            do
             {
-                StreamUtilities.CopyStream(response.GetResponseStream(), fileStream);
-                //response.GetResponseStream().CopyTo(fileStream);
 
-                response.GetResponseStream().Close();
-            }
+                try
+                {
+                    HttpWebRequest request =
+                        (HttpWebRequest)WebRequest.Create(requestUri);
+
+                    request.Method = "GET";
+                    request.Timeout = RequestTimeout;
+
+                    HttpWebResponse response =
+                        (HttpWebResponse)request.GetResponse();
+
+                    tempFilePath = Path.Combine(
+                        TempDirectory.FullName,
+                        copyFile.FileHash.ToString());
+
+                    using (FileStream fileStream =
+                        new FileStream(
+                            tempFilePath,
+                            FileMode.Create))
+                    {
+                        StreamUtilities.CopyStream(response.GetResponseStream(), fileStream);
+                        response.GetResponseStream().Close();
+                    }
+
+                    success = true;
+                }
+                catch (System.Net.WebException ex)
+                {
+                    if (++retries > MaxNumberOfRequestRetries)
+                    {
+                        throw ex;
+                    }
+
+                    System.Threading.Thread.Sleep(RequestRetryWaitInterval);
+                }
+
+            } while (success == false);
 
             return new FileInfo(tempFilePath);
         }
@@ -351,6 +388,8 @@ namespace RepositorySync
         // Static
 
         protected static int RequestTimeout { set; get; }
+        protected static int RequestRetryWaitInterval { set; get; }
+        protected static int MaxNumberOfRequestRetries { set; get; }
 
         public static String LastModifiedUtcHeaderName;
         public static String RegisteredUtcHeaderName;
@@ -359,7 +398,9 @@ namespace RepositorySync
 
         static RemoteRepositoryProxy()
         {
-            RequestTimeout = 10000;
+            RequestTimeout = 5000;
+            RequestRetryWaitInterval = 20000;
+            MaxNumberOfRequestRetries = 3;
 
             LastModifiedUtcHeaderName = "Rep-LastModifiedUtc";
             RegisteredUtcHeaderName = "Rep-RegisteredUtc";

@@ -42,12 +42,21 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Console.cs" />
     <Compile Include="FileHash.cs" />
+    <Compile Include="HashFileDict.cs" />
     <Compile Include="Manifest.cs" />
     <Compile Include="ManifestObjectInfo.cs" />
     <Compile Include="ManifestDirectoryInfo.cs" />
     <Compile Include="ManifestFileInfo.cs" />
+    <Compile Include="MovedFileSet.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Utilities\Utilities.csproj">
+      <Project>{544F2895-5BCE-4325-8F79-E6552AAF50F6}</Project>
+      <Name>Utilities</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -245,8 +245,6 @@ namespace RepositoryServer
                     response.ContentLength = memStream.Length;
                     response.SendHeaders();
                     StreamUtilities.CopyStream(memStream, context.Stream);
-                    //memStream.CopyTo(context.Stream);
-                    
                     context.Stream.Close();                    
                 }
                 else
@@ -262,8 +260,6 @@ namespace RepositoryServer
                         response.ContentLength = stream.Length;
                         response.SendHeaders();
                         StreamUtilities.CopyStream(stream, context.Stream);
-                        //stream.CopyTo(context.Stream);
-
                         context.Stream.Close();
                     }
                 }

@@ -148,14 +148,21 @@ namespace RepositoryManifest
         /// <summary>
         /// Read a manifest from a stream
         /// </summary>
-        /// <param name="stream">
+        /// <param name="inputStream">
         /// The input stream
         /// </param>
         /// <returns>
         /// The manifest
         /// </returns>
-        public static Manifest ReadManifestStream(Stream stream)
+        public static Manifest ReadManifestStream(Stream inputStream)
         {
+            MemoryStream memStream = new MemoryStream();
+
+            // Intermediate step because network streams can be flaky
+            // sometimes...
+            Utilities.StreamUtilities.CopyStream(inputStream, memStream);
+            memStream.Seek(0, SeekOrigin.Begin);
+
             BinaryFormatter formatter =
                 new BinaryFormatter();
 
@@ -164,11 +171,11 @@ namespace RepositoryManifest
             try
             {
                 manifest = (Manifest)
-                    formatter.Deserialize(stream);
+                    formatter.Deserialize(memStream);
             }
             finally
             {
-                stream.Close();
+                inputStream.Close();
             }
 
             manifest.DoAnyUpgradeMaintenance();

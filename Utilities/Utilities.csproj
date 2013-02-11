@@ -40,17 +40,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="MovedFileSet.cs" />
-    <Compile Include="HashFileDict.cs" />
-    <Compile Include="Console.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StreamUtilities.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\RepositoryManifest\RepositoryManifest.csproj">
-      <Project>{6ED3D09D-916A-4030-B61F-2F16E0B12144}</Project>
-      <Name>RepositoryManifest</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
