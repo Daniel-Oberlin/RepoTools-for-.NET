@@ -166,11 +166,14 @@ namespace RepositoryServer
             HttpClientContext context =
                 (HttpServer.HttpClientContext) source;
 
+            context.Stream.ReadTimeout  = RequestReadWriteTimeout;
+            context.Stream.WriteTimeout = RequestReadWriteTimeout;
+
             HttpRequest request =
                 (HttpRequest) args.Request;
 
 
-            // DEGBUG OUTPUT
+            // DEBUG OUTPUT
             System.Console.WriteLine(
                 "Connection acccepted from " +
                 context.RemoteAddress);
@@ -922,11 +925,13 @@ namespace RepositoryServer
 
         public static String ServerSettingsFileName;
         public static int PortNumber { private set; get; }
+        public static int RequestReadWriteTimeout { private set; get; }
 
         static RepositoryServer()
         {
             ServerSettingsFileName = ".repositoryServerSettings";
             PortNumber = 7555;
+            RequestReadWriteTimeout = 10000;
         }
     }
 }

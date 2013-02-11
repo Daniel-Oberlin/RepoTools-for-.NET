@@ -51,7 +51,8 @@ namespace RepositorySync
                         (HttpWebRequest)WebRequest.Create(requestUri);
 
                     request.Method = "PUT";
-                    request.Timeout = System.Threading.Timeout.Infinite;
+                    request.Timeout = RequestTimeout;
+                    request.ReadWriteTimeout = RequestReadWriteTimeout;
                     request.AllowWriteStreamBuffering = false;
 
                     SetStandardFileHeaders(request, sourceManifestFile);
@@ -81,7 +82,6 @@ namespace RepositorySync
 
             } while (success == false);
 
-            // TODO: Handle error?
         }
 
         public void RemoveFile(ManifestFileInfo removeManifestFile)
@@ -91,7 +91,6 @@ namespace RepositorySync
             HttpWebRequest request =
                 (HttpWebRequest)WebRequest.Create(requestUri);
 
-            // TODO: change timeout...?
             request.Method = "DELETE";
             request.Timeout = RequestTimeout;
 
@@ -99,8 +98,6 @@ namespace RepositorySync
                 (HttpWebResponse)request.GetResponse();
 
             response.Close();
-
-            // TODO: Handle error?
         }
 
         public void CopyFile(
@@ -111,7 +108,7 @@ namespace RepositorySync
                 fileToBeCopied,
                 otherFileWithNewLocation,
                 "COPY",
-                System.Threading.Timeout.Infinite);
+                RequestTimeout);
         }
 
         public void CopyFileInformation(
@@ -124,7 +121,7 @@ namespace RepositorySync
                 (HttpWebRequest)WebRequest.Create(requestUri);
 
             request.Method = "SETFILEINFO";
-            request.Timeout = System.Threading.Timeout.Infinite;
+            request.Timeout = RequestTimeout;
             request.AllowWriteStreamBuffering = false;
 
             SetStandardFileHeaders(request, otherFileWithNewFileInfo);
@@ -135,8 +132,6 @@ namespace RepositorySync
                 (HttpWebResponse)request.GetResponse();
 
             response.Close();
-
-            // TODO: Handle error?
         }
 
         public void MoveFile(
@@ -147,7 +142,7 @@ namespace RepositorySync
                 fileToBeMoved,
                 otherFileWithNewLocation,
                 "MOVE",
-                System.Threading.Timeout.Infinite);
+                RequestTimeout);
         }
 
         public void CopyManifestInformation(IRepositoryProxy otherRepository)
@@ -165,7 +160,7 @@ namespace RepositorySync
                 (HttpWebRequest)WebRequest.Create(requestUri);
 
             request.Method = "SETMANIFESTINFO";
-            request.Timeout = System.Threading.Timeout.Infinite;
+            request.Timeout = RequestTimeout;
             request.AllowWriteStreamBuffering = false;
 
             MemoryStream memStream = new MemoryStream();
@@ -181,8 +176,6 @@ namespace RepositorySync
                 (HttpWebResponse)request.GetResponse();
 
             response.Close();
-
-            // TODO: Handle error?
         }
 
 
@@ -214,6 +207,7 @@ namespace RepositorySync
 
                     request.Method = "GET";
                     request.Timeout = RequestTimeout;
+                    request.ReadWriteTimeout = RequestReadWriteTimeout;
 
                     HttpWebResponse response =
                         (HttpWebResponse)request.GetResponse();
@@ -359,8 +353,6 @@ namespace RepositorySync
                 (HttpWebResponse)request.GetResponse();
 
             response.Close();
-
-            // TODO: Handle error?
         }
 
         protected Uri MakeRemoteUri(ManifestFileInfo remoteFile)
@@ -388,6 +380,7 @@ namespace RepositorySync
         // Static
 
         protected static int RequestTimeout { set; get; }
+        protected static int RequestReadWriteTimeout { set; get; }
         protected static int RequestRetryWaitInterval { set; get; }
         protected static int MaxNumberOfRequestRetries { set; get; }
 
@@ -398,7 +391,8 @@ namespace RepositorySync
 
         static RemoteRepositoryProxy()
         {
-            RequestTimeout = 5000;
+            RequestTimeout = 10000;
+            RequestReadWriteTimeout = 10000;
             RequestRetryWaitInterval = 20000;
             MaxNumberOfRequestRetries = 3;
 
