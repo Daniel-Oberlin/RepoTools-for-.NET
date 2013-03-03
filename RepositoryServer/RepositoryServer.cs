@@ -426,6 +426,16 @@ namespace RepositoryServer
                 String destFilePath =
                     GetLocalDestinationFilePathFromRequest(request, repoState);
 
+                // On Mono (OSX, not sure of others), MoveTo can fail if the
+                // directory doesn't already exist so make sure that it does.
+                String destDirPath =
+                    Path.GetDirectoryName(destFilePath);
+
+                if (Directory.Exists(destDirPath) == false)
+                {
+                    Directory.CreateDirectory(destDirPath);
+                }
+
                 if (request.Method == "MOVE")
                 {
                     sourceFileInfo.MoveTo(destFilePath);
@@ -924,8 +934,8 @@ namespace RepositoryServer
         // Static
 
         public static String ServerSettingsFileName;
-        public static int PortNumber { private set; get; }
-        public static int RequestReadWriteTimeout { private set; get; }
+        public static int PortNumber { set; get; }
+        public static int RequestReadWriteTimeout { set; get; }
 
         static RepositoryServer()
         {

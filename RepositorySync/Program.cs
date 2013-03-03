@@ -168,6 +168,15 @@ namespace RepositorySync
                     case "-detail":
                         console.Detail = true;
                         break;
+
+                    case "-noTimeout":
+                        RemoteRepositoryProxy.RequestReadWriteTimeout =
+                            System.Threading.Timeout.Infinite;
+
+                        RemoteRepositoryProxy.RequestTimeout =
+                            System.Threading.Timeout.Infinite;
+
+                        break;
                 }
             }
 

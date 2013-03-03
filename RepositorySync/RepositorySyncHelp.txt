@@ -53,3 +53,5 @@ OPTIONS:
     -preview
         Show what would happen but don't change anything.
 
+    -noTimeout
+        Try not to timeout with connections to remote repositories.

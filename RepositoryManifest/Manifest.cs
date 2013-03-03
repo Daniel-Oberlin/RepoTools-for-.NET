@@ -172,13 +172,14 @@ namespace RepositoryManifest
             {
                 manifest = (Manifest)
                     formatter.Deserialize(memStream);
+
+                manifest.RootDirectory.RestoreFromStore();
+                manifest.DoAnyUpgradeMaintenance();
             }
             finally
             {
                 inputStream.Close();
             }
-
-            manifest.DoAnyUpgradeMaintenance();
 
             return manifest;
         }
@@ -241,7 +242,9 @@ namespace RepositoryManifest
             BinaryFormatter formatter =
                 new BinaryFormatter();
 
+            RootDirectory.SaveToStore();
             formatter.Serialize(stream, this);
+            RootDirectory.RestoreFromStore();
         }
 
         /// <summary>

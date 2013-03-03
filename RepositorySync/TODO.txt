@@ -1,4 +1,5 @@
 ﻿HIGH:
+Newly emptied directories are not being removed
 
 LOW:
 ...

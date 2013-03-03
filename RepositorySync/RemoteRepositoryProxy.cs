@@ -229,6 +229,7 @@ namespace RepositorySync
                 }
                 catch (System.Net.WebException ex)
                 {
+System.Console.WriteLine("RETRY: " + ++numRetries);
                     if (++retries > MaxNumberOfRequestRetries)
                     {
                         throw ex;
@@ -241,6 +242,7 @@ namespace RepositorySync
 
             return new FileInfo(tempFilePath);
         }
+static int numRetries = 0;
 
 
         // Helper methods
@@ -379,10 +381,10 @@ namespace RepositorySync
 
         // Static
 
-        protected static int RequestTimeout { set; get; }
-        protected static int RequestReadWriteTimeout { set; get; }
-        protected static int RequestRetryWaitInterval { set; get; }
-        protected static int MaxNumberOfRequestRetries { set; get; }
+        public static int RequestTimeout { set; get; }
+        public static int RequestReadWriteTimeout { set; get; }
+        public static int RequestRetryWaitInterval { set; get; }
+        public static int MaxNumberOfRequestRetries { set; get; }
 
         public static String LastModifiedUtcHeaderName;
         public static String RegisteredUtcHeaderName;

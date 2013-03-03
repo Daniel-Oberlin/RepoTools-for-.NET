@@ -43,6 +43,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Console.cs" />
+    <Compile Include="DictionaryStore.cs" />
     <Compile Include="FileHash.cs" />
     <Compile Include="HashFileDict.cs" />
     <Compile Include="Manifest.cs" />

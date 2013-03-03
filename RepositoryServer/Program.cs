@@ -93,6 +93,11 @@ namespace RepositoryServer
                             Enum.Parse(typeof(UserPrivilige), args[argIndex++], true);
                         userPrivs.Add(userName, userPriv);
                         break;
+
+                    case "-noTimeout":
+                        RepositoryServer.RequestReadWriteTimeout =
+                            System.Threading.Timeout.Infinite;
+                        break;
                 }
             }
 

@@ -27,7 +27,10 @@ namespace RepositoryManifest
             base(name, parentDirectory)
         {
             Files = new Dictionary<string, ManifestFileInfo>();
+            filesStore = null;
+
             Subdirectories = new Dictionary<string, ManifestDirectoryInfo>();
+            subdirectoriesStore = null;
         }
 
         /// <summary>
@@ -45,7 +48,10 @@ namespace RepositoryManifest
             base(original.Name, parentDirectory)
         {
             Files = new Dictionary<string, ManifestFileInfo>();
+            filesStore = null;
+
             Subdirectories = new Dictionary<string, ManifestDirectoryInfo>();
+            subdirectoriesStore = null;
 
             foreach (String nextDirName in original.Subdirectories.Keys)
             {
@@ -74,9 +80,62 @@ namespace RepositoryManifest
         public Dictionary<String, ManifestFileInfo> Files { private set; get; }
 
         /// <summary>
+        /// This is used for serialization - see the DictionaryStore class
+        /// </summary>
+        private DictionaryStore<String, ManifestFileInfo> filesStore;
+
+        /// <summary>
         /// The directories contained by this directory
         /// </summary>
         public Dictionary<String, ManifestDirectoryInfo> Subdirectories { private set; get; }
+
+        /// <summary>
+        /// This is used for serialization - see the DictionaryStore class
+        /// </summary>
+        private DictionaryStore<String, ManifestDirectoryInfo> subdirectoriesStore;
+
+        /// <summary>
+        /// Move the contents of the Dictionary objects into DictionaryStore
+        /// objects - recursive method.
+        /// </summary>
+        public void SaveToStore()
+        {
+            foreach (ManifestDirectoryInfo nextDir in Subdirectories.Values)
+            {
+                nextDir.SaveToStore();
+            }
+
+            filesStore =
+                new DictionaryStore<string, ManifestFileInfo>(Files);
+
+            Files = null;
+
+            subdirectoriesStore =
+                new DictionaryStore<string, ManifestDirectoryInfo>(Subdirectories);
+
+            Subdirectories = null;
+        }
+
+        /// <summary>
+        /// Move the contents of the DictionaryStore objects back into
+        /// Dictionary objects - recursive method.
+        /// </summary>
+        public void RestoreFromStore()
+        {
+            if (subdirectoriesStore != null)
+            {
+                Subdirectories = subdirectoriesStore.getDictionary();
+                subdirectoriesStore = null;
+
+                Files = filesStore.getDictionary();
+                filesStore = null;
+
+                foreach (ManifestDirectoryInfo nextDir in Subdirectories.Values)
+                {
+                    nextDir.RestoreFromStore();
+                }
+            }
+        }
 
         /// <summary>
         /// Is the subdirectory empty?
