@@ -426,8 +426,6 @@ namespace RepositoryServer
                 String destFilePath =
                     GetLocalDestinationFilePathFromRequest(request, repoState);
 
-                // On Mono (OSX, not sure of others), MoveTo can fail if the
-                // directory doesn't already exist so make sure that it does.
                 String destDirPath =
                     Path.GetDirectoryName(destFilePath);
 
@@ -694,14 +692,11 @@ namespace RepositoryServer
             Guid repoGuid = GetRepositoryGuidFromRequest(request);
             String filePath = Settings.GetRepositoryFromGuid(repoGuid).RepositoryPath;
 
-            // DMO: Probably a bad design choice to encode the filenames
-            // directly into the URI.  Filenames can have characters like
-            // '#' for example...
+            List<String> parts = GetPathPartsFromRequest(request);
 
-            String[] splitParts = request._uriRawPath.Split(new char[] {'/'} );
-            for (int i = 2; i < splitParts.Length; i++)
+            foreach (String nextPart in parts)
             {
-                filePath = Path.Combine(filePath, Uri.UnescapeDataString(splitParts[i]));
+                filePath = Path.Combine(filePath, nextPart);
             }
 
             return filePath;
@@ -740,14 +735,17 @@ namespace RepositoryServer
             HttpRequest request,
             LocalRepositoryState repoState)
         {
-            String destRepoPath =
+            String escapedDestRepoPathString =
                 request.Headers[RemoteRepositoryProxy.DestinationPathHeaderName];
 
-            // Remove the leading './' from the relative path
-            destRepoPath =
-                destRepoPath.Substring(2, destRepoPath.Length - 2);
+            String destRepoPathString =
+                System.Uri.UnescapeDataString(escapedDestRepoPathString);
 
-            string[] pathParts = destRepoPath.Split(new char[] { '/' });
+            // Remove the leading './' from the relative path
+            destRepoPathString =
+                destRepoPathString.Substring(2, destRepoPathString.Length - 2);
+
+            string[] pathParts = destRepoPathString.Split(new char[] { '/' });
 
             String filePath = repoState.RootDirectory.FullName;
             for (int i = 0; i < pathParts.Length; i++)
@@ -833,19 +831,32 @@ namespace RepositoryServer
             }
         }
 
+        protected List<String> GetPathPartsFromRequest(
+            HttpRequest request)
+        {
+            String escapedFilePathString = request._uriRawPath;
+            String filePathString = System.Uri.UnescapeDataString(escapedFilePathString);
+
+            String[] splitParts = filePathString.Split(new char[] { '/' });
+
+            List<String> parts = new List<string>();
+
+            for (int splitPartIndex = 2;
+                splitPartIndex < splitParts.Length;
+                splitPartIndex++)
+            {
+                parts.Add(splitParts[splitPartIndex]);
+            }
+
+            return parts;
+        }
+
         protected ManifestFileInfo GetOrMakeManifestFileInfoFromRequest(
             Manifest manifest,
             HttpRequest request,
             bool makeNewEntryIfNeeded = true)
         {
-            List<String> parts = new List<string>();
-
-            for (int uriPartIndex = 1;
-                uriPartIndex < request.UriParts.Length;
-                uriPartIndex++)
-            {
-                parts.Add(request.UriParts[uriPartIndex]);
-            }
+            List<String> parts = GetPathPartsFromRequest(request);
 
             return GetOrMakeManifestFileInfoFromParts(
                 manifest,
@@ -860,14 +871,17 @@ namespace RepositoryServer
         {
             List<String> parts = new List<string>();
 
-            String destRepoPath =
+            String escapedDestRepoPathString =
                 request.Headers[RemoteRepositoryProxy.DestinationPathHeaderName];
 
-            // Remove the leading './' from the relative path
-            destRepoPath =
-                destRepoPath.Substring(2, destRepoPath.Length - 2);
+            String destRepoPathString =
+                System.Uri.UnescapeDataString(escapedDestRepoPathString);
 
-            string[] pathParts = destRepoPath.Split(new char[] { '/' });
+            // Remove the leading './' from the relative path
+            destRepoPathString =
+                destRepoPathString.Substring(2, destRepoPathString.Length - 2);
+
+            string[] pathParts = destRepoPathString.Split(new char[] { '/' });
 
             for (int i = 0; i < pathParts.Length; i++)
             {

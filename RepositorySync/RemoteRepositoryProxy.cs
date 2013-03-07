@@ -348,8 +348,14 @@ static int numRetries = 0;
 
             SetStandardFileHeaders(request, otherFileWithNewLocation);
 
-            request.Headers[RemoteRepositoryProxy.DestinationPathHeaderName] =
+            String destPathString =
                 Manifest.MakeStandardPathString(otherFileWithNewLocation);
+
+            String escapedDestPathString =
+                System.Uri.EscapeDataString(destPathString);
+
+            request.Headers[RemoteRepositoryProxy.DestinationPathHeaderName] =
+                escapedDestPathString;
 
             HttpWebResponse response =
                 (HttpWebResponse)request.GetResponse();
@@ -363,12 +369,12 @@ static int numRetries = 0;
                 Manifest.MakeStandardPathString(remoteFile);
 
             // Remove the leading '.' from the relative path
-            String uriPath =
+            String uriPathString =
                 manifestPath.Substring(1, manifestPath.Length - 1);
 
-            String escapedUriPath = System.Uri.EscapeDataString(uriPath);
+            String escapedUriPathString = System.Uri.EscapeDataString(uriPathString);
 
-            Uri uri = new Uri(BaseUri.ToString() + escapedUriPath);
+            Uri uri = new Uri(BaseUri.ToString() + escapedUriPathString);
 
             return uri;
         }
