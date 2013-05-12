@@ -1,5 +1,8 @@
 ﻿HIGH:
 The first connection often times out!
 
+
 LOW:
 Check argument count for command line args - copy implementation from other tools
+On Windows, local paths in the repository info look funny:
+	J:\Rep\Oberlin.Daniel.Music\./.repositoryManifest

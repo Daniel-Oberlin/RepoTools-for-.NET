@@ -2,4 +2,4 @@
 Newly emptied directories are not being removed
 
 LOW:
-...
+Add "seed" which will copy the repository info only
