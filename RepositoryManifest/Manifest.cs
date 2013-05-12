@@ -76,7 +76,8 @@ namespace RepositoryManifest
             // Except for...
             clone.Guid = Guid.NewGuid();
             clone.InceptionDateUtc = DateTime.UtcNow;
-            clone.LastUpdateDateUtc = new DateTime();
+            clone.LastUpdateDateUtc = clone.InceptionDateUtc;
+            clone.ManifestInfoLastModifiedUtc = clone.InceptionDateUtc;
 
             return clone;
         }
@@ -111,6 +112,11 @@ namespace RepositoryManifest
         /// The UTC DateTime when the repository was last updated
         /// </summary>
         public DateTime LastUpdateDateUtc { set; get; }
+
+        /// <summary>
+        /// The UTC DateTime when the repository was last validated
+        /// </summary>
+        public DateTime LastValidateDateUtc { set; get; }
 
         /// <summary>
         /// The last time that the manifest information - name, description,

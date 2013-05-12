@@ -75,6 +75,7 @@ namespace RepositoryTool
             bool ignoreDefault = false;
             bool recursive = false;
             bool manifestInfoChanged = false;
+            bool noTouch = false;
 
             string repositoryName = null;
             string repositoryDescription = null;
@@ -193,6 +194,10 @@ namespace RepositoryTool
                         recursive = true;
                         break;
 
+                    case "-noTouch":
+                        noTouch = true;
+                        break;
+
                     default:
                         console.WriteLine("Unrecognized parameter \" " + nextArg + "\"");
                         commandArg = "";
@@ -224,6 +229,10 @@ namespace RepositoryTool
                 // Initialize the tool for this manifest
                 tool.Clear();
                 tool.Manifest = null;
+
+                // Second copy of the manifest which will remain unmodified
+                // and possibly rewritten after a validate.
+                Manifest manifestForValidateDateUpdate = null;
 
                 FileInfo fileInfo = new FileInfo(manifestFilePath);
                 tool.RootDirectory = fileInfo.Directory;
@@ -272,6 +281,13 @@ namespace RepositoryTool
                             try
                             {
                                 tool.Manifest = Manifest.ReadManifestFile(manifestFilePath);
+
+                                if (commandArg == "validate" && noTouch == false)
+                                {
+                                    // Read a second copy which will remain unmodified
+                                    manifestForValidateDateUpdate =
+                                        Manifest.ReadManifestFile(manifestFilePath);
+                                }
                             }
                             catch (Exception ex)
                             {
@@ -455,7 +471,10 @@ namespace RepositoryTool
                                 (tool.Manifest.LastUpdateDateUtc.ToLocalTime()).ToString());
 
                             console.WriteLine("Last change of manifest info:  " +
-                            (tool.Manifest.ManifestInfoLastModifiedUtc.ToLocalTime()).ToString());
+                                (tool.Manifest.ManifestInfoLastModifiedUtc.ToLocalTime()).ToString());
+
+                            console.WriteLine("Date of last validation:       " +
+                                (tool.Manifest.LastValidateDateUtc.ToLocalTime()).ToString());
 
                             NumberFormatInfo nfi = new CultureInfo("en-US", false).NumberFormat;
                             nfi.NumberDecimalDigits = 0;
@@ -562,6 +581,25 @@ namespace RepositoryTool
                             try
                             {
                                 tool.Manifest.WriteManifestFile(manifestFilePath);
+                            }
+                            catch (Exception ex)
+                            {
+                                console.ReportException(ex);
+                                console.WriteLine("Could not write manifest.");
+                                exitCode = 1;
+                            }
+                        }
+                        break;
+
+                    case "validate":
+                        if (noTouch == false)
+                        {
+                            manifestForValidateDateUpdate.LastValidateDateUtc =
+                                DateTime.UtcNow;
+
+                            try
+                            {
+                                manifestForValidateDateUpdate.WriteManifestFile(manifestFilePath);
                             }
                             catch (Exception ex)
                             {
