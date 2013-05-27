@@ -53,7 +53,50 @@ namespace RepositorySync
                 }
                 catch (Exception)
                 {
-                    // TODO
+                    // Do nothing
+                }
+
+                // Special case for seed command since it doesn't fit neatly
+                // into the design of the rest of the program.
+                if (commandArg == "seed")
+                {
+                    if (sourceRep == null)
+                    {
+                        console.WriteLine("Could not resolve a source repository.");
+                        Environment.Exit(1);
+                    }
+
+                    sourceRep.Manifest.RootDirectory.Files.Clear();
+                    sourceRep.Manifest.RootDirectory.Subdirectories.Clear();
+                    sourceRep.Manifest.LastUpdateDateUtc = new DateTime();
+
+                    // TODO: Handle possibility of remote destination repository...
+
+                    // Here we are using a trick that a standard file path can be
+                    // interpreted correctly as the latter part of a native path in
+                    // MS-DOS.
+                    String newManifestFilePath =
+                        System.IO.Path.Combine(
+                            args[2],
+                            Manifest.DefaultManifestStandardFilePath);
+
+                    if (System.IO.File.Exists(newManifestFilePath))
+                    {
+                        console.WriteLine("Destination manifest already exists.");
+                        Environment.Exit(1);
+                    }
+
+                    try
+                    {
+                        sourceRep.Manifest.WriteManifestFile(newManifestFilePath);
+                    }
+                    catch (Exception)
+                    {
+                        console.WriteLine("Could not write destination manifest.");
+                        Environment.Exit(1);
+                    }
+
+                    Environment.Exit(0);
                 }
 
                 try
@@ -68,7 +111,7 @@ namespace RepositorySync
                 }
                 catch (Exception)
                 {
-                    // TODO
+                    // Do nothing
                 }
 
                 if (sourceRep == null)
@@ -85,7 +128,7 @@ namespace RepositorySync
                     }
                     catch (Exception)
                     {
-                        // TODO
+                        // Do nothing
                     }
                 }
 
@@ -103,7 +146,7 @@ namespace RepositorySync
                     }
                     catch (Exception)
                     {
-                        // TODO
+                        // Do nothing
                     }
                 }
             }

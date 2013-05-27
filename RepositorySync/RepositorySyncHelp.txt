@@ -41,6 +41,11 @@ COMMANDS:
         TODO: Fix any corrupt files in dest with files from source where
         possible.
 
+    seed
+        Destination manifest is created empty so that a subsequent update
+        will bring files into the repository.  TODO: Implement for remote
+        repositories.
+
 
 OPTIONS:
 
