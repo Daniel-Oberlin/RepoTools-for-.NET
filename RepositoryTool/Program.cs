@@ -76,6 +76,7 @@ namespace RepositoryTool
             bool recursive = false;
             bool manifestInfoChanged = false;
             bool noTouch = false;
+            bool confirmUpdate = false;
 
             string repositoryName = null;
             string repositoryDescription = null;
@@ -196,6 +197,10 @@ namespace RepositoryTool
 
                     case "-noTouch":
                         noTouch = true;
+                        break;
+
+                    case "-confirmUpdate":
+                        confirmUpdate = true;
                         break;
 
                     default:
@@ -576,6 +581,17 @@ namespace RepositoryTool
                             {
                                 tool.Manifest.ManifestInfoLastModifiedUtc =
                                     DateTime.Now.ToUniversalTime();
+                            }
+
+                            if (confirmUpdate)
+                            {
+                                console.Write("Update manifest? ");
+
+                                bool writeManifest = console.CheckConfirm();
+                                if (writeManifest == false)
+                                {
+                                    break;
+                                }
                             }
 
                             try

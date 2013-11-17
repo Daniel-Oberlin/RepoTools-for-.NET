@@ -139,3 +139,7 @@ OPTIONS:
     -noTouch
         After a validation, do not write to the manifest in order to update
         the date of validation.
+
+    -confirmUpdate
+        After an update, ask the user before writing the updated manifest.
+    
