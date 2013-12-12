@@ -68,20 +68,10 @@ namespace RepositorySync
 
             File.Delete(removeFilePath);
 
+            RemoveEmptyParentDirectories(removeFilePath);
+
             removeManifestFile.ParentDirectory.Files.Remove(
                 removeManifestFile.Name);
-
-            String directoryPath = Path.GetDirectoryName(removeFilePath);
-            DirectoryInfo directory = new DirectoryInfo(directoryPath);
-
-            while (directory.GetDirectories().Count() == 0 &&
-                directory.GetFiles().Count() == 0)
-            {
-                DirectoryInfo deleteDir = directory;
-                directory = directory.Parent;
-
-                deleteDir.Delete();
-            }
 
             SetManifestChanged();
         }
@@ -100,6 +90,8 @@ namespace RepositorySync
             }
 
             File.Move(oldFilePath, newFilePath);
+
+            RemoveEmptyParentDirectories(oldFilePath);
 
             fileToBeMoved.ParentDirectory.Files.Remove(
                 fileToBeMoved.Name);
@@ -195,6 +187,21 @@ namespace RepositorySync
                 new FileInfo(MakeNativePath(file));
 
             fileInfo.LastWriteTimeUtc = file.LastModifiedUtc;
+        }
+
+        protected void RemoveEmptyParentDirectories(String removeFilePath)
+        {
+            String directoryPath = Path.GetDirectoryName(removeFilePath);
+            DirectoryInfo directory = new DirectoryInfo(directoryPath);
+
+            while (directory.GetDirectories().Count() == 0 &&
+                directory.GetFiles().Count() == 0)
+            {
+                DirectoryInfo deleteDir = directory;
+                directory = directory.Parent;
+
+                deleteDir.Delete();
+            }
         }
     }
 }
