@@ -37,6 +37,20 @@ namespace RepositorySync
 
             if (args.Length >= 3)
             {
+                bool sourceReadOnly = true;
+                bool destReadOnly = false;
+
+                if (commandArg == "diff")
+                {
+                    destReadOnly = true;
+                }
+                else if (commandArg == "sync")
+                {
+                    sourceReadOnly = false;
+                }
+
+
+
                 argIndex += 2;
                 IRepositoryProxy otherProxy = null;
 
@@ -44,16 +58,16 @@ namespace RepositorySync
                 try
                 {
                     sourceRep = new LocalRepositoryProxy(
-                        new System.IO.DirectoryInfo(
-                            args[1]));
+                        new System.IO.DirectoryInfo(args[1]),
+                        sourceReadOnly);
 
                     sourceRep.Manifest.RemoveEntriesWithNullHash();
 
                     otherProxy = sourceRep;
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
-                    // Do nothing
+                    console.WriteLine("Exception: " + e.Message);
                 }
 
                 // Special case for seed command since it doesn't fit neatly
@@ -90,8 +104,9 @@ namespace RepositorySync
                     {
                         sourceRep.Manifest.WriteManifestFile(newManifestFilePath);
                     }
-                    catch (Exception)
+                    catch (Exception e)
                     {
+                        console.WriteLine("Exception: " + e.Message);
                         console.WriteLine("Could not write destination manifest.");
                         Environment.Exit(1);
                     }
@@ -102,16 +117,16 @@ namespace RepositorySync
                 try
                 {
                     destRep = new LocalRepositoryProxy(
-                        new System.IO.DirectoryInfo(
-                            args[2]));
+                        new System.IO.DirectoryInfo(args[2]),
+                        destReadOnly);
 
                     destRep.Manifest.RemoveEntriesWithNullHash();
 
                     otherProxy = destRep;
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
-                    // Do nothing
+                    console.WriteLine("Exception: " + e.Message);
                 }
 
                 if (sourceRep == null)
@@ -126,9 +141,9 @@ namespace RepositorySync
 
                         otherProxy = sourceRep;
                     }
-                    catch (Exception)
+                    catch (Exception e)
                     {
-                        // Do nothing
+                        console.WriteLine("Exception: " + e.Message);
                     }
                 }
 
@@ -144,9 +159,9 @@ namespace RepositorySync
 
                         otherProxy = destRep;
                     }
-                    catch (Exception)
+                    catch (Exception e)
                     {
-                        // Do nothing
+                        console.WriteLine("Exception: " + e.Message);
                     }
                 }
             }

@@ -145,8 +145,7 @@ namespace RepositoryManifest
         /// </returns>
         public static Manifest ReadManifestFile(string manifestFilePath)
         {
-            FileStream fileStream =
-                new FileStream(manifestFilePath, FileMode.Open);
+            FileStream fileStream = File.OpenRead(manifestFilePath);
 
             return ReadManifestStream(fileStream);
         }
@@ -203,9 +202,7 @@ namespace RepositoryManifest
 
             try
             {
-                fileStream = new FileStream(
-                    manifestFilePath,
-                    FileMode.Create);
+                fileStream = File.Create(manifestFilePath);
 
                 WriteManifestStream(fileStream);
             }

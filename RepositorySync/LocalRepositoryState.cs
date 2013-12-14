@@ -21,17 +21,23 @@ namespace RepositorySync
         /// The root directory where the manifest can be found
         /// </param>
         public LocalRepositoryState(
-            DirectoryInfo rootDirectory)
+            DirectoryInfo rootDirectory,
+            bool readOnly)
         {
             ManifestFileLock = new object();
             myManifestChangedLock = new object();
             myManifestChanged = false;
+            myReadOnly = readOnly;
 
             RootDirectory = rootDirectory;
 
             LoadManifest();
-            RemoveExtraTempDirectories();
-            CreateTempDirectory();
+
+            if (readOnly == false)
+            {
+                RemoveExtraTempDirectories();
+                CreateTempDirectory();
+            }
 
             // There might not be a console present, but I guess it doesn't
             // hurt to put this here.
@@ -216,6 +222,7 @@ namespace RepositorySync
             }
         }
 
+        protected bool myReadOnly;
         protected bool myManifestChanged;
         protected object myManifestChangedLock;
 

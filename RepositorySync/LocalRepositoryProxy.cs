@@ -21,8 +21,9 @@ namespace RepositorySync
         /// The root directory where the manifest can be found
         /// </param>
         public LocalRepositoryProxy(
-            DirectoryInfo rootDirectory) :
-            base(rootDirectory)
+            DirectoryInfo rootDirectory,
+            bool readOnly) :
+            base(rootDirectory, readOnly)
         {
         }
 

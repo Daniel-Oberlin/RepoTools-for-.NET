@@ -646,7 +646,7 @@ namespace RepositoryServer
                         new DirectoryInfo(nextRepo.RepositoryPath);
 
                     GuidToRepository[nextRepo.Guid] =
-                        new LocalRepositoryState(rootDirectory);
+                        new LocalRepositoryState(rootDirectory, false);
                 }
             }
         }

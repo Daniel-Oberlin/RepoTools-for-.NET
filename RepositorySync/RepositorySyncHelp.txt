@@ -39,7 +39,7 @@ COMMANDS:
 
     repair
         TODO: Fix any corrupt files in dest with files from source where
-        possible.
+        possible.  No changes are made to source.
 
     seed
         Destination manifest is created empty so that a subsequent update
