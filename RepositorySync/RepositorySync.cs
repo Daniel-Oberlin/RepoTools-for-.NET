@@ -542,7 +542,7 @@ namespace RepositorySync
                     sourceRep,
                     destRep,
                     nextSourceFile,
-                    destFiles[0]);
+                    destFiles[nextDestFileIndex]);
 
                 WriteLine();
             }
