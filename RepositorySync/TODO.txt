@@ -1,8 +1,5 @@
-﻿HIGH:
-Newly emptied directories are not being removed (ADDED LATER: on disk, I think I mean...?)
-
-LOW:
-Add "seed" which will copy the repository info only
+﻿Remove MSDOS path hack
+Logging functionality
 
 Add "crypt", which is an encrypted archive
 	* New implementation of RepositoryProxy, "CryptRepositoryProxy"

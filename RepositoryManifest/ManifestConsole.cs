@@ -3,55 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-using RepositoryManifest;
+using Utilities;
 
 
-namespace Utilities
+namespace RepositoryManifest
 {
-    public class Console
+    public class ManifestConsole : Utilities.Console
     {
-        public Console()
-        {
-            Silent = false;
-            Detail = false;
-        }
-
-        public void Write(String message)
-        {
-            if (Silent == false)
-            {
-                System.Console.Write(message);
-            }
-        }
-
-        public void WriteLine(String message)
-        {
-            Write(message + "\r\n");
-        }
-
-        public void WriteLine()
-        {
-            WriteLine("");
-        }
-
-        public void ReportException(Exception ex)
-        {
-            WriteLine(ex.GetType().ToString() + ": " + ex.Message);
-        }
-
-        public bool CheckConfirm()
-        {
-            String confirmString = System.Console.ReadLine();
-
-            if (confirmString.StartsWith("y") ||
-                confirmString.StartsWith("Y"))
-            {
-                return true;
-            }
-
-            return false;
-        }
-
         public void DetailFiles(IEnumerable<ManifestFileInfo> files)
         {
             if (Detail)
@@ -128,8 +86,5 @@ namespace Utilities
                 WriteLine();
             }
         }
-
-        public bool Silent { set; get; }
-        public bool Detail { set; get; }
     }
 }

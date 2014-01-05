@@ -28,6 +28,22 @@ namespace RepositoryManifest
             DefaultHashMethod = null;
         }
 
+        public static Manifest MakeCleanManifest()
+        {
+            // Default implementation when there is no prototype
+            Manifest manifest = new Manifest();
+
+            manifest.DefaultHashMethod =
+                Utilities.CryptUtilities.DefaultHashType;
+
+            manifest.IgnoreList.Add(
+                "^" +
+                System.Text.RegularExpressions.Regex.Escape(Manifest.DefaultManifestStandardFilePath) +
+                "$");
+
+            return manifest;
+        }
+
         /// <summary>
         /// Copy constructor
         /// </summary>
@@ -388,6 +404,7 @@ namespace RepositoryManifest
             return byteCount;
         }
 
+        // TODO: Remove if not needed
         public void RemoveEntriesWithNullHash(ManifestDirectoryInfo currentDir = null)
         {
             if (currentDir == null)

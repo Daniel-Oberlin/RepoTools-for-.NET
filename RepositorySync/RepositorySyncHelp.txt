@@ -60,3 +60,9 @@ OPTIONS:
 
     -noTimeout
         Try not to timeout with connections to remote repositories.
+
+    -sourceKey
+        Key for source repository, if it is encrypted.
+
+    -destKey
+        Key for dest repository, if it is encrypted.

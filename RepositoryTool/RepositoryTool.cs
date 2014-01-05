@@ -101,6 +101,7 @@ namespace RepositoryTool
 
                 foreach (FileInfo nextFileInfo in fileList)
                 {
+                    // TODO: Catch error and add to error list
                     fileDict.Add(nextFileInfo.Name.Normalize(), nextFileInfo);
                 }
 
@@ -109,6 +110,7 @@ namespace RepositoryTool
 
                 foreach (DirectoryInfo nextDirInfo in dirList)
                 {
+                    // TODO: Catch error and do something
                     dirDict.Add(nextDirInfo.Name.Normalize(), nextDirInfo);
                 }
             }
@@ -163,7 +165,7 @@ namespace RepositoryTool
                                 hashType = nextManFileInfo.FileHash.HashType;
                             }
 
-                            checkHash = ComputeHash(
+                            checkHash = CryptUtilities.ComputeHash(
                                 nextFileInfo,
                                 hashType);
                         }
@@ -212,7 +214,7 @@ namespace RepositoryTool
                         FileHash newHash = checkHash;
                         if (MakeNewHash)
                         {
-                            checkHash = ComputeHash(
+                            checkHash = CryptUtilities.ComputeHash(
                                 nextFileInfo,
                                 GetNewHashType(Manifest));
                         }
@@ -252,6 +254,8 @@ namespace RepositoryTool
                     nextDirInfo = dirDict[nextManDirInfo.Name];
                 }
 
+                // TODO: Check for newly ignored
+
                 UpdateRecursive(
                     nextDirInfo,
                     nextManDirInfo);
@@ -267,7 +271,8 @@ namespace RepositoryTool
             // Look for new files
             foreach (FileInfo nextFileInfo in fileDict.Values)
             {
-                if (currentManfestDirInfo.Files.ContainsKey(nextFileInfo.Name.Normalize()) == false)
+                if (currentManfestDirInfo.Files.ContainsKey(
+                    nextFileInfo.Name.Normalize()) == false)
                 {
                     ManifestFileInfo newManFileInfo =
                        new ManifestFileInfo(
@@ -308,7 +313,9 @@ namespace RepositoryTool
                             try
                             {
                                 newManFileInfo.FileHash =
-                                    ComputeHash(nextFileInfo, NewHashType);
+                                    CryptUtilities.ComputeHash(
+                                        nextFileInfo,
+                                        NewHashType);
                             }
                             catch (Exception ex)
                             {
@@ -352,11 +359,15 @@ namespace RepositoryTool
             // Recurse looking for new directories
             foreach (DirectoryInfo nextDirInfo in dirDict.Values)
             {
-                if (currentManfestDirInfo.Subdirectories.ContainsKey(nextDirInfo.Name.Normalize()) == false)
+                if (currentManfestDirInfo.Subdirectories.ContainsKey(
+                    nextDirInfo.Name.Normalize()) == false)
                 {
-                    ManifestDirectoryInfo nextManDirInfo = new ManifestDirectoryInfo(
-                        nextDirInfo.Name.Normalize(),
-                        currentManfestDirInfo);
+                    ManifestDirectoryInfo nextManDirInfo =
+                            new ManifestDirectoryInfo(
+                                nextDirInfo.Name.Normalize(),
+                                currentManfestDirInfo);
+
+                    // TODO: Skip directories that would be ignored
 
                     currentManfestDirInfo.Subdirectories.Add(
                         nextManDirInfo.Name,
@@ -532,15 +543,7 @@ namespace RepositoryTool
             }
             else
             {
-                // Default implementation when there is no prototype
-                manifest = new Manifest();
-
-                manifest.DefaultHashMethod = NewHashType;
-
-                manifest.IgnoreList.Add(
-                    "^" +
-                    System.Text.RegularExpressions.Regex.Escape(Manifest.DefaultManifestStandardFilePath) +
-                    "$");
+                return Manifest.MakeCleanManifest();
             }
 
             return manifest;
@@ -572,34 +575,6 @@ namespace RepositoryTool
             }
 
             return NewHashType;
-        }
-
-        protected FileHash ComputeHash(
-            FileInfo file,
-            string hashType)
-        {
-            byte[] hash = null;
-
-            Stream fileStream =
-                file.Open(FileMode.Open, FileAccess.Read);
-
-            switch (hashType)
-            {
-                case "MD5":
-                    hash = new MD5CryptoServiceProvider().ComputeHash(fileStream);
-                    break;
-
-                case "SHA256":
-                    hash = new SHA256Managed().ComputeHash(fileStream);
-                    break;
-
-                default:
-                    throw new Exception("Unrecognized hash method: " + hashType);
-            }
-
-            fileStream.Close();
-
-            return new FileHash(hash, hashType);
         }
 
         protected bool IgnoreFile(String fileName)
@@ -635,7 +610,6 @@ namespace RepositoryTool
 
             return true;
         }
-
 
 
         // Data members and accessors
@@ -684,7 +658,7 @@ namespace RepositoryTool
                     Manifest.DefaultManifestFileName);
 
             PrototypeManifestFileName = ".manifestPrototype";
-            NewHashType = "MD5";
+            NewHashType = Utilities.CryptUtilities.DefaultHashType;
 
             // Tolerate up to one second of difference
             LastModifiedDateTolerance = new TimeSpan(0, 0, 1);

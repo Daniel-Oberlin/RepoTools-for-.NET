@@ -91,6 +91,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CryptRepositoryProxy.cs" />
     <Compile Include="LocalRepositoryProxy.cs" />
     <Compile Include="LocalRepositoryState.cs" />
     <Compile Include="RemoteRepositoryProxy.cs" />

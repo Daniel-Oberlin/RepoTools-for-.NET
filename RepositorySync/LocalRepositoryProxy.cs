@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 
 using RepositoryManifest;
+using Utilities;
 
 
 namespace RepositorySync
@@ -12,7 +13,9 @@ namespace RepositorySync
     /// <summary>
     /// Implementation of RepositoryProxy for a local filesystem.
     /// </summary>
-    public class LocalRepositoryProxy : LocalRepositoryState, IRepositoryProxy
+    public class LocalRepositoryProxy :
+        LocalRepositoryState,
+        IRepositoryProxy
     {
         /// <summary>
         /// Constructor
@@ -202,6 +205,58 @@ namespace RepositorySync
                 directory = directory.Parent;
 
                 deleteDir.Delete();
+            }
+        }
+
+
+        // Static
+        
+        static public void SeedLocalRepository(
+            Manifest sourceManifest,
+            String seedDirectoryPath,
+            // TODO: Use delegate for console like in other classes?
+            Utilities.Console console)
+        {
+            String newManifestFilePath =
+                PathUtilities.NativeFromNativeAndStandard(
+                    seedDirectoryPath,
+                    Manifest.DefaultManifestStandardFilePath);
+
+            if (System.IO.File.Exists(newManifestFilePath))
+            {
+                console.WriteLine("Destination manifest already exists.");
+                Environment.Exit(1);
+            }
+
+            if (Directory.Exists(seedDirectoryPath) == false)
+            {
+                try
+                {
+                    Directory.CreateDirectory(seedDirectoryPath);
+                }
+                catch (Exception e)
+                {
+                    console.WriteLine("Exception: " + e.Message);
+                    console.WriteLine("Could not create destination directory.");
+                    Environment.Exit(1);
+                }
+            }
+
+            Manifest seedManifest = new Manifest(sourceManifest);
+
+            seedManifest.RootDirectory.Files.Clear();
+            seedManifest.RootDirectory.Subdirectories.Clear();
+            seedManifest.LastUpdateDateUtc = new DateTime();
+
+            try
+            {
+                seedManifest.WriteManifestFile(newManifestFilePath);
+            }
+            catch (Exception e)
+            {
+                console.WriteLine("Exception: " + e.Message);
+                console.WriteLine("Could not write destination manifest.");
+                Environment.Exit(1);
             }
         }
     }

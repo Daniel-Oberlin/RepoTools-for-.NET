@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Resources;
 using System.Text;
 
-using System.Resources;
+using Utilities;
 
 
 namespace RepositoryServer
@@ -120,12 +121,8 @@ namespace RepositoryServer
                     break;
 
                 case "remRepo":
-                    // TODO: Allow for separate manifest and repository paths
-                    // Here we are using a trick that a standard file path can be
-                    // interpreted correctly as the latter part of a native path in
-                    // MS-DOS.
                     String manifestPath =
-                        System.IO.Path.Combine(
+                        PathUtilities.NativeFromNativeAndStandard(
                             commandTarget,
                             RepositoryManifest.Manifest.DefaultManifestStandardFilePath);
                     server.RemoveRepository(manifestPath);
@@ -139,7 +136,9 @@ namespace RepositoryServer
                     user = server.AddUser(commandArg);
                     if (user == null)
                     {
-                        Console.WriteLine("User " + commandArg + " already exists.");
+                        System.Console.WriteLine(
+                            "User " + commandArg + " already exists.");
+
                         exitCode = 1;
                     }
                     break;
@@ -148,7 +147,9 @@ namespace RepositoryServer
                     user = server.RemoveUser(commandArg);
                     if (user == null)
                     {
-                        Console.WriteLine("User " + commandArg + " does not exist.");
+                        System.Console.WriteLine(
+                            "User " + commandArg + " does not exist.");
+
                         exitCode = 1;
                     }
                     break;

@@ -136,6 +136,10 @@ OPTIONS:
         Start in working directory and recursively search for and handle any
         manifests in lower subdirectories.
 
+    -cascade
+        When using -recursive, descend to subdirectories inside a repository
+        to look for contained repositories.
+
     -noTouch
         After a validation, do not write to the manifest in order to update
         the date of validation.

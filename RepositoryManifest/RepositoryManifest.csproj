@@ -42,9 +42,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Console.cs" />
+    <Compile Include="ManifestConsole.cs" />
     <Compile Include="DictionaryStore.cs" />
-    <Compile Include="FileHash.cs" />
     <Compile Include="HashFileDict.cs" />
     <Compile Include="Manifest.cs" />
     <Compile Include="ManifestObjectInfo.cs" />

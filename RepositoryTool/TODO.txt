@@ -1,5 +1,5 @@
 ﻿HIGH:
-...
+Accessing RECYCLE BIN crashes program when doing an initial update from root directory on Windows - from Harold
 
 LOW:
 ...

@@ -7,6 +7,7 @@ using System.Text;
 
 using RepositoryManifest;
 using System.Resources;
+using Utilities;
 
 
 namespace RepositoryTool
@@ -15,10 +16,10 @@ namespace RepositoryTool
     {
         static void Main(string[] args)
         {
-            int exitCode = 0;
-            Utilities.Console console = new Utilities.Console();
-
             DateTime startTime = DateTime.Now;
+
+            int exitCode = 0;
+            ManifestConsole console = new ManifestConsole();
 
             int argIndex = 0;
 
@@ -59,11 +60,8 @@ namespace RepositoryTool
                 };
 
             // Default manifest file name located in current directory.
-            // Here we are using a trick that a standard file path can be
-            // interpreted correctly as the latter part of a native path in
-            // MS-DOS.
             String manifestFilePathNotRecursive =
-                Path.Combine(
+                PathUtilities.NativeFromNativeAndStandard(
                     System.IO.Directory.GetCurrentDirectory(),
                     Manifest.DefaultManifestStandardFilePath);
 
@@ -74,6 +72,7 @@ namespace RepositoryTool
             bool force = false;
             bool ignoreDefault = false;
             bool recursive = false;
+            bool cascade = false;
             bool manifestInfoChanged = false;
             bool noTouch = false;
             bool confirmUpdate = false;
@@ -130,21 +129,24 @@ namespace RepositoryTool
                         break;
                         
                     case "-name":
-                        if (HasAnotherArgument(args, argIndex, console) == true)
+                        if (ArgUtilities.HasAnotherArgument(
+                            args, argIndex, console) == true)
                         {
                             repositoryName = args[argIndex++];
                         }
                         break;
 
                     case "-description":
-                        if (HasAnotherArgument(args, argIndex, console) == true)
+                        if (ArgUtilities.HasAnotherArgument(
+                            args, argIndex, console) == true)
                         {
                             repositoryDescription = args[argIndex++];
                         }
                         break;
 
                     case "-hashMethod":
-                        if (HasAnotherArgument(args, argIndex, console) == true)
+                        if (ArgUtilities.HasAnotherArgument(
+                            args, argIndex, console) == true)
                         {
                             hashMethod = args[argIndex++];
                         }
@@ -163,21 +165,24 @@ namespace RepositoryTool
                         break;
 
                     case "-ignore":
-                        if (HasAnotherArgument(args, argIndex, console) == true)
+                        if (ArgUtilities.HasAnotherArgument(
+                            args, argIndex, console) == true)
                         {
                             ignoreList.Add(args[argIndex++]);
                         }
                         break;
 
                     case "-dontIgnore":
-                        if (HasAnotherArgument(args, argIndex, console) == true)
+                        if (ArgUtilities.HasAnotherArgument(
+                            args, argIndex, console) == true)
                         {
                             dontIgnoreList.Add(args[argIndex++]);
                         }
                         break;
 
                     case "-manifestFile":
-                        if (HasAnotherArgument(args, argIndex, console) == true)
+                        if (ArgUtilities.HasAnotherArgument(
+                            args, argIndex, console) == true)
                         {
                             manifestFilePathNotRecursive = args[argIndex++];
                         }
@@ -193,6 +198,10 @@ namespace RepositoryTool
 
                     case "-recursive":
                         recursive = true;
+                        break;
+
+                    case "-cascade":
+                        cascade = true;
                         break;
 
                     case "-noTouch":
@@ -211,12 +220,18 @@ namespace RepositoryTool
                 }
             }
 
+            if (time)
+            {
+                console.WriteLine("Started: " + startTime.ToString());
+            }
+
             // Prepare a list of paths to be processed
             List<String> manifestFilePaths = new List<string>();
             if (recursive)
             {
                 FindManifests(
                     new DirectoryInfo(Directory.GetCurrentDirectory()),
+                    cascade,
                     manifestFilePaths);
             }
             else
@@ -335,7 +350,9 @@ namespace RepositoryTool
 
                                 if (tool.LastModifiedDateFiles.Count > 0)
                                 {
-                                    console.WriteLine(tool.LastModifiedDateFiles.Count.ToString() + " files have last-modified dates which are different.");
+                                    console.WriteLine(tool.LastModifiedDateFiles.Count.ToString() +
+                                        " files have last-modified dates which are different.");
+
                                     console.DetailFiles(tool.LastModifiedDateFiles);
 
                                     if (ignoreDate == false)
@@ -615,7 +632,8 @@ namespace RepositoryTool
 
                             try
                             {
-                                manifestForValidateDateUpdate.WriteManifestFile(manifestFilePath);
+                                manifestForValidateDateUpdate.WriteManifestFile(
+                                    manifestFilePath);
                             }
                             catch (Exception ex)
                             {
@@ -665,7 +683,8 @@ namespace RepositoryTool
 
                             if (doGroomAll == true)
                             {
-                                foreach (FileInfo delFile in tool.IgnoredFilesForGroom)
+                                foreach (FileInfo delFile in
+                                    tool.IgnoredFilesForGroom)
                                 {
                                     delFile.Delete();
                                 }
@@ -683,7 +702,9 @@ namespace RepositoryTool
 
             if (time)
             {
-                console.WriteLine("Duration: " + (DateTime.Now - startTime).ToString());
+                DateTime finishedTime = DateTime.Now;
+                console.WriteLine("Finished: " + finishedTime.ToString());
+                console.WriteLine("Duration: " + (finishedTime - startTime).ToString());
             }
 
             Environment.Exit(exitCode);
@@ -695,44 +716,39 @@ namespace RepositoryTool
         
         static void FindManifests(
             DirectoryInfo nextDirectory,
+            bool cascade,
             List<String> filePaths)
         {
-            // Here we are using a trick that a standard file path can be
-            // interpreted correctly as the latter part of a native path in
-            // MS-DOS.
             String checkManifestPath =
-                Path.Combine(
+                PathUtilities.NativeFromNativeAndStandard(
                     nextDirectory.FullName,
                     Manifest.DefaultManifestStandardFilePath);
 
+            bool foundManifest = false;
             if (File.Exists(checkManifestPath))
             {
+                foundManifest = true;
                 filePaths.Add(checkManifestPath);
             }
 
-            try
+            if (cascade == true || foundManifest == false)
             {
-                foreach (DirectoryInfo nextSubDirectory in nextDirectory.GetDirectories())
+                try
                 {
-                    FindManifests(nextSubDirectory, filePaths);
+                    foreach (DirectoryInfo nextSubDirectory in
+                        nextDirectory.GetDirectories())
+                    {
+                        FindManifests(
+                            nextSubDirectory,
+                            cascade,
+                            filePaths);
+                    }
+                }
+                catch (System.UnauthorizedAccessException)
+                {
+                    // Do nothing
                 }
             }
-            catch (System.UnauthorizedAccessException)
-            {
-                // Do nothing
-            }
-        }
-
-        static bool HasAnotherArgument(string[] args, int argIndex, Utilities.Console console)
-        {
-            if (argIndex >= args.Length)
-            {
-                console.WriteLine("Missing argument for option.");
-                int exitCode = 1;
-                Environment.Exit(exitCode);
-            }
-
-            return true;
         }
     }
 }

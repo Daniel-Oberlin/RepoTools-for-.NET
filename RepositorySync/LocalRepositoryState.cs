@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 
 using RepositoryManifest;
+using Utilities;
 
 
 namespace RepositorySync
@@ -35,13 +36,16 @@ namespace RepositorySync
 
             if (readOnly == false)
             {
-                RemoveExtraTempDirectories();
-                CreateTempDirectory();
+                TempDirUtilities.RemoveExtraTempDirectoriesFrom(
+                    RootDirectory);
+                
+                TempDirectory = TempDirUtilities.CreateTempDirectoryIn(
+                    RootDirectory);
             }
 
             // There might not be a console present, but I guess it doesn't
             // hurt to put this here.
-            Console.CancelKeyPress += delegate
+            System.Console.CancelKeyPress += delegate
             {
                 CleanupBeforeExit();
             };
@@ -114,15 +118,13 @@ namespace RepositorySync
             }
         }
 
+
         // Helper methods
 
         protected void LoadManifest()
         {
-            // Here we are using a trick that a standard file path can be
-            // interpreted correctly as the latter part of a native path in
-            // MS-DOS.
             ManifestFilePath =
-                Path.Combine(
+                PathUtilities.NativeFromNativeAndStandard(
                     RootDirectory.FullName,
                     Manifest.DefaultManifestStandardFilePath);
 
@@ -135,36 +137,6 @@ namespace RepositorySync
                 throw new Exception(
                     "Could not read manifest.",
                     ex);
-            }
-        }
-
-        protected void CreateTempDirectory()
-        {
-            try
-            {
-                TempDirectory = RootDirectory.CreateSubdirectory(
-                    theTempDirectoryPrefix +
-                    Path.GetRandomFileName());
-            }
-            catch (Exception ex)
-            {
-                throw new Exception(
-                    "Could not create temporary directory in repository.",
-                    ex);
-            }
-        }
-
-        protected void RemoveExtraTempDirectories()
-        {
-            foreach (DirectoryInfo nextSubDirectory in
-                RootDirectory.GetDirectories())
-            {
-                if (nextSubDirectory.Name.StartsWith(theTempDirectoryPrefix) &&
-                    nextSubDirectory.GetFiles().Count() == 0 &&
-                    nextSubDirectory.GetDirectories().Count() == 0)
-                {
-                    nextSubDirectory.Delete();
-                }
             }
         }
 
@@ -225,10 +197,5 @@ namespace RepositorySync
         protected bool myReadOnly;
         protected bool myManifestChanged;
         protected object myManifestChangedLock;
-
-
-        // Static
-
-        static protected String theTempDirectoryPrefix = "temp-";
     }
 }

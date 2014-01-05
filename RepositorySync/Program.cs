@@ -5,6 +5,7 @@ using System.Text;
 
 using RepositoryManifest;
 using System.Resources;
+using Utilities;
 
 
 namespace RepositorySync
@@ -13,16 +14,14 @@ namespace RepositorySync
     {
         static void Main(string[] args)
         {
-            int exitCode = 0;
-            Utilities.Console console = new Utilities.Console();
-
             DateTime startTime = DateTime.Now;
+
+            int exitCode = 0;
+
+            ManifestConsole console = new ManifestConsole();
 
             int argIndex = 0;
             string commandArg = "help";
-
-            IRepositoryProxy sourceRep = null;
-            IRepositoryProxy destRep = null;
 
             if (argIndex < args.Count())
             {
@@ -35,183 +34,29 @@ namespace RepositorySync
                 Environment.Exit(exitCode);
             }
 
-            if (args.Length >= 3)
+            bool repositoriesOnCommandLine = args.Length >= 3;
+
+            string sourceRepString = "";
+            string destRepString = "";
+            if (repositoriesOnCommandLine == true)
             {
-                bool sourceReadOnly = true;
-                bool destReadOnly = false;
-
-                if (commandArg == "diff")
-                {
-                    destReadOnly = true;
-                }
-                else if (commandArg == "sync")
-                {
-                    sourceReadOnly = false;
-                }
-
-
-
-                argIndex += 2;
-                IRepositoryProxy otherProxy = null;
-
-                // TODO: Handle errors
-                try
-                {
-                    sourceRep = new LocalRepositoryProxy(
-                        new System.IO.DirectoryInfo(args[1]),
-                        sourceReadOnly);
-
-                    sourceRep.Manifest.RemoveEntriesWithNullHash();
-
-                    otherProxy = sourceRep;
-                }
-                catch (Exception e)
-                {
-                    console.WriteLine("Exception: " + e.Message);
-                }
-
-                // Special case for seed command since it doesn't fit neatly
-                // into the design of the rest of the program.
-                if (commandArg == "seed")
-                {
-                    if (sourceRep == null)
-                    {
-                        console.WriteLine("Could not resolve a source repository.");
-                        Environment.Exit(1);
-                    }
-
-                    sourceRep.Manifest.RootDirectory.Files.Clear();
-                    sourceRep.Manifest.RootDirectory.Subdirectories.Clear();
-                    sourceRep.Manifest.LastUpdateDateUtc = new DateTime();
-
-                    // TODO: Handle possibility of remote destination repository...
-
-                    // Here we are using a trick that a standard file path can be
-                    // interpreted correctly as the latter part of a native path in
-                    // MS-DOS.
-                    String newManifestFilePath =
-                        System.IO.Path.Combine(
-                            args[2],
-                            Manifest.DefaultManifestStandardFilePath);
-
-                    if (System.IO.File.Exists(newManifestFilePath))
-                    {
-                        console.WriteLine("Destination manifest already exists.");
-                        Environment.Exit(1);
-                    }
-
-                    try
-                    {
-                        sourceRep.Manifest.WriteManifestFile(newManifestFilePath);
-                    }
-                    catch (Exception e)
-                    {
-                        console.WriteLine("Exception: " + e.Message);
-                        console.WriteLine("Could not write destination manifest.");
-                        Environment.Exit(1);
-                    }
-
-                    Environment.Exit(0);
-                }
-
-                try
-                {
-                    destRep = new LocalRepositoryProxy(
-                        new System.IO.DirectoryInfo(args[2]),
-                        destReadOnly);
-
-                    destRep.Manifest.RemoveEntriesWithNullHash();
-
-                    otherProxy = destRep;
-                }
-                catch (Exception e)
-                {
-                    console.WriteLine("Exception: " + e.Message);
-                }
-
-                if (sourceRep == null)
-                {
-                    try
-                    {
-                        sourceRep = new RemoteRepositoryProxy(
-                            args[1],
-                            otherProxy.Manifest);
-
-                        sourceRep.Manifest.RemoveEntriesWithNullHash();
-
-                        otherProxy = sourceRep;
-                    }
-                    catch (Exception e)
-                    {
-                        console.WriteLine("Exception: " + e.Message);
-                    }
-                }
-
-                if (destRep == null)
-                {
-                    try
-                    {
-                        destRep = new RemoteRepositoryProxy(
-                            args[2],
-                            otherProxy.Manifest);
-
-                        destRep.Manifest.RemoveEntriesWithNullHash();
-
-                        otherProxy = destRep;
-                    }
-                    catch (Exception e)
-                    {
-                        console.WriteLine("Exception: " + e.Message);
-                    }
-                }
+                // Skip repositories for now and process options
+                sourceRepString     = args[argIndex++];
+                destRepString       = args[argIndex++];
             }
-
-            if (sourceRep == null && destRep == null)
+            else
             {
-                console.WriteLine("Could not resolve a source and destination repository.");
-                Environment.Exit(1);
-            }
-            else if (sourceRep == null)
-            {
-                console.WriteLine("Could not resolve a source repository.");
-                Environment.Exit(1);
-            }
-            else if (destRep == null)
-            {
-                console.WriteLine("Could not resolve a destination repository.");
+                console.WriteLine("Source or destination repositories were not supplied.");
                 Environment.Exit(1);
             }
 
-            RepositorySync syncTool =
-                new RepositorySync(sourceRep, destRep);
 
-            syncTool.WriteLogDelegate =
-                delegate(String message)
-                {
-                    console.Write(message);
-                };
+            // Process options
 
-            if (sourceRep != null && destRep != null)
-            {
-                syncTool.CompareManifests();
-            }
+            bool time = false;
 
-            // Initial screen for valid command
-            switch (commandArg)
-            {
-                case "diff":
-                case "update":
-                case "sync":
-                case "mirror":
-                case "repair":
-                    break;
-
-                default:
-                    console.WriteLine("Unrecognized command \"" + commandArg + "\"");
-                    exitCode = 1;
-                    Environment.Exit(exitCode);
-                    break;
-            }
+            byte[] sourceKey = null;
+            byte[] destKey = null;
 
             while (argIndex < args.Length)
             {
@@ -233,9 +78,224 @@ namespace RepositorySync
 
                         RemoteRepositoryProxy.RequestTimeout =
                             System.Threading.Timeout.Infinite;
+                        break;
 
+                    case "-time":
+                        time = true;
+                        break;
+
+                    case "-sourceKey":
+                        if (ArgUtilities.HasAnotherArgument(
+                            args, argIndex, console) == true)
+                        {
+                            String keyString = args[argIndex++];
+
+                            sourceKey = CryptUtilities.MakeKeyBytesFromString(
+                                keyString);
+                        }
+                        break;
+
+                    case "-destKey":
+                        if (ArgUtilities.HasAnotherArgument(
+                            args, argIndex, console) == true)
+                        {
+                            String keyString = args[argIndex++];
+
+                            destKey = CryptUtilities.MakeKeyBytesFromString(
+                                keyString);
+                        }
+                        break;
+
+                    default:
+                        console.WriteLine("Unrecognized parameter \" " + nextArg + "\"");
+                        Environment.Exit(1);
                         break;
                 }
+            }
+
+
+            // Resolve repositories
+
+            bool sourceReadOnly = true;
+            bool destReadOnly = false;
+            if (commandArg == "diff")
+            {
+                destReadOnly = true;
+            }
+            else if (commandArg == "sync")
+            {
+                sourceReadOnly = false;
+            }
+
+            bool seedCommand = commandArg == "seed";
+
+            bool remoteSource =
+                RemoteRepositoryProxy.IsRemoteRepositoryString(
+                    sourceRepString);
+
+            bool remoteDest =
+                RemoteRepositoryProxy.IsRemoteRepositoryString(
+                    destRepString);
+
+            IRepositoryProxy sourceRep = null;
+            IRepositoryProxy destRep = null;
+
+            if (remoteSource == false)
+            {
+                try
+                {
+                    sourceRep = new LocalRepositoryProxy(
+                        new System.IO.DirectoryInfo(sourceRepString),
+                        sourceReadOnly);
+
+                    if (sourceKey != null)
+                    {
+                        CryptRepositoryProxy cryptProxy =
+                            new CryptRepositoryProxy(
+                                sourceRep,
+                                sourceKey,
+                                sourceReadOnly);
+
+                        ReportCrypt(cryptProxy, "Source", console);
+                        sourceRep = cryptProxy;
+                    }
+
+                    // TODO: Remove if not needed
+                    //sourceRep.Manifest.RemoveEntriesWithNullHash();
+                }
+                catch (Exception e)
+                {
+                    console.WriteLine("Exception: " + e.Message);
+                    Environment.Exit(1);
+                }
+            }
+
+            if (remoteDest == false && seedCommand == false)
+            {
+                try
+                {
+                    destRep = new LocalRepositoryProxy(
+                        new System.IO.DirectoryInfo(destRepString),
+                        destReadOnly);
+
+                    if (destKey != null)
+                    {
+                        CryptRepositoryProxy cryptProxy =
+                            new CryptRepositoryProxy(
+                                destRep,
+                                destKey,
+                                destReadOnly);
+
+                        ReportCrypt(cryptProxy, "Dest", console);
+                        destRep = cryptProxy;
+                    }
+
+                    // TODO: Remove if not needed
+                    //destRep.Manifest.RemoveEntriesWithNullHash();
+                }
+                catch (Exception e)
+                {
+                    console.WriteLine("Exception: " + e.Message);
+                    Environment.Exit(1);
+                }
+            }
+
+            if (remoteSource == true)
+            {
+                try
+                {
+                    sourceRep = new RemoteRepositoryProxy(
+                        sourceRepString,
+                        destRep.Manifest);
+
+                    if (sourceKey != null)
+                    {
+                        CryptRepositoryProxy cryptProxy =
+                            new CryptRepositoryProxy(
+                                sourceRep,
+                                sourceKey,
+                                sourceReadOnly);
+
+                        ReportCrypt(cryptProxy, "Source", console);
+                        sourceRep = cryptProxy;
+                    }
+
+                    // TODO: Remove if not needed
+                    //sourceRep.Manifest.RemoveEntriesWithNullHash();
+                }
+                catch (Exception e)
+                {
+                    console.WriteLine("Exception: " + e.Message);
+                    Environment.Exit(1);
+                }
+            }
+
+            if (remoteDest == true && seedCommand == false)
+            {
+                try
+                {
+                    destRep = new RemoteRepositoryProxy(
+                        destRepString,
+                        sourceRep.Manifest);
+
+                    if (destKey != null)
+                    {
+                        CryptRepositoryProxy cryptProxy =
+                            new CryptRepositoryProxy(
+                                destRep,
+                                destKey,
+                                destReadOnly);
+
+                        ReportCrypt(cryptProxy, "Dest", console);
+                        destRep = cryptProxy;
+                    }
+
+                    // TODO: Remove if not needed
+                    //destRep.Manifest.RemoveEntriesWithNullHash();
+                }
+                catch (Exception e)
+                {
+                    console.WriteLine("Exception: " + e.Message);
+                    Environment.Exit(1);
+                }
+            }
+
+            if (sourceRep == null && destRep == null)
+            {
+                console.WriteLine("Could not resolve a source or destination repository.");
+                Environment.Exit(1);
+            }
+            else if (sourceRep == null)
+            {
+                console.WriteLine("Could not resolve a source repository.");
+                Environment.Exit(1);
+            }
+            else if (destRep == null && seedCommand == false)
+            {
+                console.WriteLine("Could not resolve a destination repository.");
+                Environment.Exit(1);
+            }
+
+            RepositorySync syncTool = null;
+            if (seedCommand == false)
+            {
+                syncTool = new RepositorySync(sourceRep, destRep);
+
+                syncTool.WriteLogDelegate =
+                    delegate(String message)
+                    {
+                        console.Write(message);
+                    };
+
+                syncTool.CompareManifests();
+            }
+
+
+            // Process command
+
+            if (time)
+            {
+                console.WriteLine("Started: " + startTime.ToString());
             }
 
             switch (commandArg)
@@ -261,14 +321,47 @@ namespace RepositorySync
                 case "repair":
                     console.WriteLine("TODO: repair is unimplemented.");
                     break;
+
+                case "seed":
+                    if (destKey == null)
+                    {
+                        LocalRepositoryProxy.SeedLocalRepository(
+                            sourceRep.Manifest,
+                            destRepString,
+                            console);
+                    }
+                    else
+                    {
+                        CryptRepositoryProxy.SeedLocalRepository(
+                            sourceRep.Manifest,
+                            destKey,
+                            destRepString,
+                            console);
+                    }
+                    break;
+
+                default:
+                    console.WriteLine("Unrecognized command \"" + commandArg + "\"");
+                    exitCode = 1;
+                    Environment.Exit(exitCode);
+                    break;
+            }
+
+            if (time)
+            {
+                DateTime finishedTime = DateTime.Now;
+                console.WriteLine("Finished: " + finishedTime.ToString());
+                console.WriteLine("Duration: " + (finishedTime - startTime).ToString());
             }
 
             Environment.Exit(exitCode);
         }
 
+
+
         static void ShowDiff(
             RepositorySync syncTool,
-            Utilities.Console console)
+            ManifestConsole console)
         {
             bool different = false;
 
@@ -362,26 +455,6 @@ namespace RepositorySync
                 }
                 different = true;
             }
-
-            // Not sure if this is really useful
-
-            //if (sourceMan.LastUpdateDateUtc != destMan.LastUpdateDateUtc)
-            //{
-            //    console.WriteLine("Manifest last update dates are different.");
-            //    if (console.Detail)
-            //    {
-            //        console.WriteLine(
-            //            "   Source date: " +
-            //            sourceMan.LastUpdateDateUtc.ToLocalTime().ToString());
-
-            //        console.WriteLine(
-            //            "     Dest date: " +
-            //            destMan.LastUpdateDateUtc.ToLocalTime().ToString());
-
-            //        console.WriteLine();
-            //    }
-            //    different = true;
-            //}
 
             if (sourceMan.ManifestInfoLastModifiedUtc !=
                 destMan.ManifestInfoLastModifiedUtc)
@@ -501,6 +574,38 @@ namespace RepositorySync
             if (different == false)
             {
                 console.WriteLine("No differences.");
+            }
+        }
+
+        static void ReportCrypt(
+            CryptRepositoryProxy rep,
+            String name,
+            Utilities.Console console)
+        {
+            if (rep.UnresolvedOuterFiles.Count > 0)
+            {
+                console.WriteLine(name +
+                    " crypt has these unresolved files (ignoring):");
+
+                foreach (ManifestFileInfo nextFile in
+                    rep.UnresolvedOuterFiles)
+                {
+                    console.WriteLine("     " +
+                        Manifest.MakeStandardPathString(nextFile));
+                }
+
+                console.WriteLine();
+            }
+
+            if (rep.OrphanedInnerFiles.Count > 0)
+            {
+                console.WriteLine(
+                    name +
+                    " crypt has " +
+                    rep.OrphanedInnerFiles.Count +
+                    " orphaned data files.");
+
+                console.WriteLine();
             }
         }
     }

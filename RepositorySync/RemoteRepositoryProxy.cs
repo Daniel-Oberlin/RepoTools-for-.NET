@@ -184,7 +184,8 @@ namespace RepositorySync
         public FileInfo GetFile(ManifestFileInfo readFile)
         {
             // We don't have a local copy, so we must make a temp clone
-            // and supply that instead.
+            // and supply that instead.  The clone will be removed eventually
+            // during cleanup when the temp directory is deleted.
             return CloneFile(readFile, TempDirectory);
         }
 
@@ -408,6 +409,13 @@ static int numRetries = 0;
             RegisteredUtcHeaderName = "Rep-RegisteredUtc";
             FileHashHeaderName = "Rep-FileHash";
             DestinationPathHeaderName = "Rep-DestinationPath";
+        }
+
+        static public bool IsRemoteRepositoryString(string s)
+        {
+            return
+                s.StartsWith("http://") ||
+                s.StartsWith("https://");
         }
     }
 }

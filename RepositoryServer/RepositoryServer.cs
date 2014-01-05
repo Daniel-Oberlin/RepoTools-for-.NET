@@ -39,10 +39,7 @@ namespace RepositoryServer
 
             if (manifestPath == null)
             {
-                // Here we are using a trick that a standard file path can be
-                // interpreted correctly as the latter part of a native path in
-                // MS-DOS.
-                fullManifestPath = Path.Combine(
+                fullManifestPath = PathUtilities.NativeFromNativeAndStandard(
                     fullRepositoryPath,
                     Manifest.DefaultManifestStandardFilePath);
             }

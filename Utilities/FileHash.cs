@@ -3,21 +3,21 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace RepositoryManifest
+namespace Utilities
 {
     [Serializable]
     public class FileHash
     {
         public FileHash(byte[] hash, String hashType)
         {
-            myHashData = hash;
+            HashData = hash;
             HashType = hashType;
         }
 
         public FileHash(String hashString, String hashType)
         {
             int byteLength = hashString.Length / 2;
-            myHashData = new byte[byteLength];
+            HashData = new byte[byteLength];
 
             for (int nextByte = 0, nextChar = 0;
                 nextByte < byteLength;
@@ -26,7 +26,7 @@ namespace RepositoryManifest
                 String nextByteString =
                     hashString.Substring(nextChar, 2);
 
-                myHashData[nextByte] =
+                HashData[nextByte] =
                     Byte.Parse(
                         nextByteString,
                         System.Globalization.NumberStyles.HexNumber);
@@ -37,7 +37,7 @@ namespace RepositoryManifest
 
         public FileHash(FileHash orig)
         {
-            myHashData = orig.myHashData;
+            HashData = orig.HashData;
             HashType = orig.HashType;
 
             myObjectHashIsSet = orig.myObjectHashIsSet;
@@ -53,13 +53,13 @@ namespace RepositoryManifest
                 for (int i = 0; i < 4; i++)
                 {
                     myObjectHash <<= 8;
-                    myObjectHash |= myHashData[i];
+                    myObjectHash |= HashData[i];
                 }
                 myObjectHashIsSet = true;
             }
 
             return myObjectHash;
-        }
+        } 
 
         public override bool Equals(object obj)
         {
@@ -68,14 +68,14 @@ namespace RepositoryManifest
                 FileHash other = (FileHash)obj;
 
                 if (other.HashType != HashType ||
-                    other.myHashData.Length != myHashData.Length)
+                    other.HashData.Length != HashData.Length)
                 {
                     return false;
                 }
 
-                for (int i = 0; i < myHashData.Length; i++)
+                for (int i = 0; i < HashData.Length; i++)
                 {
-                    if (other.myHashData[i] != myHashData[i])
+                    if (other.HashData[i] != HashData[i])
                     {
                         return false;
                     }
@@ -101,7 +101,7 @@ namespace RepositoryManifest
         public override string ToString()
         {
             string stringRep = "";
-            foreach (byte nextByte in myHashData)
+            foreach (byte nextByte in HashData)
             {
                 stringRep += String.Format("{0,2:X2}", nextByte);
             }
@@ -112,6 +112,20 @@ namespace RepositoryManifest
         /// <summary>
         /// The data of the file hash
         /// </summary>
+        public byte[] HashData
+        {
+            private set
+            {
+                myHashData = value;
+            }
+
+            get
+            {
+                // TODO: Use a readonly wrapper or something like that
+                return (byte[]) myHashData.Clone();
+            }
+        }
+
         private byte[] myHashData;
 
         /// <summary>
