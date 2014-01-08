@@ -120,5 +120,10 @@ namespace RepositorySync
         FileInfo CloneFile(
             ManifestFileInfo copyFile,
             DirectoryInfo copyToDirectory);
+
+        /// <summary>
+        /// Mainly to delete temp directories, etc.
+        /// </summary>
+        void CleanupBeforeExit();
     }
 }

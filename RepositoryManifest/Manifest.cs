@@ -377,6 +377,14 @@ namespace RepositoryManifest
         }
 
         /// <summary>
+        /// Give this manifest a new GUID
+        /// </summary>
+        public void ChangeGUID()
+        {
+            Guid = Guid.NewGuid(); ;
+        }
+
+        /// <summary>
         /// Recursive helper to count the number of bytes
         /// </summary>
         /// <param name="currentDir">
@@ -405,7 +413,9 @@ namespace RepositoryManifest
         }
 
         // TODO: Remove if not needed
-        public void RemoveEntriesWithNullHash(ManifestDirectoryInfo currentDir = null)
+        /*
+        public void RemoveEntriesWithNullHash(
+            ManifestDirectoryInfo currentDir = null)
         {
             if (currentDir == null)
             {
@@ -436,6 +446,7 @@ namespace RepositoryManifest
                 RemoveEntriesWithNullHash(nextDirInfo);
             }
         }
+        */
 
         protected void DoAnyUpgradeMaintenance()
         {

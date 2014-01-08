@@ -18,7 +18,7 @@ namespace RepositorySync
         // TODO: doc
         public CryptRepositoryProxy(
             IRepositoryProxy innerProxy,
-            byte[] outerKey,
+            String outerKey,
             bool readOnly) :
             this(innerProxy, null, outerKey, readOnly)
         {
@@ -28,11 +28,11 @@ namespace RepositorySync
         protected CryptRepositoryProxy(
             IRepositoryProxy innerProxy,
             Manifest outerManifest,
-            byte[] outerKey,
+            String outerKeyString,
             bool readOnly)
         {
             InnerProxy = innerProxy;
-            OuterKey = outerKey;
+            OuterKeyString = outerKeyString;
 
             ProxyToInner = new ProxyToInnerProxy(this);
             myManifestChanged = false;
@@ -87,7 +87,8 @@ namespace RepositorySync
 
         public void CleanupBeforeExit()
         {
-            if (myReadOnly == false)
+            if (myReadOnly == false &&
+                TempDirectory != null)
             {
                 SaveOuterManifest();
 
@@ -99,6 +100,7 @@ namespace RepositorySync
                 }
 
                 TempDirectory.Delete(true);
+                TempDirectory = null;
             }
         }
 
@@ -118,7 +120,9 @@ namespace RepositorySync
                 FileInfo sourceFileInfo =
                     sourceRepository.GetFile(sourceManifestFile);
 
-                byte[] keyData = sourceManifestFile.FileHash.HashData;
+                byte[] keyData = CryptUtilities.MakeKeyBytesFromString(
+                    OuterKeyString,
+                    sourceManifestFile.FileHash.HashData);
 
                 String destFilePath =
                     Path.Combine(
@@ -126,7 +130,7 @@ namespace RepositorySync
                         DefaultEncryptedTempFileName);
 
                 FileInfo cryptFileInfo =
-                    CryptFile(
+                    WriteCryptFile(
                         sourceFileInfo,
                         keyData,
                         destFilePath);
@@ -134,7 +138,7 @@ namespace RepositorySync
                 // Name the inner file with the hash of the hash.  We protect
                 // the hash in this way because it is used as the key to
                 // encrypt the data in the file.
-                FileHash hashedHash = CryptUtilities.ComputeHash(
+                FileHash hashedHash = FileHash.ComputeHash(
                     sourceManifestFile.FileHash.HashData);
 
                 String hashedHashString = hashedHash.ToString();
@@ -147,14 +151,16 @@ namespace RepositorySync
                 // PutFile won't be affected by doing this.
                 ManifestDirectoryInfo parentDirectory =
                     MakeInnerParentDirectory(
-                        hashedHashString);
+                        hashedHashString,
+                        InnerProxy.Manifest.RootDirectory);
 
                 ManifestFileInfo destManifestFile =
                     new ManifestFileInfo(
                         hashedHashString,
                         parentDirectory);
 
-                destManifestFile.RegisteredUtc = DateTime.Now;
+                destManifestFile.RegisteredUtc =
+                    DateTime.UtcNow;
 
                 destManifestFile.LastModifiedUtc =
                     cryptFileInfo.LastWriteTimeUtc;
@@ -163,7 +169,7 @@ namespace RepositorySync
                     cryptFileInfo.Length;
 
                 destManifestFile.FileHash =
-                    CryptUtilities.ComputeHash(cryptFileInfo);
+                    FileHash.ComputeHash(cryptFileInfo);
 
                 InnerProxy.PutFile(ProxyToInner, destManifestFile);
 
@@ -260,14 +266,16 @@ namespace RepositorySync
             FileInfo innerFileInfo =
                 InnerProxy.GetFile(innerManifestFileInfo);
 
-            byte[] keyData = copyFile.FileHash.HashData;
+            byte[] keyData = CryptUtilities.MakeKeyBytesFromString(
+                OuterKeyString,
+                copyFile.FileHash.HashData);
 
             String destFilePath =
                 Path.Combine(
                     copyToDirectory.FullName,
                     DefaultDecryptedTempFileName);
 
-            FileInfo fileInfo = CryptFile(
+            FileInfo fileInfo = ReadCryptFile(
                 innerFileInfo,
                 keyData,
                 destFilePath);
@@ -339,10 +347,14 @@ namespace RepositorySync
             Stream outerManifestFileStream =
                 outerManifestFileInfo.OpenRead();
 
+            byte[] outerKeyBytes = CryptUtilities.MakeKeyBytesFromString(
+                OuterKeyString,
+                InnerProxy.Manifest.Guid.ToByteArray());
+
             Stream outerManifestCryptoStream =
-                CryptUtilities.MakeCryptoReadStreamFrom(
+                CryptUtilities.MakeDecryptionReadStreamFrom(
                     outerManifestFileStream,
-                    OuterKey);
+                    outerKeyBytes);
 
             OuterManifest =
                 Manifest.ReadManifestStream(outerManifestCryptoStream);
@@ -361,10 +373,19 @@ namespace RepositorySync
             Stream outerManifestFileStream =
                 File.OpenWrite(tempFilePath);
 
+            // We use the inner GUID as salt for the outer manifest, so update
+            // it each time we write the outer manifest.  The inner GUID is
+            // really useless anyways.
+            InnerProxy.Manifest.ChangeGUID();
+
+            byte[] outerKeyBytes = CryptUtilities.MakeKeyBytesFromString(
+                OuterKeyString,
+                InnerProxy.Manifest.Guid.ToByteArray());
+
             Stream outerManifestCryptoStream =
-                CryptUtilities.MakeCryptoWriteStreamFrom(
+                CryptUtilities.MakeEncryptionWriteStreamFrom(
                     outerManifestFileStream,
-                    OuterKey);
+                    outerKeyBytes);
 
             OuterManifest.WriteManifestStream(outerManifestCryptoStream);
             outerManifestCryptoStream.Close();
@@ -393,7 +414,7 @@ namespace RepositorySync
                 outerManifestFileInfo.Length;
 
             destManifestFile.FileHash =
-                CryptUtilities.ComputeHash(outerManifestFileInfo);
+                FileHash.ComputeHash(outerManifestFileInfo);
 
             InnerProxy.PutFile(ProxyToInner, destManifestFile);
         }
@@ -460,7 +481,7 @@ namespace RepositorySync
                 }
 
                 // Using FileHash class for convenience
-                FileHash hashedHash = CryptUtilities.ComputeHash(
+                FileHash hashedHash = FileHash.ComputeHash(
                     fileHash.HashData);
 
                 String hashedHashString = hashedHash.ToString();
@@ -509,17 +530,40 @@ namespace RepositorySync
         }
 
         protected ManifestDirectoryInfo MakeInnerParentDirectory(
-            String hashedHashString)
+            String hashedHashString,
+            ManifestDirectoryInfo dir)
         {
-            // TODO: Make real implementation
-            //
-            //
-            //
+            if (dir.Files.Count < 256)
+            {
+                return dir;
+            }
 
-            return InnerProxy.Manifest.RootDirectory;
+            int nextDirLength = dir.Name.Length;
+
+            // Root dir is named ".", but pretend it is ""
+            if (nextDirLength == 1)
+            {
+                nextDirLength = 0;
+            }
+
+            // Increase specificity of next subdirectory name by 2 letters:
+            // For example a497 -> a4973e
+            nextDirLength += 2;
+
+            String nextDirName =
+                hashedHashString.Substring(0, nextDirLength);
+
+            if (dir.Subdirectories.ContainsKey(nextDirName))
+            {
+                return MakeInnerParentDirectory(
+                    hashedHashString,
+                    dir.Subdirectories[nextDirName]);
+            }
+
+            return new ManifestDirectoryInfo(nextDirName, dir);
         }
 
-        protected FileInfo CryptFile(
+        protected FileInfo ReadCryptFile(
             FileInfo sourceFileInfo,
             byte[] keyData,
             String destFilePath)
@@ -528,7 +572,7 @@ namespace RepositorySync
                 sourceFileInfo.OpenRead();
 
             Stream cryptoStream =
-                CryptUtilities.MakeCryptoReadStreamFrom(
+                CryptUtilities.MakeDecryptionReadStreamFrom(
                     sourceFileStream,
                     keyData);
 
@@ -540,7 +584,36 @@ namespace RepositorySync
 
             destFileStream.Close();
 
-            return new FileInfo(destFilePath);
+            FileInfo fileInfo = new FileInfo(destFilePath);
+
+            return fileInfo;
+        }
+
+        protected FileInfo WriteCryptFile(
+            FileInfo sourceFileInfo,
+            byte[] keyData,
+            String destFilePath)
+        {
+            Stream sourceFileStream =
+                sourceFileInfo.OpenRead();
+
+            FileStream destFileStream =
+                File.OpenWrite(destFilePath);
+
+            System.Security.Cryptography.CryptoStream cryptoStream =
+                CryptUtilities.MakeEncryptionWriteStreamFrom(
+                    destFileStream,
+                    keyData);
+
+            StreamUtilities.CopyStream(
+                sourceFileStream, cryptoStream);
+
+            cryptoStream.FlushFinalBlock();
+            cryptoStream.Close();
+
+            FileInfo fileInfo = new FileInfo(destFilePath);
+
+            return fileInfo;
         }
 
 
@@ -573,7 +646,7 @@ namespace RepositorySync
 
         protected Dictionary<FileHash, ManifestFileInfo> myHashToInnerFileMap;
 
-        protected byte[] OuterKey { set; get; }
+        protected String OuterKeyString { set; get; }
         protected Manifest OuterManifest { set; get; }
 
         protected bool myNeedToRegenerateFileMap;
@@ -595,7 +668,7 @@ namespace RepositorySync
 
         static public void SeedLocalRepository(
             Manifest sourceManifest,
-            byte[] outerKey,
+            String outerKeyString,
             String seedDirectoryPath,
             // TODO: Use delegate for console like in other classes?
             Utilities.Console console)
@@ -623,7 +696,7 @@ namespace RepositorySync
                 new CryptRepositoryProxy(
                     innerProxy,
                     outerManifest,
-                    outerKey,
+                    outerKeyString,
                     false);
 
             try
@@ -637,8 +710,7 @@ namespace RepositorySync
                 Environment.Exit(1);
             }
 
-            // Note, manifest will be written again when the CryptProxy is
-            // finalized.
+            cryptProxy.CleanupBeforeExit();
         }
 
 
@@ -717,6 +789,11 @@ namespace RepositorySync
                 DirectoryInfo copyToDirectory)
             {
                 return myProxy.CloneInnerFile(copyFile, copyToDirectory);
+            }
+
+            public void CleanupBeforeExit()
+            {
+                throw new NotImplementedException();
             }
 
             protected CryptRepositoryProxy myProxy;

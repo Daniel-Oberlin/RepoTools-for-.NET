@@ -23,9 +23,15 @@ namespace RepositorySync
 
         ~RemoteRepositoryProxy()
         {
+            CleanupBeforeExit();
+        }
+
+        public void CleanupBeforeExit()
+        {
             if (TempDirectory != null)
             {
                 TempDirectory.Delete(true);
+                TempDirectory = null;
             }
         }
 

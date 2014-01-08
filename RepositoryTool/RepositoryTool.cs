@@ -96,12 +96,21 @@ namespace RepositoryTool
 
             if (currentDirectoryInfo != null)
             {
-                FileInfo[] fileList =
-                    currentDirectoryInfo.GetFiles();
+                FileInfo[] fileList = null; ;
+                try
+                {
+                    fileList = currentDirectoryInfo.GetFiles();
+                }
+                catch (Exception)
+                {
+                    ForceWriteLine("Could not access contents of: " +
+                        currentDirectoryInfo.FullName);
+
+                    return;
+                }
 
                 foreach (FileInfo nextFileInfo in fileList)
                 {
-                    // TODO: Catch error and add to error list
                     fileDict.Add(nextFileInfo.Name.Normalize(), nextFileInfo);
                 }
 
@@ -110,7 +119,6 @@ namespace RepositoryTool
 
                 foreach (DirectoryInfo nextDirInfo in dirList)
                 {
-                    // TODO: Catch error and do something
                     dirDict.Add(nextDirInfo.Name.Normalize(), nextDirInfo);
                 }
             }
@@ -165,7 +173,7 @@ namespace RepositoryTool
                                 hashType = nextManFileInfo.FileHash.HashType;
                             }
 
-                            checkHash = CryptUtilities.ComputeHash(
+                            checkHash = FileHash.ComputeHash(
                                 nextFileInfo,
                                 hashType);
                         }
@@ -214,7 +222,7 @@ namespace RepositoryTool
                         FileHash newHash = checkHash;
                         if (MakeNewHash)
                         {
-                            checkHash = CryptUtilities.ComputeHash(
+                            checkHash = FileHash.ComputeHash(
                                 nextFileInfo,
                                 GetNewHashType(Manifest));
                         }
@@ -253,8 +261,6 @@ namespace RepositoryTool
                 {
                     nextDirInfo = dirDict[nextManDirInfo.Name];
                 }
-
-                // TODO: Check for newly ignored
 
                 UpdateRecursive(
                     nextDirInfo,
@@ -313,7 +319,7 @@ namespace RepositoryTool
                             try
                             {
                                 newManFileInfo.FileHash =
-                                    CryptUtilities.ComputeHash(
+                                    FileHash.ComputeHash(
                                         nextFileInfo,
                                         NewHashType);
                             }
@@ -366,8 +372,6 @@ namespace RepositoryTool
                             new ManifestDirectoryInfo(
                                 nextDirInfo.Name.Normalize(),
                                 currentManfestDirInfo);
-
-                    // TODO: Skip directories that would be ignored
 
                     currentManfestDirInfo.Subdirectories.Add(
                         nextManDirInfo.Name,
@@ -562,6 +566,19 @@ namespace RepositoryTool
             }
         }
 
+        protected void ForceWriteLine(String message)
+        {
+            ForceWrite(message + "\r\n");
+        }
+
+        protected void ForceWrite(String message)
+        {
+            if (WriteLogDelegate != null)
+            {
+                WriteLogDelegate.Invoke(message);
+            }
+        }
+
         protected String GetNewHashType(Manifest man)
         {
             if (man.DefaultHashMethod != null)
@@ -600,11 +617,25 @@ namespace RepositoryTool
         // because the time differences are uniformly and randomly distributed
         // between 0s and 1s.  So we choose a small tolerance and allow for
         // the dates to vary slightly from those recorded in the manifest.
+        //
+        // Further note, I had to increase the tolerance to 2s because of
+        // difficulties maintaining consistency with "last modified dates" of
+        // encrypted files.  It seems that we get a higher precision time when
+        // we get the FileInfo object immediately after we write the file -
+        // with precision at 1ms.  Then later when we query the file again, we
+        // see a precision of 1s.  So we use a 2s tolerance to account for +/-
+        // 1s.  These observations were while using the exFAT format, so not
+        // sure to what extent that makes a difference.
         protected bool CompareLastModifiedDates(DateTime date1, DateTime date2)
         {
             if (Math.Abs(date1.Subtract(date2).Ticks) >
                 Math.Abs(LastModifiedDateTolerance.Ticks))
             {
+                System.Console.WriteLine(
+                    date1.Ticks + " " +
+                    date2.Ticks + " " +
+                    Math.Abs(LastModifiedDateTolerance.Ticks));
+
                 return false;
             }
 
@@ -661,7 +692,7 @@ namespace RepositoryTool
             NewHashType = Utilities.CryptUtilities.DefaultHashType;
 
             // Tolerate up to one second of difference
-            LastModifiedDateTolerance = new TimeSpan(0, 0, 1);
+            LastModifiedDateTolerance = new TimeSpan(0, 0, 2);
         }
     }
 }

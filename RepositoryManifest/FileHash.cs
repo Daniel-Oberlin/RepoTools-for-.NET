@@ -1,9 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace Utilities
+using Utilities;
+
+
+namespace RepositoryManifest
 {
     [Serializable]
     public class FileHash
@@ -139,5 +143,35 @@ namespace Utilities
         /// </summary>
         [NonSerialized()]
         private bool myObjectHashIsSet;
+
+
+        // Static
+
+        static public FileHash ComputeHash(
+            FileInfo file,
+            string hashType = CryptUtilities.DefaultHashType)
+        {
+            return new FileHash(
+                CryptUtilities.ComputeHash(file, hashType),
+                hashType);
+        }
+
+        static public FileHash ComputeHash(
+            byte[] data,
+            string hashType = CryptUtilities.DefaultHashType)
+        {
+            return new FileHash(
+                CryptUtilities.ComputeHash(data, hashType),
+                hashType);
+        }
+
+        static public FileHash ComputeHash(
+            Stream stream,
+            string hashType = CryptUtilities.DefaultHashType)
+        {
+            return new FileHash(
+                CryptUtilities.ComputeHash(stream, hashType),
+                hashType);
+        }
     }
 }

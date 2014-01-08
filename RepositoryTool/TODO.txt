@@ -1,5 +1,8 @@
-﻿HIGH:
-Accessing RECYCLE BIN crashes program when doing an initial update from root directory on Windows - from Harold
+﻿
 
-LOW:
-...
+Java rewrite:
+	Remove multithreading safeguards
+	Logging functionality
+	Use explicit path syntax (?)
+	Use Repository abstractions like rs (?)
+

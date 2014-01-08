@@ -10,34 +10,57 @@ namespace Utilities
 {
     public class CryptUtilities
     {
-        // Crypt Utilities
+        static CryptUtilities()
+        {
+            // Make an initialization vector
+            String initString =
+                "DoNotChangeThisStringUnderAnyCircumstances";
+
+            byte[] initStringBytes =
+                System.Text.Encoding.UTF8.GetBytes(initString);
+
+            // Conveniently, MD5 is 16 bytes which is the same lentgh we need
+            // for the AES initialization vector.
+            AESInitVector = ComputeHash(initStringBytes, "MD5");
+        }
 
         static public byte[] MakeKeyBytesFromString(
-            string keyString)
+            string keyString,
+            byte[] salt)
         {
-            // TODO
-            return new byte[0];
+            var deriveBytes = new Rfc2898DeriveBytes(
+                keyString,
+                salt,
+                10000);
+
+            return deriveBytes.GetBytes(32);
         }
 
-        static public Stream MakeCryptoReadStreamFrom(
-            Stream inputStream,
+        static public CryptoStream MakeDecryptionReadStreamFrom(
+            Stream readEncryptedDataFrom,
             byte[] key)
         {
-            // TODO
-            return inputStream;
+            var transform = new RijndaelManaged();
+
+            return new CryptoStream(
+                readEncryptedDataFrom,
+                transform.CreateDecryptor(key, AESInitVector),
+                CryptoStreamMode.Read);
         }
 
-        static public Stream MakeCryptoWriteStreamFrom(
-            Stream inputStream,
+        static public CryptoStream MakeEncryptionWriteStreamFrom(
+            Stream writeEncryptedDataToStream,
             byte[] key)
         {
-            // TODO
-            return inputStream;
+            var transform = new RijndaelManaged();
+
+            return new CryptoStream(
+                writeEncryptedDataToStream,
+                transform.CreateEncryptor(key, AESInitVector),
+                CryptoStreamMode.Write);
         }
 
-        // Hash Utilities
-
-        static public FileHash ComputeHash(
+        static public byte[] ComputeHash(
             FileInfo file,
             string hashType = DefaultHashType)
         {
@@ -47,7 +70,7 @@ namespace Utilities
             return ComputeHash(fileStream, hashType);
         }
 
-        static public FileHash ComputeHash(
+        static public byte[] ComputeHash(
             byte[] data,
             string hashType = DefaultHashType)
         {
@@ -57,7 +80,7 @@ namespace Utilities
             return ComputeHash(dataStream, hashType);
         }
 
-        static public FileHash ComputeHash(
+        static public byte[] ComputeHash(
             Stream stream,
             string hashType = DefaultHashType)
         {
@@ -79,15 +102,15 @@ namespace Utilities
 
             stream.Close();
 
-            return new FileHash(hash, hashType);
+            return hash;
         }
 
         // I think I chose this because SHA256 was less available on Mono.
         //
         // Efficiency should be a major consideration here, since it drives
-        // a large part of the performance.  We do rely on it for security
-        // with encrypted repositories, so in that case it may make sense
-        // to use something stronger.
+        // a large part of the performance.
         public const string DefaultHashType = "MD5";
+
+        protected static byte[] AESInitVector;
     }
 }

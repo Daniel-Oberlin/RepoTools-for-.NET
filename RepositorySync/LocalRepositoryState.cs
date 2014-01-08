@@ -68,6 +68,7 @@ namespace RepositorySync
                 try
                 {
                     TempDirectory.Delete(true);
+                    TempDirectory = null;
                 }
                 catch (Exception ex)
                 {

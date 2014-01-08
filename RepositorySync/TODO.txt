@@ -1,16 +1,14 @@
-﻿Remove MSDOS path hack
-Logging functionality
+﻿add -cryptSource -cryptDest which prompt for password entry from console
+Skip directories that match ignore path
 
-Add "crypt", which is an encrypted archive
-	* New implementation of RepositoryProxy, "CryptRepositoryProxy"
-	* A crypt is an encrypted repository with a manifest
-		* Files on disk are named by their hash for obfuscation
-		* Files on disk are encrypted by the hash of their *unencrypted* data
-		* Manifest contains an array of bytes which contain an encrypted inner manifest
-		* Outer manifest manages encrypted files on disk, acts as a regular repository
-		* Inner manifest is "virtual", and contains unencrypted filenames, locations, etc.
-		* CryptRepositoryProxy takes a password which is used to unencrypt the inner manifest
-		* CryptRepositoryProxy presents the inner manifest to RepoSync
-		* CryptRepositoryProxy manages the mapping between the inner and outer manifest
+
+
+Java rewrite:
+	Don't implement server
+	Consolidate LocalRepositoryState into LocalRepositoryProxy
+	Remove multithreading safeguards
+	Use fixed temp naming convention like is done for CryptProxy
+	Logging functionality
+	Implement FTP proxy
 
 

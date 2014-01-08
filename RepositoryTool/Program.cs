@@ -313,6 +313,7 @@ namespace RepositoryTool
                             {
                                 console.ReportException(ex);
                                 console.WriteLine("Could not read manifest.");
+                                Environment.Exit(1);
                             }
 
                             if (tool.Manifest == null)

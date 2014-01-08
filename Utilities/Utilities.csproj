@@ -43,7 +43,6 @@
     <Compile Include="ArgUtilities.cs" />
     <Compile Include="Console.cs" />
     <Compile Include="CryptUtilities.cs" />
-    <Compile Include="FileHash.cs" />
     <Compile Include="PathUtilities.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StreamUtilities.cs" />
