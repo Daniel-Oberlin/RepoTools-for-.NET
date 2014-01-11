@@ -32,9 +32,27 @@ namespace RepositorySync
                     commandArg = args[argIndex++];
                 }
 
+                switch (commandArg)
+                {
+                    case "help":
+                    case "diff":
+                    case "update":
+                    case "sync":
+                    case "mirror":
+                    case "repair":
+                    case "seed":
+                        break;
+
+                    default:
+                        console.WriteLine("Unrecognized command \"" + commandArg + "\"");
+                        Environment.Exit(1);
+                        break;
+                }
+
                 if (commandArg == "help")
                 {
                     console.Write(Properties.Resources.RepositorySyncHelp);
+                    Environment.Exit(1);
                     break;
                 }
 
