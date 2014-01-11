@@ -1,7 +1,9 @@
-﻿add -cryptSource -cryptDest which prompt for password entry from console
+﻿Bug: crash when updating Emulations repository
+
+add -cryptSource -cryptDest which prompt for password entry from console
 Skip directories that match ignore path
 
-
+Is CryptRepositoryProxy using the most efficient tmp dir to prevent re-writing data on moves?
 
 Java rewrite:
 	Don't implement server

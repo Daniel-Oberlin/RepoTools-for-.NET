@@ -279,6 +279,29 @@ namespace RepositorySync
                     break;
                 }
 
+
+                switch (commandArg)
+                {
+                    case "update":
+                    case "sync":
+                    case "mirror":
+                    case "repair":
+                        if (sourceRep != null &&
+                            destRep != null &&
+                            sourceRep.Manifest.Guid.Equals(
+                            destRep.Manifest.Guid) == false)
+                        {
+                            console.WriteLine("Source and destination GUIDs are different.");
+                            exitCode = 1;
+                        }
+                        break;
+                }
+
+                if (exitCode == 1)
+                {
+                    break;
+                }
+
                 RepositorySync syncTool = null;
                 if (seedCommand == false)
                 {
