@@ -62,7 +62,13 @@ OPTIONS:
         Try not to timeout with connections to remote repositories.
 
     -sourceKey
-        Key for source repository, if it is encrypted.
+        Specify key for source repository, if it is encrypted.
 
     -destKey
-        Key for dest repository, if it is encrypted.
+        Specify key for dest repository, if it is encrypted.
+
+    -cryptSource
+        Source repository is encrypted, prompt user to enter hidden key.
+
+    -cryptDest
+        Dest repository is encrypted, prompt user to enter hidden key.

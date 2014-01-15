@@ -123,6 +123,16 @@ namespace RepositorySync
                             }
                             break;
 
+                        case "-cryptSource":
+                            console.Write("Enter source key: ");
+                            sourceKeyString = console.EnterPassword();
+                            break;
+
+                        case "-cryptDest":
+                            console.Write("Enter dest key: ");
+                            destKeyString = console.EnterPassword();
+                            break;
+
                         default:
                             console.WriteLine("Unrecognized parameter \" " + nextArg + "\"");
                             Environment.Exit(1);
@@ -382,11 +392,6 @@ namespace RepositorySync
                                 destRepString,
                                 console);
                         }
-                        break;
-
-                    default:
-                        console.WriteLine("Unrecognized command \"" + commandArg + "\"");
-                        exitCode = 1;
                         break;
                 }
 

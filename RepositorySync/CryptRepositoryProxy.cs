@@ -101,6 +101,8 @@ namespace RepositorySync
 
                 TempDirectory.Delete(true);
                 TempDirectory = null;
+
+                InnerProxy.CleanupBeforeExit();
             }
         }
 

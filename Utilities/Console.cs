@@ -52,6 +52,54 @@ namespace Utilities
             return false;
         }
 
+        public String EnterPassword()
+        {
+            String password = "";
+
+            ConsoleKeyInfo info = System.Console.ReadKey(true);
+            while (info.Key != ConsoleKey.Enter)
+            {
+                if (info.Key != ConsoleKey.Backspace)
+                {
+                    System.Console.Write("*");
+                    password += info.KeyChar;
+                }
+                else if (info.Key == ConsoleKey.Backspace)
+                {
+                    if (!string.IsNullOrEmpty(password))
+                    {
+                        // Remove one character
+                        password = password.Substring(
+                            0,
+                            password.Length - 1);
+
+                        // Get the location of the cursor
+                        int pos = System.Console.CursorLeft;
+
+                        // Move the cursor to the left by one character
+                        System.Console.SetCursorPosition(
+                            pos - 1,
+                            System.Console.CursorTop);
+
+                        // Replace it with space
+                        System.Console.Write(" ");
+
+                        // move the cursor to the left by one character again
+                        System.Console.SetCursorPosition(
+                            pos - 1,
+                            System.Console.CursorTop);
+                    }
+                }
+
+                info = System.Console.ReadKey(true);
+            }
+
+            // Add a new line because user pressed enter
+            System.Console.WriteLine();
+
+            return password;
+        }
+
         public bool Silent { set; get; }
         public bool Detail { set; get; }
     }
