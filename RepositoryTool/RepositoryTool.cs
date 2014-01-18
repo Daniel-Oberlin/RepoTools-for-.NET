@@ -103,8 +103,36 @@ namespace RepositoryTool
                 }
                 catch (Exception)
                 {
-                    ForceWriteLine("Could not access contents of: " +
-                        currentDirectoryInfo.FullName);
+                    WriteLine(Manifest.MakeStandardPathString(
+                        currentManfestDirInfo));
+
+                    if (IgnoreFile(Manifest.MakeStandardPathString(
+                        currentManfestDirInfo)) == true)
+                    {
+                        // This was implemented primarily to allow the user to
+                        // silence the process of skipping over inaccessible
+                        // system directories by ignoring them.  For example,
+                        // in some cases the "$RECYCLE BIN" under Windows
+                        // is not accessible and will generate an error.  The
+                        // user can now add such directories to the ignore list
+                        // and they will be silently ignored.  The special
+                        // message for showProgress alerts the user that the
+                        // directory is actually being skipped altogether
+                        // since it can't be accessed.  The only significant
+                        // implication of this is that the ignored files won't
+                        // be enumerated and counted as being ignored.
+                        if (ShowProgress)
+                        {
+                            WriteLine(
+                                Manifest.MakeStandardPathString(currentManfestDirInfo) +
+                                " [IGNORED DIRECTORY AND CANNOT ACCESS]");
+                        }
+                    }
+                    else
+                    {
+                        ForceWriteLine("Could not access contents of: " +
+                            currentDirectoryInfo.FullName);
+                    }
 
                     return;
                 }
