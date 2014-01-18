@@ -389,7 +389,7 @@ static int numRetries = 0;
         // Accessors
 
         protected Uri BaseUri { set; get; }
-        protected DirectoryInfo TempDirectory { set; get; }
+        public DirectoryInfo TempDirectory { protected set; get; }
 
 
         // Static

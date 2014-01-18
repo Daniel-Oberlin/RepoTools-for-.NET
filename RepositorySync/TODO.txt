@@ -1,6 +1,4 @@
 ﻿
-Is CryptRepositoryProxy using the most efficient tmp dir to prevent re-writing data on moves?
-
 Document
 	When copying a repository, be sure to use options which preserve last-modified dates or tool such as robocopy.
 	Alternatively, use seed followed by mirror

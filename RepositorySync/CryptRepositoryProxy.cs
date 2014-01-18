@@ -77,14 +77,6 @@ namespace RepositorySync
             }
         }
 
-        /// <summary>
-        /// Finalizer removes temp directory and writes manifest
-        /// </summary>
-        ~CryptRepositoryProxy()
-        {
-            CleanupBeforeExit();
-        }
-
         public void CleanupBeforeExit()
         {
             if (myReadOnly == false &&
@@ -126,9 +118,13 @@ namespace RepositorySync
                     OuterKeyString,
                     sourceManifestFile.FileHash.HashData);
 
+                // Use the inner proxy temp directory because that is likely
+                // the ultimate destination of the file and we don't want to
+                // copy the data if we can avoid it.  This is a minor break in
+                // encapsulation but has a significant impact on performance.
                 String destFilePath =
                     Path.Combine(
-                        TempDirectory.FullName,
+                        InnerProxy.TempDirectory.FullName,
                         DefaultEncryptedTempFileName);
 
                 FileInfo cryptFileInfo =
@@ -304,28 +300,17 @@ namespace RepositorySync
             DirectoryInfo copyToDirectory)
         {
             // This method is a callback from the InnerProxy, and we expect
-            // that the encrypted inner file has already been created - so
-            // all that remains is to move the file to the destination
-            // directory.  This isn't as efficient as it could be, but the
-            // calling structure requires that the ManifestFileInfo be
-            // set up before this callback occurs, and the ManifestFileInfo
-            // must have the hash of the encrypted file.  So in effect, the
-            // encrypted file must already be generated before this method
-            // is called.  Otherwise we could be more efficient and generate
-            // the file directly in the destination directory.
-            String sourceFilePath =
+            // that the encrypted inner file has already been created.  So
+            // all that remains is to return the file so that it can be moved
+            // to its final destination.  Since the file was generated in the
+            // temp directory of the inner repository, this should be very
+            // efficient.
+            String filePath =
                 Path.Combine(
-                    TempDirectory.FullName,
+                    InnerProxy.TempDirectory.FullName,
                     DefaultEncryptedTempFileName);
 
-            String destFilePath =
-                Path.Combine(
-                    copyToDirectory.FullName,
-                    DefaultEncryptedTempFileName);
-
-            File.Move(sourceFilePath, destFilePath);
-
-            return new FileInfo(destFilePath);
+            return new FileInfo(filePath);
         }
 
 
@@ -369,7 +354,7 @@ namespace RepositorySync
             // Write the encrypted outer manifest
             String tempFilePath =
                 Path.Combine(
-                    TempDirectory.FullName,
+                    InnerProxy.TempDirectory.FullName,
                     DefaultEncryptedTempFileName);
 
             Stream outerManifestFileStream =
@@ -796,6 +781,14 @@ namespace RepositorySync
             public void CleanupBeforeExit()
             {
                 throw new NotImplementedException();
+            }
+
+            public DirectoryInfo TempDirectory
+            {
+                get
+                {
+                    throw new NotImplementedException();
+                }
             }
 
             protected CryptRepositoryProxy myProxy;

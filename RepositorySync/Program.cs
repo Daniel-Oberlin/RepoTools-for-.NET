@@ -183,9 +183,6 @@ namespace RepositorySync
                             ReportCrypt(cryptProxy, "Source", console);
                             sourceRep = cryptProxy;
                         }
-
-                        // TODO: Remove if not needed
-                        //sourceRep.Manifest.RemoveEntriesWithNullHash();
                     }
                     catch (Exception e)
                     {
@@ -214,9 +211,6 @@ namespace RepositorySync
                             ReportCrypt(cryptProxy, "Dest", console);
                             destRep = cryptProxy;
                         }
-
-                        // TODO: Remove if not needed
-                        //destRep.Manifest.RemoveEntriesWithNullHash();
                     }
                     catch (Exception e)
                     {
@@ -245,9 +239,6 @@ namespace RepositorySync
                             ReportCrypt(cryptProxy, "Source", console);
                             sourceRep = cryptProxy;
                         }
-
-                        // TODO: Remove if not needed
-                        //sourceRep.Manifest.RemoveEntriesWithNullHash();
                     }
                     catch (Exception e)
                     {
@@ -276,9 +267,6 @@ namespace RepositorySync
                             ReportCrypt(cryptProxy, "Dest", console);
                             destRep = cryptProxy;
                         }
-
-                        // TODO: Remove if not needed
-                        //destRep.Manifest.RemoveEntriesWithNullHash();
                     }
                     catch (Exception e)
                     {

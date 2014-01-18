@@ -125,5 +125,15 @@ namespace RepositorySync
         /// Mainly to delete temp directories, etc.
         /// </summary>
         void CleanupBeforeExit();
+
+        /// <summary>
+        /// This is a minor compromise in encapsulation which was introduced
+        /// for CryptRepositoryProxy so that the OuterProxy could encrypt
+        /// and write files directly to the temporary directory of the
+        /// InnerProxy thus avoiding the need to potentially copy the data
+        /// across devices after encryption.  This shoud have a very large
+        /// impact on performance and seems worth the compromise.
+        /// </summary>
+        DirectoryInfo TempDirectory { get; }
     }
 }

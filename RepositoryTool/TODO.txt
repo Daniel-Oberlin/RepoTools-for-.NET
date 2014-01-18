@@ -1,4 +1,4 @@
-﻿
+﻿add command line option to specify working directory - useful for Windows UNC paths which can't be navigated to in MS-DOS command line
 
 Java rewrite:
 	Remove multithreading safeguards
