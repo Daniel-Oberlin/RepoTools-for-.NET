@@ -11,11 +11,28 @@ using Utilities;
 namespace RepositorySync
 {
     /// <summary>
-    /// Implementation of encrypted repository.
+    /// Implementation of an encrypted repository.  The "inner" repository is
+    /// just a normal repository that holds encrypted data which is managed
+    /// by this - the outer repository.  The outer repository represents the
+    /// unencrypted repository data to the program and wraps the inner
+    /// repository.  The outer repository manifest is written as an encrypted
+    /// file in the inner repository as well.  Filenames are replaced with the
+    /// hash information in the inner repository.
     /// </summary>
     class CryptRepositoryProxy : IRepositoryProxy
     {
-        // TODO: doc
+        /// <summary>
+        /// CryptRepositoryProxy constructor
+        /// </summary>
+        /// <param name="innerProxy">
+        /// An existing repository to use as the inner repository.
+        /// </param>
+        /// <param name="outerKey">
+        /// A string which will be used as the encryption key.
+        /// </param>
+        /// <param name="readOnly">
+        /// Specify if this repository will be used in read-only mode.
+        /// </param>
         public CryptRepositoryProxy(
             IRepositoryProxy innerProxy,
             String outerKey,
@@ -24,7 +41,21 @@ namespace RepositorySync
         {
         }
 
-        // TODO: doc
+        /// <summary>
+        /// CryptRepositoryProxy constructor
+        /// </summary>
+        /// <param name="innerProxy">
+        /// An existing repository to use as the inner repository.
+        /// </param>
+        /// <param name="outerManifest">
+        /// Provide an outer manifest - used during seed.  Null otherwise.
+        /// </param>
+        /// <param name="outerKey">
+        /// A string which will be used as the encryption key.
+        /// </param>
+        /// <param name="readOnly">
+        /// Specify if this repository will be used in read-only mode.
+        /// </param>
         protected CryptRepositoryProxy(
             IRepositoryProxy innerProxy,
             Manifest outerManifest,
@@ -77,6 +108,9 @@ namespace RepositorySync
             }
         }
 
+        /// <summary>
+        /// Get rid of temp directory and cleanup orphaned files.
+        /// </summary>
         public void CleanupBeforeExit()
         {
             if (myReadOnly == false &&
@@ -134,8 +168,9 @@ namespace RepositorySync
                         destFilePath);
 
                 // Name the inner file with the hash of the hash.  We protect
-                // the hash in this way because it is used as the key to
-                // encrypt the data in the file.
+                // the hash in this way because it is used as the salt to
+                // encrypt the data in the file, and it might provide some
+                // benefit to a cryptographic attack.
                 FileHash hashedHash = FileHash.ComputeHash(
                     sourceManifestFile.FileHash.HashData);
 

@@ -23,6 +23,9 @@ namespace RepositorySync
         /// <param name="repositoryDirectory">
         /// The root directory where the manifest can be found
         /// </param>
+        /// <param name="readOnly">
+        /// Specify if this repository is to be used in read-only mode.
+        /// </param>
         public LocalRepositoryProxy(
             DirectoryInfo rootDirectory,
             bool readOnly) :

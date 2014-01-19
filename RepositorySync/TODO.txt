@@ -1,8 +1,24 @@
-﻿
+﻿Back out temp dir changes - not efficient because data must be hashed over network!
+
 Document
-	When copying a repository, be sure to use options which preserve last-modified dates or tool such as robocopy.
-	Alternatively, use seed followed by mirror
-	Document seed, encryption, 
+	Document encryption, 
+
+Implement repair
+
+	This might help prevent re-use of bad sectors:
+	Validate
+	Move error files to .trash directory giving unique names or using original subpaths
+	Update locally
+	Update from source repo
+	Retain .trash to prevent re-use of bad media or for analysis
+
+	Or a simpler approach:
+	Update
+	Mirror
+	?
+
+
+Allow recursive sync using GUID to pair up repos when possible
 
 Java rewrite:
 	Don't implement server

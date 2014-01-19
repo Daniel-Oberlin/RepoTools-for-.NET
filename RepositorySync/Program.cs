@@ -39,7 +39,6 @@ namespace RepositorySync
                     case "update":
                     case "sync":
                     case "mirror":
-                    case "repair":
                     case "seed":
                         break;
 
@@ -301,7 +300,6 @@ namespace RepositorySync
                     case "update":
                     case "sync":
                     case "mirror":
-                    case "repair":
                         if (sourceRep != null &&
                             destRep != null &&
                             sourceRep.Manifest.Guid.Equals(
@@ -358,10 +356,6 @@ namespace RepositorySync
                     case "mirror":
                         syncTool.Mirror = true;
                         syncTool.DoUpdate();
-                        break;
-
-                    case "repair":
-                        console.WriteLine("TODO: repair is unimplemented.");
                         break;
 
                     case "seed":
