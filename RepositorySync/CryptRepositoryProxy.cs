@@ -161,8 +161,10 @@ namespace RepositorySync
                         InnerProxy.TempDirectory.FullName,
                         DefaultEncryptedTempFileName);
 
+                Stream sourceFileStream = sourceFileInfo.OpenRead();
+
                 byte[] cryptHash = WriteCryptFileAndHash(
-                    sourceFileInfo,
+                    sourceFileStream,
                     keyData,
                     destFilePath);
 
@@ -391,31 +393,31 @@ namespace RepositorySync
 
         protected void SaveOuterManifest()
         {
-            // Write the encrypted outer manifest
+            // Serialize the manifest to memory
+            MemoryStream serializedManifestStream =
+                new MemoryStream();
+
+            OuterManifest.WriteManifestStream(serializedManifestStream);
+            serializedManifestStream.Position = 0;
+
             String tempFilePath =
                 Path.Combine(
                     InnerProxy.TempDirectory.FullName,
                     DefaultEncryptedTempFileName);
-
-            Stream outerManifestFileStream =
-                File.OpenWrite(tempFilePath);
 
             // We use the inner GUID as salt for the outer manifest, so update
             // it each time we write the outer manifest.  The inner GUID is
             // really useless anyways.
             InnerProxy.Manifest.ChangeGUID();
 
-            byte[] outerKeyBytes = CryptUtilities.MakeKeyBytesFromString(
+            byte[] outerKeyData = CryptUtilities.MakeKeyBytesFromString(
                 OuterKeyString,
                 InnerProxy.Manifest.Guid.ToByteArray());
 
-            Stream outerManifestCryptoStream =
-                CryptUtilities.MakeEncryptionWriteStreamFrom(
-                    outerManifestFileStream,
-                    outerKeyBytes);
-
-            OuterManifest.WriteManifestStream(outerManifestCryptoStream);
-            outerManifestCryptoStream.Close();
+            byte[] cryptHash = WriteCryptFileAndHash(
+                serializedManifestStream,
+                outerKeyData,
+                tempFilePath);
 
             // The new ManifestFileInfo is actually rooted in the inner
             // Manifest object, but that is ok - although it is kind of a
@@ -441,7 +443,7 @@ namespace RepositorySync
                 outerManifestFileInfo.Length;
 
             destManifestFile.FileHash =
-                FileHash.ComputeHash(outerManifestFileInfo);
+                new FileHash(cryptHash, CryptUtilities.DefaultHashType);
 
             InnerProxy.PutFile(ProxyToInner, destManifestFile);
         }
@@ -613,15 +615,12 @@ namespace RepositorySync
         }
 
         protected byte[] WriteCryptFileAndHash(
-            FileInfo sourceFileInfo,
+            Stream sourceFileStream,
             byte[] keyData,
             String destFilePath,
             String hashType = CryptUtilities.DefaultHashType)
         {
-            // Set up the source and dest file streams
-            Stream sourceFileStream =
-                sourceFileInfo.OpenRead();
-
+            // Set up the dest file streams
             FileStream destFileStream =
                 File.OpenWrite(destFilePath);
 

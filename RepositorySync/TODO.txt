@@ -1,7 +1,4 @@
-﻿Encrypt data at the same time it is written:
-https://code.google.com/p/freecodecollection/wiki/bighash
-
-Consider removing the use of temp directories and writing directly to final destination - at least for local repositories
+﻿Consider removing the use of temp directories and writing directly to final destination - at least for local repositories
 
 Allow recursive sync using GUID to pair up repos when possible
 
