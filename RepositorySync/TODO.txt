@@ -1,26 +1,12 @@
-﻿Back out temp dir changes - not efficient because data must be hashed over network!
+﻿Encrypt data at the same time it is written:
+https://code.google.com/p/freecodecollection/wiki/bighash
 
-Document
-	Document encryption, 
-
-Implement repair
-
-	This might help prevent re-use of bad sectors:
-	Validate
-	Move error files to .trash directory giving unique names or using original subpaths
-	Update locally
-	Update from source repo
-	Retain .trash to prevent re-use of bad media or for analysis
-
-	Or a simpler approach:
-	Update
-	Mirror
-	?
-
+Consider removing the use of temp directories and writing directly to final destination - at least for local repositories
 
 Allow recursive sync using GUID to pair up repos when possible
 
 Java rewrite:
+	Rename LocalRepository... FileSystemRepository...
 	Don't implement server
 	Consolidate LocalRepositoryState into LocalRepositoryProxy
 	Remove multithreading safeguards

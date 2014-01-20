@@ -30,11 +30,11 @@ namespace Utilities
             byte[] buffer = new byte[chunkSize];
             int bytesRead = fromStream.Read(buffer, 0, chunkSize);
 
-			while (bytesRead > 0)
-			{
+            while (bytesRead > 0)
+            {
                 toStream.Write(buffer, 0, bytesRead);
                 bytesRead = fromStream.Read(buffer, 0, chunkSize);
-			}
+            }
         }
     }
 }

@@ -84,25 +84,25 @@ namespace Utilities
             Stream stream,
             string hashType = DefaultHashType)
         {
-            byte[] hash = null;
-
-            switch (hashType)
-            {
-                case "MD5":
-                    hash = new MD5CryptoServiceProvider().ComputeHash(stream);
-                    break;
-
-                case "SHA256":
-                    hash = new SHA256Managed().ComputeHash(stream);
-                    break;
-
-                default:
-                    throw new Exception("Unrecognized hash method: " + hashType);
-            }
-
+            HashAlgorithm alg = GetHashAlgorithm(hashType);
+            byte[] hash = alg.ComputeHash(stream);
             stream.Close();
 
             return hash;
+        }
+
+        static public HashAlgorithm GetHashAlgorithm(
+            String hashType = DefaultHashType)
+        {
+            HashAlgorithm alg =
+                HashAlgorithm.Create(hashType);
+
+            if (alg == null)
+            {
+                throw new Exception("Unrecognized hash method: " + hashType);
+            }
+
+            return alg;
         }
 
         // I think I chose this because SHA256 was less available on Mono.
