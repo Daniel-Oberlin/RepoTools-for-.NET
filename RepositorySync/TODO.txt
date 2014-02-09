@@ -1,12 +1,17 @@
-﻿Consider removing the use of temp directories and writing directly to final destination - at least for local repositories
-
+﻿Provide -detailDir option to only show affected directories
 Allow recursive sync using GUID to pair up repos when possible
+Provide -confirm option
+
+Consider removing the use of temp directories and writing directly to final destination - at least for local repositories
 
 Java rewrite:
+	Unit testing
 	Rename LocalRepository... FileSystemRepository...
-	Don't implement server
 	Consolidate LocalRepositoryState into LocalRepositoryProxy
+	Don't implement server
 	Remove multithreading safeguards
 	Use fixed temp naming convention like is done for CryptProxy
 	Logging functionality
 	Implement FTP proxy
+	Compress data before enrypting
+

@@ -23,6 +23,7 @@ namespace RepositorySync
             Preview = false;
             BothWays = false;
             Mirror = false;
+            Retry = false;
 
             SourceOnlyFiles = new List<ManifestFileInfo>();
             DestOnlyFiles = new List<ManifestFileInfo>();
@@ -588,19 +589,35 @@ namespace RepositorySync
         {
             if (Preview == false)
             {
-                try
-                {
-                    destRepository.PutFile(
-                        sourceRepository,
-                        sourceFile);
-                }
-                catch (Exception ex)
-                {
-                    ErrorFiles.Add(sourceFile);
+                Exception exception;
 
-                    WriteLine(" [ERROR]");
-                    Write(ex.ToString());
-                }
+                do
+                {
+                    exception = null;
+
+                    try
+                    {
+                        destRepository.PutFile(
+                            sourceRepository,
+                            sourceFile);
+                    }
+                    catch (Exception ex)
+                    {
+                        exception = ex;
+
+                        ErrorFiles.Add(sourceFile);
+
+                        WriteLine(" [ERROR]");
+                        Write(ex.ToString());
+
+                        if (Retry == true)
+                        {
+                            // Wait a minute...
+                            System.Threading.Thread.Sleep(
+                                theRetryMilliseconds);
+                        }
+                    }
+                } while (exception != null & Retry == true);
             }
         }
 
@@ -612,19 +629,35 @@ namespace RepositorySync
         {
             if (Preview == false)
             {
-                try
-                {
-                    destRepository.MoveFile(
-                        destFileToBeMoved,
-                        sourceFileWithNewLocation);
-                }
-                catch (Exception ex)
-                {
-                    ErrorFiles.Add(sourceFileWithNewLocation);
+                Exception exception;
 
-                    WriteLine(" [ERROR]");
-                    Write(ex.ToString());
-                }
+                do
+                {
+                    exception = null;
+
+                    try
+                    {
+                        destRepository.MoveFile(
+                            destFileToBeMoved,
+                            sourceFileWithNewLocation);
+                    }
+                    catch (Exception ex)
+                    {
+                        exception = ex;
+
+                        ErrorFiles.Add(sourceFileWithNewLocation);
+
+                        WriteLine(" [ERROR]");
+                        Write(ex.ToString());
+
+                        if (Retry == true)
+                        {
+                            // Wait a minute...
+                            System.Threading.Thread.Sleep(
+                                theRetryMilliseconds);
+                        }
+                    }
+                } while (exception != null & Retry == true);
             }
         }
 
@@ -636,20 +669,36 @@ namespace RepositorySync
         {
             if (Preview == false)
             {
-                try
-                {
-                    destRepository.CopyFile(
-                        destFileToBeCopied,
-                        sourceFileWithNewLocation);
+                Exception exception;
 
-                }
-                catch (Exception ex)
+                do
                 {
-                    ErrorFiles.Add(sourceFileWithNewLocation);
+                    exception = null;
 
-                    WriteLine(" [ERROR]");
-                    Write(ex.ToString());
-                }
+                    try
+                    {
+                        destRepository.CopyFile(
+                            destFileToBeCopied,
+                            sourceFileWithNewLocation);
+
+                    }
+                    catch (Exception ex)
+                    {
+                        exception = ex;
+
+                        ErrorFiles.Add(sourceFileWithNewLocation);
+
+                        WriteLine(" [ERROR]");
+                        Write(ex.ToString());
+
+                        if (Retry == true)
+                        {
+                            // Wait a minute...
+                            System.Threading.Thread.Sleep(
+                                theRetryMilliseconds);
+                        }
+                    }
+                } while (exception != null & Retry == true);
             }
         }
 
@@ -659,17 +708,33 @@ namespace RepositorySync
         {
             if (Preview == false)
             {
-                try
-                {
-                    destRepository.RemoveFile(destFile);
-                }
-                catch (Exception ex)
-                {
-                    ErrorFiles.Add(destFile);
+                Exception exception;
 
-                    WriteLine(" [ERROR]");
-                    Write(ex.ToString());
-                }
+                do
+                {
+                    exception = null;
+
+                    try
+                    {
+                        destRepository.RemoveFile(destFile);
+                    }
+                    catch (Exception ex)
+                    {
+                        exception = ex;
+
+                        ErrorFiles.Add(destFile);
+
+                        WriteLine(" [ERROR]");
+                        Write(ex.ToString());
+
+                        if (Retry == true)
+                        {
+                            // Wait a minute...
+                            System.Threading.Thread.Sleep(
+                                theRetryMilliseconds);
+                        }
+                    }
+                } while (exception != null & Retry == true);
             }
         }
 
@@ -684,6 +749,7 @@ namespace RepositorySync
         public bool Preview { set; get; }
         public bool BothWays { set; get; }
         public bool Mirror { set; get; }
+        public bool Retry { set; get; }
 
         public List<ManifestFileInfo> SourceOnlyFiles { private set; get; }
         public List<ManifestFileInfo> DestOnlyFiles { private set; get; }
@@ -693,5 +759,10 @@ namespace RepositorySync
         public Dictionary<FileHash, MovedFileSet> MovedFiles { private set; get; }
         public List<FileHash> MovedFileOrder { private set; get; }
         public List<ManifestFileInfo> ErrorFiles { private set; get; }
+
+
+        // Static
+
+        static int theRetryMilliseconds = 60000;
     }
 }

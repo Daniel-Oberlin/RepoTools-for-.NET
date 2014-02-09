@@ -141,9 +141,17 @@ namespace RepositorySync
             IRepositoryProxy sourceRepository,
             ManifestFileInfo sourceManifestFile)
         {
+            // Name the inner file with the hash of the hash.  We protect
+            // the hash in this way because it is used as the salt to
+            // encrypt the data in the file, and it might provide some
+            // benefit to a cryptographic attack.
+            FileHash hashedHash = FileHash.ComputeHash(
+                sourceManifestFile.FileHash.HashData);
+
+            String hashedHashString = hashedHash.ToString();
+
             // Only add the file data if we don't have it already.
-            if (HashToInnerFileMap.ContainsKey(
-                sourceManifestFile.FileHash) == false)
+            if (myHashedStringMap.ContainsKey(hashedHashString) == false)
             {
                 FileInfo sourceFileInfo =
                     sourceRepository.GetFile(sourceManifestFile);
@@ -170,15 +178,6 @@ namespace RepositorySync
 
                 FileInfo cryptFileInfo =
                     new FileInfo(destFilePath);
-
-                // Name the inner file with the hash of the hash.  We protect
-                // the hash in this way because it is used as the salt to
-                // encrypt the data in the file, and it might provide some
-                // benefit to a cryptographic attack.
-                FileHash hashedHash = FileHash.ComputeHash(
-                    sourceManifestFile.FileHash.HashData);
-
-                String hashedHashString = hashedHash.ToString();
 
                 // Make a dummy parent manifest directory to give to the inner
                 // proxy.  This is actually rooted in the inner manifest, but
@@ -209,6 +208,8 @@ namespace RepositorySync
                     new FileHash(cryptHash, CryptUtilities.DefaultHashType);
 
                 InnerProxy.PutFile(ProxyToInner, destManifestFile);
+
+                myHashedStringMap.Add(hashedHashString, destManifestFile);
 
                 myNeedToRegenerateFileMap = true;
             }
@@ -452,12 +453,10 @@ namespace RepositorySync
         // outer files, and find orphaned inner files.
         protected void ResolveInnerOuter()
         {
-            Dictionary<String, ManifestFileInfo> hashedStringMap =
+            myHashedStringMap =
                 new Dictionary<string, ManifestFileInfo>();
 
-            BuildHashedStringMap(
-                InnerProxy.Manifest.RootDirectory,
-                hashedStringMap);
+            BuildHashedStringMap(InnerProxy.Manifest.RootDirectory);
 
             myHashToInnerFileMap =
                 new Dictionary<FileHash, ManifestFileInfo>();
@@ -465,26 +464,23 @@ namespace RepositorySync
             UnresolvedOuterFiles =
                 new List<ManifestFileInfo>();
 
-            BuildHashToInnerFileMap(
-                OuterManifest.RootDirectory,
-                hashedStringMap);
+            BuildHashToInnerFileMap(OuterManifest.RootDirectory);
 
             OrphanedInnerFiles =
                 new List<ManifestFileInfo>();
 
-            BuildInnerFilesOrphanedList(hashedStringMap);
+            BuildInnerFilesOrphanedList();
         }
 
         protected void BuildHashedStringMap(
-            ManifestDirectoryInfo dir,
-            Dictionary<String, ManifestFileInfo> hashedStringMap)
+            ManifestDirectoryInfo dir)
         {
             foreach (String nextFileName
                 in dir.Files.Keys)
             {
                 if (nextFileName != DefaultOuterManifestFileName)
                 {
-                    hashedStringMap.Add(
+                    myHashedStringMap.Add(
                         nextFileName,
                         dir.Files[nextFileName]);
                 }
@@ -493,13 +489,12 @@ namespace RepositorySync
             foreach (ManifestDirectoryInfo nextDir in
                 dir.Subdirectories.Values)
             {
-                BuildHashedStringMap(nextDir, hashedStringMap);
+                BuildHashedStringMap(nextDir);
             }
         }
 
         protected void BuildHashToInnerFileMap(
-            ManifestDirectoryInfo dir,
-            Dictionary<String, ManifestFileInfo> hashedStringMap)
+            ManifestDirectoryInfo dir)
         {
             foreach (ManifestFileInfo nextFile in dir.Files.Values)
             {
@@ -515,11 +510,11 @@ namespace RepositorySync
 
                 String hashedHashString = hashedHash.ToString();
 
-                if (hashedStringMap.Keys.Contains(
+                if (myHashedStringMap.Keys.Contains(
                     hashedHashString))
                 {
                     myHashToInnerFileMap[fileHash] =
-                        hashedStringMap[hashedHashString];
+                        myHashedStringMap[hashedHashString];
                 }
                 else
                 {
@@ -531,13 +526,11 @@ namespace RepositorySync
                 dir.Subdirectories.Values)
             {
                 BuildHashToInnerFileMap(
-                    nextDir,
-                    hashedStringMap);
+                    nextDir);
             }
         }
 
-        protected void BuildInnerFilesOrphanedList(
-            Dictionary<String, ManifestFileInfo> hashedStringMap)
+        protected void BuildInnerFilesOrphanedList()
         {
             HashSet<ManifestFileInfo> resolvedInnerFiles =
                 new HashSet<ManifestFileInfo>();
@@ -549,7 +542,7 @@ namespace RepositorySync
             }
 
             foreach (ManifestFileInfo nextFile in
-                hashedStringMap.Values)
+                myHashedStringMap.Values)
             {
                 if (resolvedInnerFiles.Contains(nextFile) == false)
                 {
@@ -620,89 +613,113 @@ namespace RepositorySync
             String destFilePath,
             String hashType = CryptUtilities.DefaultHashType)
         {
-            // Set up the dest file streams
-            FileStream destFileStream =
-                File.OpenWrite(destFilePath);
+            FileStream destFileStream = null;
+            System.Security.Cryptography.CryptoStream cryptoStream = null;
 
-            // Set up a temporary stream to hold encrypted data chunks so that
-            // we can send the encrypted data to the file and to the hash
-            // algorithm.
-            MemoryStream encryptedMemoryStream =
-                new MemoryStream();
-
-            // Set up a CryptoStream and attach it to the temporary stream
-            System.Security.Cryptography.CryptoStream cryptoStream =
-                CryptUtilities.MakeEncryptionWriteStreamFrom(
-                    encryptedMemoryStream,
-                    keyData);
-
-            // Set up the hash algorithm
-            System.Security.Cryptography.HashAlgorithm hashAlgorithm =
-                CryptUtilities.GetHashAlgorithm(hashType);
-
-            // Buffers and chunks
-            int chunkSize = 1024;
-            byte[] fileReadBuffer = new byte[chunkSize];
-            byte[] encryptedBuffer = null;
-
-            // Read the first chunk to set up the loop
-            int bytesRead = sourceFileStream.Read(
-                fileReadBuffer,
-                0,
-                chunkSize);
-
-            // Read until the end
-            while (bytesRead > 0)
+            try
             {
-                // Encrypt to the MemoryStream 
-                cryptoStream.Write(fileReadBuffer, 0, bytesRead);
-                encryptedBuffer = encryptedMemoryStream.GetBuffer();
+                // Set up the dest file streams
+                destFileStream =
+                    File.OpenWrite(destFilePath);
 
-                // Write encrypted data to file
-                destFileStream.Write(
-                    encryptedBuffer,
-                    0,
-                    (int) encryptedMemoryStream.Length);
+                // Set up a temporary stream to hold encrypted data chunks so
+                // that we can send the encrypted data to the file and to the
+                // hash algorithm.
+                MemoryStream encryptedMemoryStream =
+                    new MemoryStream();
 
-                // Hash encrypted data
-                hashAlgorithm.TransformBlock(
-                    encryptedBuffer,
-                    0,
-                    (int) encryptedMemoryStream.Length,
-                    encryptedBuffer,
-                    0);
+                // Set up a CryptoStream and attach it to the temporary stream
+                cryptoStream =
+                    CryptUtilities.MakeEncryptionWriteStreamFrom(
+                        encryptedMemoryStream,
+                        keyData);
 
-                // Read next chunk
-                bytesRead = sourceFileStream.Read(
+                // Set up the hash algorithm
+                System.Security.Cryptography.HashAlgorithm hashAlgorithm =
+                    CryptUtilities.GetHashAlgorithm(hashType);
+
+                // Buffers and chunks
+                int chunkSize = 1024;
+                byte[] fileReadBuffer = new byte[chunkSize];
+                byte[] encryptedBuffer = null;
+
+                // Read the first chunk to set up the loop
+                int bytesRead = sourceFileStream.Read(
                     fileReadBuffer,
                     0,
                     chunkSize);
 
-                // Reset position so we don't use a lot of memory
-                encryptedMemoryStream.SetLength(0);
+                // Read until the end
+                while (bytesRead > 0)
+                {
+                    // Encrypt to the MemoryStream 
+                    cryptoStream.Write(fileReadBuffer, 0, bytesRead);
+                    encryptedBuffer = encryptedMemoryStream.GetBuffer();
+
+                    // Write encrypted data to file
+                    destFileStream.Write(
+                        encryptedBuffer,
+                        0,
+                        (int)encryptedMemoryStream.Length);
+
+                    // Hash encrypted data
+                    hashAlgorithm.TransformBlock(
+                        encryptedBuffer,
+                        0,
+                        (int)encryptedMemoryStream.Length,
+                        encryptedBuffer,
+                        0);
+
+                    // Read next chunk
+                    bytesRead = sourceFileStream.Read(
+                        fileReadBuffer,
+                        0,
+                        chunkSize);
+
+                    // Reset position so we don't use a lot of memory
+                    encryptedMemoryStream.SetLength(0);
+                }
+
+                // Need to do this - I think it writes special padding
+                // information to the end of the data.
+                cryptoStream.FlushFinalBlock();
+                encryptedBuffer = encryptedMemoryStream.GetBuffer();
+
+                // Write final data to file
+                destFileStream.Write(
+                    encryptedBuffer,
+                    0,
+                    (int)encryptedMemoryStream.Length);
+
+                // Hash final data
+                hashAlgorithm.TransformFinalBlock(
+                    encryptedBuffer,
+                    0,
+                    (int)encryptedMemoryStream.Length);
+
+                sourceFileStream.Close();
+                cryptoStream.Close();
+                destFileStream.Close();
+
+                return hashAlgorithm.Hash;
             }
+            catch (Exception e)
+            {
+                sourceFileStream.Close();
 
-            // Need to do this - I think it writes special padding information
-            // to the end of the data.
-            cryptoStream.FlushFinalBlock();
-            encryptedBuffer = encryptedMemoryStream.GetBuffer();
+                if (cryptoStream != null)
+                {
+                    cryptoStream.Close();
+                }
 
-            // Write final data to file
-            destFileStream.Write(
-                encryptedBuffer,
-                0,
-                (int) encryptedMemoryStream.Length);
+                if (destFileStream != null)
+                {
+                    destFileStream.Close();
+                    File.Delete(destFilePath);
+                }
 
-            // Hash final data
-            hashAlgorithm.TransformFinalBlock(
-                encryptedBuffer,
-                0,
-                (int) encryptedMemoryStream.Length);
-
-            cryptoStream.Close();
-            destFileStream.Close();
-
-            return hashAlgorithm.Hash;
+                throw e;
+            }
         }
 
 
@@ -734,6 +751,7 @@ namespace RepositorySync
         }
 
         protected Dictionary<FileHash, ManifestFileInfo> myHashToInnerFileMap;
+        protected Dictionary<String, ManifestFileInfo> myHashedStringMap;
 
         protected String OuterKeyString { set; get; }
         protected Manifest OuterManifest { set; get; }

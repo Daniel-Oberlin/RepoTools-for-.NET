@@ -76,6 +76,7 @@ namespace RepositorySync
                 // Process options
 
                 bool time = false;
+                bool retry = false;
 
                 String sourceKeyString = null;
                 String destKeyString = null;
@@ -130,6 +131,10 @@ namespace RepositorySync
                         case "-cryptDest":
                             console.Write("Enter dest key: ");
                             destKeyString = console.EnterPassword();
+                            break;
+
+                        case "-retry":
+                            retry = true;
                             break;
 
                         default:
@@ -320,6 +325,7 @@ namespace RepositorySync
                 if (seedCommand == false)
                 {
                     syncTool = new RepositorySync(sourceRep, destRep);
+                    syncTool.Retry = retry;
 
                     syncTool.WriteLogDelegate =
                         delegate(String message)

@@ -659,11 +659,6 @@ namespace RepositoryTool
             if (Math.Abs(date1.Subtract(date2).Ticks) >
                 Math.Abs(LastModifiedDateTolerance.Ticks))
             {
-                System.Console.WriteLine(
-                    date1.Ticks + " " +
-                    date2.Ticks + " " +
-                    Math.Abs(LastModifiedDateTolerance.Ticks));
-
                 return false;
             }
 
