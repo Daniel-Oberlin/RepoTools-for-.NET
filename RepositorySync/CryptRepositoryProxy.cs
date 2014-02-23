@@ -480,9 +480,20 @@ namespace RepositorySync
             {
                 if (nextFileName != DefaultOuterManifestFileName)
                 {
-                    myHashedStringMap.Add(
-                        nextFileName,
-                        dir.Files[nextFileName]);
+                    if (myHashedStringMap.ContainsKey(nextFileName) == true)
+                    {
+                        // TODO: Setup and use console delegate here instead
+                        System.Console.WriteLine(
+                            "WARNING: Duplicate filename \"" +
+                            nextFileName +
+                            "\" detected.  Ignoring.");
+                    }
+                    else
+                    {
+                        myHashedStringMap.Add(
+                            nextFileName,
+                            dir.Files[nextFileName]);
+                    }
                 }
             }
 
