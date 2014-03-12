@@ -167,7 +167,7 @@ namespace RepositorySync
                 String destFilePath =
                     Path.Combine(
                         InnerProxy.TempDirectory.FullName,
-                        DefaultEncryptedTempFileName);
+                        hashedHashString);
 
                 Stream sourceFileStream = sourceFileInfo.OpenRead();
 
@@ -351,7 +351,7 @@ namespace RepositorySync
             String filePath =
                 Path.Combine(
                     InnerProxy.TempDirectory.FullName,
-                    DefaultEncryptedTempFileName);
+                    copyFile.Name);
 
             return new FileInfo(filePath);
         }
@@ -404,7 +404,7 @@ namespace RepositorySync
             String tempFilePath =
                 Path.Combine(
                     InnerProxy.TempDirectory.FullName,
-                    DefaultEncryptedTempFileName);
+                    DefaultOuterManifestFileName);
 
             // We use the inner GUID as salt for the outer manifest, so update
             // it each time we write the outer manifest.  The inner GUID is
@@ -624,14 +624,33 @@ namespace RepositorySync
             String destFilePath,
             String hashType = CryptUtilities.DefaultHashType)
         {
+            long bytesToSkip = 0;
+            long bytesReadUntilNow = 0;
+
             FileStream destFileStream = null;
             System.Security.Cryptography.CryptoStream cryptoStream = null;
 
             try
             {
-                // Set up the dest file streams
-                destFileStream =
-                    File.OpenWrite(destFilePath);
+                if (File.Exists(destFilePath))
+                {
+                    bytesToSkip = new FileInfo(destFilePath).Length;
+
+                    destFileStream =
+                        File.Open(destFilePath, FileMode.Append);
+
+                    // TODO: Use delegate for console like in other classes
+                    System.Console.WriteLine(
+                        "Appending after " +
+                        bytesToSkip.ToString() +
+                        " bytes...");
+                }
+                else
+                {
+                    // Set up the dest file streams
+                    destFileStream =
+                        File.OpenWrite(destFilePath);
+                }
 
                 // Set up a temporary stream to hold encrypted data chunks so
                 // that we can send the encrypted data to the file and to the
@@ -655,23 +674,44 @@ namespace RepositorySync
                 byte[] encryptedBuffer = null;
 
                 // Read the first chunk to set up the loop
-                int bytesRead = sourceFileStream.Read(
+                int newBytesRead = sourceFileStream.Read(
                     fileReadBuffer,
                     0,
                     chunkSize);
 
                 // Read until the end
-                while (bytesRead > 0)
+                while (newBytesRead > 0)
                 {
                     // Encrypt to the MemoryStream 
-                    cryptoStream.Write(fileReadBuffer, 0, bytesRead);
+                    cryptoStream.Write(fileReadBuffer, 0, newBytesRead);
                     encryptedBuffer = encryptedMemoryStream.GetBuffer();
 
-                    // Write encrypted data to file
-                    destFileStream.Write(
-                        encryptedBuffer,
-                        0,
-                        (int)encryptedMemoryStream.Length);
+                    // Figure out the number of bytes to write
+                    long bytesToWrite =
+                        bytesReadUntilNow + newBytesRead - bytesToSkip;
+
+                    if (bytesToWrite < 0)
+                    {
+                        bytesToWrite = 0;
+                    }
+                    else if (bytesToWrite > newBytesRead)
+                    {
+                        bytesToWrite = newBytesRead;
+                    }
+
+                    if (bytesToWrite > 0)
+                    {
+                        long bufferStartPosition =
+                            newBytesRead - bytesToWrite;
+
+                        // Write encrypted data to file
+                        destFileStream.Write(
+                            encryptedBuffer,
+                            (int) bufferStartPosition,
+                            (int) bytesToWrite);
+                    }
+
+                    bytesReadUntilNow += newBytesRead;
 
                     // Hash encrypted data
                     hashAlgorithm.TransformBlock(
@@ -682,7 +722,7 @@ namespace RepositorySync
                         0);
 
                     // Read next chunk
-                    bytesRead = sourceFileStream.Read(
+                    newBytesRead = sourceFileStream.Read(
                         fileReadBuffer,
                         0,
                         chunkSize);
@@ -793,7 +833,7 @@ namespace RepositorySync
         {
             Manifest innerManifestPrototype =
                 Manifest.MakeCleanManifest();
-
+            
             LocalRepositoryProxy.SeedLocalRepository(
                 innerManifestPrototype,
                 seedDirectoryPath,
@@ -837,11 +877,9 @@ namespace RepositorySync
         /// </summary>
         public static String DefaultOuterManifestFileName;
 
-        public static String DefaultEncryptedTempFileName =
-            "temp-encrypted-data";
-
         public static String DefaultDecryptedTempFileName =
             "temp-decrypted-data";
+
 
         // Helper class supplied to InnerProxy
         protected class ProxyToInnerProxy : IRepositoryProxy

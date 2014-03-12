@@ -7,6 +7,8 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Runtime.InteropServices;
 
+using Utilities;
+
 
 namespace RepositoryManifest
 {
@@ -40,6 +42,15 @@ namespace RepositoryManifest
                 "^" +
                 System.Text.RegularExpressions.Regex.Escape(Manifest.DefaultManifestStandardFilePath) +
                 "$");
+
+            String tempDirectoryStandardPath = "." +
+                StandardPathDelimeterString +
+                Utilities.TempDirUtilities.TempDirectoryName +
+                StandardPathDelimeterString;
+
+            manifest.IgnoreList.Add(
+                "^" +
+                System.Text.RegularExpressions.Regex.Escape(tempDirectoryStandardPath));
 
             return manifest;
         }

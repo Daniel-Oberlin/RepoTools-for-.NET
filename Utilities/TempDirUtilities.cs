@@ -34,8 +34,7 @@ namespace Utilities
             try
             {
                 return topLevelDirectory.CreateSubdirectory(
-                    theTempDirectoryPrefix +
-                    Path.GetRandomFileName());
+                    TempDirectoryName);
             }
             catch (Exception ex)
             {
@@ -52,7 +51,7 @@ namespace Utilities
             foreach (DirectoryInfo nextSubDirectory in
                 topLevelDirectory.GetDirectories())
             {
-                if (nextSubDirectory.Name.StartsWith(theTempDirectoryPrefix) &&
+                if (nextSubDirectory.Name.Equals(TempDirectoryName) &&
                     nextSubDirectory.GetFiles().Count() == 0 &&
                     nextSubDirectory.GetDirectories().Count() == 0)
                 {
@@ -61,6 +60,6 @@ namespace Utilities
             }
         }
 
-        static protected String theTempDirectoryPrefix = "temp-";
+        static public String TempDirectoryName = "temp-repository";
     }
 }
