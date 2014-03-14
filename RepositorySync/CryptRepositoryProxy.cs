@@ -685,24 +685,25 @@ namespace RepositorySync
                     // Encrypt to the MemoryStream 
                     cryptoStream.Write(fileReadBuffer, 0, newBytesRead);
                     encryptedBuffer = encryptedMemoryStream.GetBuffer();
+                    long newBytesEncrypted = encryptedMemoryStream.Length;
 
                     // Figure out the number of bytes to write
                     long bytesToWrite =
-                        bytesReadUntilNow + newBytesRead - bytesToSkip;
+                        bytesReadUntilNow + newBytesEncrypted - bytesToSkip;
 
                     if (bytesToWrite < 0)
                     {
                         bytesToWrite = 0;
                     }
-                    else if (bytesToWrite > newBytesRead)
+                    else if (bytesToWrite > newBytesEncrypted)
                     {
-                        bytesToWrite = newBytesRead;
+                        bytesToWrite = newBytesEncrypted;
                     }
 
                     if (bytesToWrite > 0)
                     {
                         long bufferStartPosition =
-                            newBytesRead - bytesToWrite;
+                            newBytesEncrypted - bytesToWrite;
 
                         // Write encrypted data to file
                         destFileStream.Write(
@@ -711,13 +712,13 @@ namespace RepositorySync
                             (int) bytesToWrite);
                     }
 
-                    bytesReadUntilNow += newBytesRead;
+                    bytesReadUntilNow += newBytesEncrypted;
 
                     // Hash encrypted data
                     hashAlgorithm.TransformBlock(
                         encryptedBuffer,
                         0,
-                        (int)encryptedMemoryStream.Length,
+                        (int)newBytesEncrypted,
                         encryptedBuffer,
                         0);
 
