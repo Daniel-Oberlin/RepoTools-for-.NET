@@ -356,6 +356,15 @@ namespace RepositorySync
             return new FileInfo(filePath);
         }
 
+        public long Validate(
+            // TODO: Use delegate for console like in other classes?
+            Utilities.Console console)
+        {
+            return ValidateDir(
+                OuterManifest.RootDirectory,
+                console);
+        }
+
 
         // Helper methods
 
@@ -771,6 +780,76 @@ namespace RepositorySync
                 }
 
                 throw e;
+            }
+        }
+
+        protected long ValidateDir(
+            ManifestDirectoryInfo outerManDirInfo,
+            Utilities.Console console)
+        {
+            foreach (ManifestFileInfo outerManFileInfo in
+                outerManDirInfo.Files.Values)
+            {
+                ValidateFile(outerManFileInfo, console);
+            }
+
+            long fileCount = outerManDirInfo.Files.Count;
+
+            foreach (ManifestDirectoryInfo nextOuterDir in
+                outerManDirInfo.Subdirectories.Values)
+            {
+                fileCount += ValidateDir(nextOuterDir, console);
+            }
+
+            return fileCount;
+        }
+
+        protected void ValidateFile(
+            ManifestFileInfo outerManFileInfo,
+            Utilities.Console console)
+        {
+            ManifestFileInfo innerManifestFileInfo = null;
+
+            try
+            {
+                innerManifestFileInfo =
+                    HashToInnerFileMap[outerManFileInfo.FileHash];
+
+                FileInfo innerFileInfo =
+                    InnerProxy.GetFile(innerManifestFileInfo);
+
+                byte[] keyData = CryptUtilities.MakeKeyBytesFromString(
+                    OuterKeyString,
+                    outerManFileInfo.FileHash.HashData);
+
+                Stream sourceFileStream =
+                    innerFileInfo.OpenRead();
+
+                Stream cryptoStream =
+                    CryptUtilities.MakeDecryptionReadStreamFrom(
+                        sourceFileStream,
+                        keyData);
+
+                FileHash computedHash = FileHash.ComputeHash(
+                    cryptoStream,
+                    outerManFileInfo.FileHash.HashType);
+
+                if (computedHash.Equals(outerManFileInfo.FileHash) == false)
+                {
+                    throw new Exception("FAILED VALIDATION");
+                }
+            }
+            catch (Exception e)
+            {
+                console.WriteLine(
+                    Manifest.MakeStandardPathString(outerManFileInfo));
+
+                console.WriteLine(
+                    Manifest.MakeNativePathString(innerManifestFileInfo));
+
+                console.WriteLine(e.Message);
+
+                console.WriteLine();
             }
         }
 

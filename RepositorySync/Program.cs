@@ -32,6 +32,9 @@ namespace RepositorySync
                     commandArg = args[argIndex++];
                 }
 
+                bool seedCommand = false;
+                bool validateCommand = false;
+
                 switch (commandArg)
                 {
                     case "help":
@@ -39,7 +42,14 @@ namespace RepositorySync
                     case "update":
                     case "sync":
                     case "mirror":
+                        break;
+
                     case "seed":
+                        seedCommand = true;
+                        break;
+
+                    case "validateCrypt":
+                        validateCommand = true;
                         break;
 
                     default:
@@ -55,11 +65,17 @@ namespace RepositorySync
                     break;
                 }
 
-                bool repositoriesOnCommandLine = args.Length >= 3;
+                bool parseTwoRepositoryStrings = args.Length >= 3;
 
                 string sourceRepString = "";
                 string destRepString = "";
-                if (repositoriesOnCommandLine == true)
+
+                if (validateCommand && args.Length >= 2)
+                {
+                    // Special case only has source repository
+                    sourceRepString = args[argIndex++];
+                }
+                else if (parseTwoRepositoryStrings == true)
                 {
                     // Skip repositories for now and process options
                     sourceRepString = args[argIndex++];
@@ -158,8 +174,6 @@ namespace RepositorySync
                     sourceReadOnly = false;
                 }
 
-                bool seedCommand = commandArg == "seed";
-
                 bool remoteSource =
                     RemoteRepositoryProxy.IsRemoteRepositoryString(
                         sourceRepString);
@@ -196,7 +210,9 @@ namespace RepositorySync
                     }
                 }
 
-                if (remoteDest == false && seedCommand == false)
+                if (remoteDest == false &&
+                    seedCommand == false &&
+                    destRepString != "")
                 {
                     try
                     {
@@ -252,7 +268,9 @@ namespace RepositorySync
                     }
                 }
 
-                if (remoteDest == true && seedCommand == false)
+                if (remoteDest == true &&
+                    seedCommand == false &&
+                    destRepString != "")
                 {
                     try
                     {
@@ -292,7 +310,7 @@ namespace RepositorySync
                     exitCode = 1;
                     break;
                 }
-                else if (destRep == null && seedCommand == false)
+                else if (destRep == null && seedCommand == false && validateCommand == false)
                 {
                     console.WriteLine("Could not resolve a destination repository.");
                     exitCode = 1;
@@ -322,7 +340,7 @@ namespace RepositorySync
                 }
 
                 RepositorySync syncTool = null;
-                if (seedCommand == false)
+                if (seedCommand == false && validateCommand == false)
                 {
                     syncTool = new RepositorySync(sourceRep, destRep);
                     syncTool.Retry = retry;
@@ -380,6 +398,22 @@ namespace RepositorySync
                                 destRepString,
                                 console);
                         }
+                        break;
+
+                    case "validateCrypt":
+                        CryptRepositoryProxy sourceCryptRep =
+                            sourceRep as CryptRepositoryProxy;
+
+                        if (sourceCryptRep == null)
+                        {
+                            console.WriteLine("The validateCrypt command requires an encrypted repository.");
+                            exitCode = 1;
+                            break;
+                        }
+
+                        long fileCount = sourceCryptRep.Validate(console);
+                        console.WriteLine(fileCount + " files checked.");
+
                         break;
                 }
 
