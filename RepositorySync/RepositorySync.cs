@@ -608,7 +608,7 @@ namespace RepositorySync
                         ErrorFiles.Add(sourceFile);
 
                         WriteLine(" [ERROR]");
-                        Write(ex.ToString());
+                        WriteLine(ex.ToString());
 
                         if (Retry == true)
                         {
@@ -648,7 +648,7 @@ namespace RepositorySync
                         ErrorFiles.Add(sourceFileWithNewLocation);
 
                         WriteLine(" [ERROR]");
-                        Write(ex.ToString());
+                        WriteLine(ex.ToString());
 
                         if (Retry == true)
                         {
@@ -689,7 +689,7 @@ namespace RepositorySync
                         ErrorFiles.Add(sourceFileWithNewLocation);
 
                         WriteLine(" [ERROR]");
-                        Write(ex.ToString());
+                        WriteLine(ex.ToString());
 
                         if (Retry == true)
                         {
@@ -725,7 +725,7 @@ namespace RepositorySync
                         ErrorFiles.Add(destFile);
 
                         WriteLine(" [ERROR]");
-                        Write(ex.ToString());
+                        WriteLine(ex.ToString());
 
                         if (Retry == true)
                         {

@@ -213,9 +213,9 @@ namespace RepositoryTool
                         if (exception != null)
                         {
                             WriteLine(" [ERROR]");
-                            ErrorFiles.Add(nextManFileInfo);
+                            WriteLine(exception.ToString());
 
-                            Write(exception.ToString());
+                            ErrorFiles.Add(nextManFileInfo);
                         }
                         else
                         {
@@ -362,7 +362,7 @@ namespace RepositoryTool
                             ErrorFiles.Add(newManFileInfo);
 
                             WriteLine(" [ERROR]");
-                            Write(exception.ToString());
+                            WriteLine(exception.ToString());
                         }
                         else
                         {
