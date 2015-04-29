@@ -224,14 +224,26 @@ namespace RepositoryManifest
         /// </param>
         public void WriteManifestFile(string manifestFilePath)
         {
-            Exception exception = null;
-            FileStream fileStream = null;
+            String backupManifestFilePath = manifestFilePath + ".bak";
 
             try
             {
-                fileStream = File.Create(manifestFilePath);
+                // Make backup in case we fail midway through writing
+                File.Move(manifestFilePath, backupManifestFilePath);
+            }
+            catch (FileNotFoundException ex)
+            {
+                // Ignore because the manifest file may not exist.
+                // Let any other exceptions get thrown...
+            }
 
-                WriteManifestStream(fileStream);
+            Exception exception = null;
+            try
+            {
+                using (FileStream fileStream = File.Create(manifestFilePath))
+                {
+                    WriteManifestStream(fileStream);
+                }
             }
             catch (Exception ex)
             {
@@ -239,25 +251,30 @@ namespace RepositoryManifest
             }
             finally
             {
-                if (fileStream != null)
-                {
-                    fileStream.Close();
-                }
-
                 if (exception != null)
                 {
                     try
                     {
-                        File.Delete(manifestFilePath);
+                        // Try to restore the backup...
+                        File.Move(backupManifestFilePath, manifestFilePath);
                     }
                     catch (Exception)
                     {
-                        // Ignore - the file may not exist, and anyways
-                        // the previous exception is more informative.
+                        // File may not exist.
+                        // Also ignore any other exception to throw original instead...
                     }
 
                     throw exception;
                 }
+            }
+
+            try
+            {
+                File.Delete(backupManifestFilePath);
+            }
+            catch (FileNotFoundException)
+            {
+                // Backup may not exist.
             }
         }
 
