@@ -187,7 +187,7 @@ namespace RepositoryTool
                     }
                     else if (AlwaysCheckHash == true ||
                         nextManFileInfo.FileHash == null ||
-                        CompareLastModifiedDates(nextFileInfo.LastWriteTimeUtc, nextManFileInfo.LastModifiedUtc) == false ||
+                        Manifest.CompareManifestDateToFilesystemDate(nextFileInfo.LastWriteTimeUtc, nextManFileInfo.LastModifiedUtc) == false ||
                         nextFileInfo.Length != nextManFileInfo.FileLength)
                     {
                         FileHash checkHash = null;
@@ -231,7 +231,7 @@ namespace RepositoryTool
                             }
                             else
                             {
-                                if (CompareLastModifiedDates(
+                                if (Manifest.CompareManifestDateToFilesystemDate(
                                     nextFileInfo.LastWriteTimeUtc,
                                     nextManFileInfo.LastModifiedUtc) == false)
                                 {
@@ -638,33 +638,6 @@ namespace RepositoryTool
             return false;
         }
 
-        // When copying NTFS files over to OSX, "last modified" dates can
-        // be slightly different up to almost 1 second.  It seems like many
-        // smaller files get the date copied exactly.  For the other files,
-        // it almost seems like any precision higher than 1 second is ignored
-        // because the time differences are uniformly and randomly distributed
-        // between 0s and 1s.  So we choose a small tolerance and allow for
-        // the dates to vary slightly from those recorded in the manifest.
-        //
-        // Further note, I had to increase the tolerance to 2s because of
-        // difficulties maintaining consistency with "last modified dates" of
-        // encrypted files.  It seems that we get a higher precision time when
-        // we get the FileInfo object immediately after we write the file -
-        // with precision at 1ms.  Then later when we query the file again, we
-        // see a precision of 1s.  So we use a 2s tolerance to account for +/-
-        // 1s.  These observations were while using the exFAT format, so not
-        // sure to what extent that makes a difference.
-        protected bool CompareLastModifiedDates(DateTime date1, DateTime date2)
-        {
-            if (Math.Abs(date1.Subtract(date2).Ticks) >
-                Math.Abs(LastModifiedDateTolerance.Ticks))
-            {
-                return false;
-            }
-
-            return true;
-        }
-
 
         // Data members and accessors
 
@@ -702,7 +675,6 @@ namespace RepositoryTool
         public static String ManifestNativeFilePath;
         public static String PrototypeManifestFileName;
         public static String NewHashType;
-        public static TimeSpan LastModifiedDateTolerance;
 
         static RepositoryTool()
         {
@@ -713,9 +685,6 @@ namespace RepositoryTool
 
             PrototypeManifestFileName = ".manifestPrototype";
             NewHashType = Utilities.CryptUtilities.DefaultHashType;
-
-            // Tolerate up to one second of difference
-            LastModifiedDateTolerance = new TimeSpan(0, 0, 2);
         }
     }
 }

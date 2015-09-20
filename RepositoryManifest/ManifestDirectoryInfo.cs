@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Text;
 
+using Newtonsoft.Json;
 
 namespace RepositoryManifest
 {
@@ -10,6 +12,7 @@ namespace RepositoryManifest
     /// Information about a directory in the repository
     /// </summary>
     [Serializable]
+    [JsonObject(MemberSerialization.OptIn)]
     public class ManifestDirectoryInfo : ManifestObjectInfo
     {
         /// <summary>
@@ -31,6 +34,14 @@ namespace RepositoryManifest
 
             Subdirectories = new Dictionary<string, ManifestDirectoryInfo>();
             subdirectoriesStore = null;
+        }
+
+        /// <summary>
+        /// Default constructor needed for json.NET
+        /// </summary>
+        public ManifestDirectoryInfo() :
+            base("", null)
+        {
         }
 
         /// <summary>
@@ -77,6 +88,7 @@ namespace RepositoryManifest
         /// <summary>
         /// The files contained by this directory
         /// </summary>
+        [JsonProperty]
         public Dictionary<String, ManifestFileInfo> Files { private set; get; }
 
         /// <summary>
@@ -87,6 +99,7 @@ namespace RepositoryManifest
         /// <summary>
         /// The directories contained by this directory
         /// </summary>
+        [JsonProperty]
         public Dictionary<String, ManifestDirectoryInfo> Subdirectories { private set; get; }
 
         /// <summary>
@@ -134,6 +147,42 @@ namespace RepositoryManifest
                 {
                     nextDir.RestoreFromStore();
                 }
+            }
+        }
+
+        /// <summary>
+        /// Clear references to parent directories so that there are no loops
+        /// during JSON serialization.
+        /// </summary>
+        public void ClearParentReferences()
+        {
+            foreach (ManifestFileInfo nextFile in Files.Values)
+            {
+                nextFile.ParentDirectory = null;
+            }
+
+            foreach (ManifestDirectoryInfo nextDir in Subdirectories.Values)
+            {
+                nextDir.ParentDirectory = null;
+                nextDir.ClearParentReferences();
+            }
+        }
+
+        /// <summary>
+        /// Restpre references to parent directories during JSON
+        /// deserialization.
+        /// </summary>
+        public void RestoreParentReferences()
+        {
+            foreach (ManifestFileInfo nextFile in Files.Values)
+            {
+                nextFile.ParentDirectory = this;
+            }
+
+            foreach (ManifestDirectoryInfo nextDir in Subdirectories.Values)
+            {
+                nextDir.ParentDirectory = this;
+                nextDir.RestoreParentReferences();
             }
         }
 

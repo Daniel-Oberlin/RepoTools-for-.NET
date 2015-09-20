@@ -4,6 +4,8 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 
+using Newtonsoft.Json;
+
 using Utilities;
 
 
@@ -13,6 +15,7 @@ namespace RepositoryManifest
     /// Information about a file in the repository
     /// </summary>
     [Serializable]
+    [JsonObject(MemberSerialization.OptIn)]
     public class ManifestFileInfo : ManifestObjectInfo, ISerializable
     {
         /// <summary>
@@ -30,6 +33,14 @@ namespace RepositoryManifest
             base(name, parentDirectory)
         {
             FileHash = null;
+        }
+
+        /// <summary>
+        /// Default constructor needed for json.NET
+        /// </summary>
+        public ManifestFileInfo() :
+            base("", null)
+        {
         }
 
         /// <summary>
@@ -56,25 +67,29 @@ namespace RepositoryManifest
         /// <summary>
         /// The length of this file in bytes
         /// </summary>
+        [JsonProperty]
         public Int64 FileLength { set; get; }
 
         /// <summary>
         /// The time that this file was last mofified according to the filesystem
         /// </summary>
+        [JsonProperty]
         public DateTime LastModifiedUtc { set; get; }
 
         /// <summary>
         /// The time that this file was first put into the manifest
         /// </summary>
+        [JsonProperty]
         public DateTime RegisteredUtc { set; get; }
 
         /// <summary>
         /// The hash of the file data
         /// </summary>
+        [JsonProperty]
         public FileHash FileHash { set; get; }
 
-
-        // TEMP SERIALIZATION IMPLEMENTATION
+        // I had to add this for some reason to fix a problem caused by a bug
+        // in Mono that was causing serialization to fail.
         protected ManifestFileInfo(
             SerializationInfo info,
             StreamingContext context) :

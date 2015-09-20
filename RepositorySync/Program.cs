@@ -524,7 +524,8 @@ namespace RepositorySync
                 different = true;
             }
 
-            if (sourceMan.InceptionDateUtc != destMan.InceptionDateUtc)
+            if (Manifest.CompareManifestDates(sourceMan.InceptionDateUtc,
+                destMan.InceptionDateUtc) == false)
             {
                 console.WriteLine("Manifest creation dates are different.");
                 if (console.Detail)
@@ -542,8 +543,8 @@ namespace RepositorySync
                 different = true;
             }
 
-            if (sourceMan.ManifestInfoLastModifiedUtc !=
-                destMan.ManifestInfoLastModifiedUtc)
+            if (Manifest.CompareManifestDates(sourceMan.ManifestInfoLastModifiedUtc,
+                destMan.ManifestInfoLastModifiedUtc) == false)
             {
                 console.WriteLine("Last change to manifest information dates are different.");
                 if (console.Detail)

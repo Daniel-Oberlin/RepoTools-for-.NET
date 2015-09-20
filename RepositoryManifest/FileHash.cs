@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Text;
 
 using Utilities;
@@ -16,6 +17,10 @@ namespace RepositoryManifest
         {
             HashData = hash;
             HashType = hashType;
+        }
+
+        public FileHash()
+        {
         }
 
         public FileHash(String hashString, String hashType)
@@ -94,7 +99,8 @@ namespace RepositoryManifest
         /// <summary>
         /// The name of the hash algorithm used
         /// </summary>
-        public String HashType { private set; get; }
+        [DataMember]
+        public String HashType { set; get; }
 
         /// <summary>
         /// Represent as a hex string
@@ -116,9 +122,10 @@ namespace RepositoryManifest
         /// <summary>
         /// The data of the file hash
         /// </summary>
+        [DataMember]
         public byte[] HashData
         {
-            private set
+            set
             {
                 myHashData = value;
             }

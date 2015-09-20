@@ -85,14 +85,16 @@ namespace RepositorySync
                     }
                     else
                     {
-                        if (sourceFile.LastModifiedUtc !=
-                            destFile.LastModifiedUtc)
+                        if (Manifest.CompareManifestDates(
+                            sourceFile.LastModifiedUtc,
+                            destFile.LastModifiedUtc) == false)
                         {
                             LastModifiedDateFiles.Add(sourceFile, destFile);
                         }
 
-                        if (sourceFile.RegisteredUtc !=
-                            destFile.RegisteredUtc)
+                        if (Manifest.CompareManifestDates(
+                            sourceFile.RegisteredUtc,
+                            destFile.RegisteredUtc) == false)
                         {
                             RegisteredDateFiles.Add(sourceFile, destFile);
                         }
@@ -225,8 +227,8 @@ namespace RepositorySync
             // Update manifest information
             if (Mirror)
             {
-                if (SourceRep.Manifest.ManifestInfoLastModifiedUtc !=
-                    DestRep.Manifest.ManifestInfoLastModifiedUtc)
+                if (Manifest.CompareManifestDates(SourceRep.Manifest.ManifestInfoLastModifiedUtc,
+                    DestRep.Manifest.ManifestInfoLastModifiedUtc) == false)
                 {
                     WriteLine("Updating destination manifest information.");
                     if (Preview == false)
@@ -235,8 +237,8 @@ namespace RepositorySync
                     }
                 }
             }
-            else if (SourceRep.Manifest.ManifestInfoLastModifiedUtc >
-                DestRep.Manifest.ManifestInfoLastModifiedUtc)
+            else if (Manifest.CompareManifestDates(SourceRep.Manifest.ManifestInfoLastModifiedUtc,
+                DestRep.Manifest.ManifestInfoLastModifiedUtc) == false)
             {
                 WriteLine("Updating destination manifest information.");
                 if (Preview == false)

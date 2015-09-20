@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Text;
+
+using Newtonsoft.Json;
 
 namespace RepositoryManifest
 {
@@ -9,6 +12,7 @@ namespace RepositoryManifest
     /// Base clase for manifest object information
     /// </summary>
     [Serializable]
+    [JsonObject(MemberSerialization.OptIn)]
     public class ManifestObjectInfo
     {
         /// <summary>
@@ -28,8 +32,9 @@ namespace RepositoryManifest
             ParentDirectory = parentDirectory;
         }
 
+        [JsonProperty]
         public String Name { private set; get; }
 
-        public ManifestDirectoryInfo ParentDirectory { private set; get; }
+        public ManifestDirectoryInfo ParentDirectory { set; get; }
     }
 }

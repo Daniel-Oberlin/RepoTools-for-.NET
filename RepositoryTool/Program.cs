@@ -76,6 +76,7 @@ namespace RepositoryTool
             bool manifestInfoChanged = false;
             bool noTouch = false;
             bool confirmUpdate = false;
+            bool useJSON = false;
 
             string repositoryName = null;
             string repositoryDescription = null;
@@ -212,6 +213,10 @@ namespace RepositoryTool
                         confirmUpdate = true;
                         break;
 
+                    case "-useJSON":
+                        useJSON = true;
+                        break;
+
                     default:
                         console.WriteLine("Unrecognized parameter \" " + nextArg + "\"");
                         commandArg = "";
@@ -257,6 +262,8 @@ namespace RepositoryTool
                 FileInfo fileInfo = new FileInfo(manifestFilePath);
                 tool.RootDirectory = fileInfo.Directory;
 
+                // Command-specific code to initialize tool object and
+                // manifest object, and then execute command using tool.
                 switch (commandArg)
                 {
                     case "create":
@@ -418,7 +425,6 @@ namespace RepositoryTool
                         }
 
                     case "clear":
-
                         try
                         {
                             tool.Manifest = Manifest.ReadManifestFile(manifestFilePath);
@@ -532,13 +538,20 @@ namespace RepositoryTool
                         break;
                 }
 
+
+                if (useJSON)
+                {
+                    tool.Manifest.UseJSON = true;
+                }
+
+                // Command-specific code to write the manifest, and possibly
+                // delete some files if grooming.
                 switch (commandArg)
                 {
                     case "create":
                     case "update":
                     case "edit":
                     case "clear":
-
                         if (tool.Manifest != null)
                         {
                             if (repositoryName != null)
@@ -646,7 +659,6 @@ namespace RepositoryTool
                         break;
 
                     case "groom":
-
                         if (tool.NewFilesForGroom.Count > 0)
                         {
                             bool doGroom = true;
