@@ -58,6 +58,7 @@ namespace RepositoryManifest
             // Not serialized so we regenerate on the fly
             if (myObjectHashIsSet == false)
             {
+                // Take first 4 bytes of hash data for object hash
                 myObjectHash = 0;
                 for (int i = 0; i < 4; i++)
                 {
@@ -72,28 +73,24 @@ namespace RepositoryManifest
 
         public override bool Equals(object obj)
         {
-            if (obj is FileHash)
+            if (obj == this)
             {
-                FileHash other = (FileHash)obj;
-
-                if (other.HashType != HashType ||
-                    other.HashData.Length != HashData.Length)
-                {
-                    return false;
-                }
-
-                for (int i = 0; i < HashData.Length; i++)
-                {
-                    if (other.HashData[i] != HashData[i])
-                    {
-                        return false;
-                    }
-                }
-
                 return true;
             }
 
-            return false;
+            if ((obj is FileHash) == false)
+            {
+                return false;
+            }
+
+            FileHash other = (FileHash)obj;
+
+            if (other.HashType != HashType)
+            {
+                return false;
+            }
+
+            return HashData.SequenceEqual(other.HashData);
         }
 
         /// <summary>

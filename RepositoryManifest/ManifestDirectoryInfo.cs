@@ -169,7 +169,7 @@ namespace RepositoryManifest
         }
 
         /// <summary>
-        /// Restpre references to parent directories during JSON
+        /// Restore references to parent directories during JSON
         /// deserialization.
         /// </summary>
         public void RestoreParentReferences()

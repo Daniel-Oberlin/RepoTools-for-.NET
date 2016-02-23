@@ -89,14 +89,14 @@ namespace RepositoryTool
         {
             // Setup data for current directory
             Dictionary<String, FileInfo> fileDict =
-                new Dictionary<string,FileInfo>();
+                new Dictionary<string, FileInfo>();
 
             Dictionary<String, DirectoryInfo> dirDict =
                 new Dictionary<string, DirectoryInfo>();
 
             if (currentDirectoryInfo != null)
             {
-                FileInfo[] fileList = null; ;
+                FileInfo[] fileList = null;
                 try
                 {
                     fileList = currentDirectoryInfo.GetFiles();
@@ -182,10 +182,12 @@ namespace RepositoryTool
                         Update == false &&
                         AlwaysCheckHash == false)
                     {
+                        // Don't compute hash if we aren't doing an update
                         Write(" [DIFFERENT]");
                         ChangedFiles.Add(nextManFileInfo);
                     }
                     else if (AlwaysCheckHash == true ||
+                        MakeNewHash == true ||
                         nextManFileInfo.FileHash == null ||
                         Manifest.CompareManifestDateToFilesystemDate(nextFileInfo.LastWriteTimeUtc, nextManFileInfo.LastModifiedUtc) == false ||
                         nextFileInfo.Length != nextManFileInfo.FileLength)
@@ -250,7 +252,7 @@ namespace RepositoryTool
                         FileHash newHash = checkHash;
                         if (MakeNewHash)
                         {
-                            checkHash = FileHash.ComputeHash(
+                            newHash = FileHash.ComputeHash(
                                 nextFileInfo,
                                 GetNewHashType(Manifest));
                         }
@@ -301,16 +303,17 @@ namespace RepositoryTool
                 }
             }
 
-
             // Look for new files
-            foreach (FileInfo nextFileInfo in fileDict.Values)
+            foreach (String nextFileName in fileDict.Keys)
             {
+                FileInfo nextFileInfo = fileDict[nextFileName];
+
                 if (currentManfestDirInfo.Files.ContainsKey(
-                    nextFileInfo.Name.Normalize()) == false)
+                    nextFileName) == false)
                 {
                     ManifestFileInfo newManFileInfo =
                        new ManifestFileInfo(
-                           nextFileInfo.Name.Normalize(),
+                           nextFileName,
                            currentManfestDirInfo);
 
                     Write(Manifest.MakeStandardPathString(newManFileInfo));
@@ -349,7 +352,7 @@ namespace RepositoryTool
                                 newManFileInfo.FileHash =
                                     FileHash.ComputeHash(
                                         nextFileInfo,
-                                        NewHashType);
+                                        GetNewHashType(Manifest));
                             }
                             catch (Exception ex)
                             {
@@ -381,7 +384,7 @@ namespace RepositoryTool
                             DateTime.Now.ToUniversalTime();
 
                         currentManfestDirInfo.Files.Add(
-                            nextFileInfo.Name.Normalize(),
+                            nextFileName,
                             newManFileInfo);
                     }
 
@@ -389,20 +392,21 @@ namespace RepositoryTool
                 }
             }
 
-
             // Recurse looking for new directories
-            foreach (DirectoryInfo nextDirInfo in dirDict.Values)
+            foreach (String nextDirName in dirDict.Keys)
             {
+                DirectoryInfo nextDirInfo = dirDict[nextDirName];
+
                 if (currentManfestDirInfo.Subdirectories.ContainsKey(
-                    nextDirInfo.Name.Normalize()) == false)
+                    nextDirName) == false)
                 {
                     ManifestDirectoryInfo nextManDirInfo =
-                            new ManifestDirectoryInfo(
-                                nextDirInfo.Name.Normalize(),
-                                currentManfestDirInfo);
+                        new ManifestDirectoryInfo(
+                            nextDirName,
+                            currentManfestDirInfo);
 
                     currentManfestDirInfo.Subdirectories.Add(
-                        nextManDirInfo.Name,
+                        nextDirName,
                         nextManDirInfo);
 
                     UpdateRecursive(
@@ -412,7 +416,7 @@ namespace RepositoryTool
                     if (nextManDirInfo.Empty)
                     {
                         currentManfestDirInfo.Subdirectories.Remove(
-                            nextManDirInfo.Name);
+                            nextDirName);
                     }
                 }
             }
@@ -489,12 +493,13 @@ namespace RepositoryTool
                 {
                     newFilesUpdated.Add(checkNewFile);
 
-                    if (Manifest.MakeNativePathString(checkNewFile) !=
-                        ManifestNativeFilePath)
+                    String checkNewFilePath =
+                        Manifest.MakeNativePathString(checkNewFile);
+
+                    if (checkNewFilePath != ManifestNativeFilePath)
                     {
                         NewFilesForGroom.Add(
-                            new FileInfo(
-                                Manifest.MakeNativePathString(checkNewFile)));
+                            new FileInfo(checkNewFilePath));
                     }
                 }
             }
@@ -558,8 +563,6 @@ namespace RepositoryTool
 
         public Manifest MakeManifest()
         {
-            Manifest manifest = null;
-
             String appDirectoryPathName = Path.GetDirectoryName(
                 new Uri(Assembly.GetExecutingAssembly().GetName().CodeBase).LocalPath);
 
@@ -571,14 +574,12 @@ namespace RepositoryTool
                 Manifest prototype =
                     Manifest.ReadManifestFile(manifestPrototypeFilePath);
 
-                manifest = prototype.CloneFromPrototype();
+                return prototype.CloneFromPrototype();
             }
             else
             {
                 return Manifest.MakeCleanManifest();
             }
-
-            return manifest;
         }
 
         protected void WriteLine(String message)
@@ -678,6 +679,8 @@ namespace RepositoryTool
 
         static RepositoryTool()
         {
+            // Make this a native path because we only deal with it as a native
+            // file and never as part of a repository.
             ManifestNativeFilePath =
                 Path.Combine(
                     ".",

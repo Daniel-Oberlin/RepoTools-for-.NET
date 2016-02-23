@@ -16,12 +16,20 @@ namespace RepositoryTool
     {
         static void Main(string[] args)
         {
-            DateTime startTime = DateTime.Now;
-
-            int exitCode = 0;
+            // Initialize some things
             ManifestConsole console = new ManifestConsole();
 
+            RepositoryTool tool = new RepositoryTool();
+            tool.WriteLogDelegate =
+                delegate(String message)
+                {
+                    console.Write(message);
+                };
+
+            DateTime startTime = DateTime.Now;
+            int exitCode = 0;
             int argIndex = 0;
+
 
             // Give the user some help if they need it
             string commandArg = "help";
@@ -29,6 +37,7 @@ namespace RepositoryTool
             {
                 commandArg = args[argIndex++];
             }
+
 
             // Initial screen for valid command
             switch (commandArg)
@@ -51,20 +60,8 @@ namespace RepositoryTool
                     break;
             }
 
-            RepositoryTool tool = new RepositoryTool();
 
-            tool.WriteLogDelegate =
-                delegate(String message)
-                {
-                    console.Write(message);
-                };
-
-            // Default manifest file name located in current directory.
-            String manifestFilePathNotRecursive =
-                PathUtilities.NativeFromNativeAndStandard(
-                    System.IO.Directory.GetCurrentDirectory(),
-                    Manifest.DefaultManifestStandardFilePath);
-
+            // Set up options and parameters
             bool ignoreDate = false;
             bool ignoreNew = false;
             bool time = false;
@@ -76,16 +73,18 @@ namespace RepositoryTool
             bool manifestInfoChanged = false;
             bool noTouch = false;
             bool confirmUpdate = false;
-            bool useJSON = false;
+            bool useJSON = true;
 
             string repositoryName = null;
             string repositoryDescription = null;
             string hashMethod = null;
+            string manifestFilePathNotRecursive = null;
 
             List<String> ignoreList = new List<string>();
             List<String> dontIgnoreList = new List<string>();
 
-            // Parse flags
+
+            // Parse options and parameters
             while (argIndex < args.Length)
             {
                 string nextArg = args[argIndex++];
@@ -213,8 +212,8 @@ namespace RepositoryTool
                         confirmUpdate = true;
                         break;
 
-                    case "-useJSON":
-                        useJSON = true;
+                    case "-useBinarySerialization":
+                        useJSON = false;
                         break;
 
                     default:
@@ -241,12 +240,23 @@ namespace RepositoryTool
             }
             else
             {
+                if (manifestFilePathNotRecursive == null)
+                {
+                    // Default manifest file name located in current directory.
+                    manifestFilePathNotRecursive =
+                        PathUtilities.NativeFromNativeAndStandard(
+                            System.IO.Directory.GetCurrentDirectory(),
+                            Manifest.DefaultManifestStandardFilePath);
+                }
+
                 manifestFilePaths.Add(manifestFilePathNotRecursive);
             }
 
+
+            // Outer loop over manifests
             foreach (String manifestFilePath in manifestFilePaths)
             {
-                if (recursive)
+                if (recursive == true)
                 {
                     console.WriteLine(Path.GetDirectoryName(manifestFilePath) + ":");
                 }
@@ -260,7 +270,17 @@ namespace RepositoryTool
                 Manifest manifestForValidateDateUpdate = null;
 
                 FileInfo fileInfo = new FileInfo(manifestFilePath);
-                tool.RootDirectory = fileInfo.Directory;
+
+                if (recursive == true)
+                {
+                    tool.RootDirectory = fileInfo.Directory;
+                }
+                else
+                {
+                    // In case -manifestFile was specified, we always want this:
+                    tool.RootDirectory = new DirectoryInfo(
+                        System.IO.Directory.GetCurrentDirectory());
+                }
 
                 // Command-specific code to initialize tool object and
                 // manifest object, and then execute command using tool.
@@ -541,7 +561,10 @@ namespace RepositoryTool
 
                 if (useJSON)
                 {
-                    tool.Manifest.UseJSON = true;
+                    if (tool.Manifest != null)
+                    {
+                        tool.Manifest.UseJSON = true;
+                    }
                 }
 
                 // Command-specific code to write the manifest, and possibly
@@ -611,7 +634,7 @@ namespace RepositoryTool
                             if (manifestInfoChanged)
                             {
                                 tool.Manifest.ManifestInfoLastModifiedUtc =
-                                    DateTime.Now.ToUniversalTime();
+                                    DateTime.UtcNow;
                             }
 
                             if (confirmUpdate)

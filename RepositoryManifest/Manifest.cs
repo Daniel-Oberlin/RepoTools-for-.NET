@@ -32,6 +32,8 @@ namespace RepositoryManifest
             RootDirectory = new ManifestDirectoryInfo(".", null);
             IgnoreList = new List<string>();
             InceptionDateUtc = DateTime.UtcNow;
+
+            // TBD: Might consider actually setting this to something
             DefaultHashMethod = null;
         }
 
@@ -43,16 +45,19 @@ namespace RepositoryManifest
             manifest.DefaultHashMethod =
                 Utilities.CryptUtilities.DefaultHashType;
 
+            // Ignore the manifest file itself
             manifest.IgnoreList.Add(
                 "^" +
                 System.Text.RegularExpressions.Regex.Escape(Manifest.DefaultManifestStandardFilePath) +
                 "$");
 
+            // This temporary directory is only used by RepoSync
             String tempDirectoryStandardPath = "." +
-                StandardPathDelimeterString +
+                StandardPathDelimiterString +
                 Utilities.TempDirUtilities.TempDirectoryName +
-                StandardPathDelimeterString;
+                StandardPathDelimiterString;
 
+            // Add this to ignore temp files if RepoSync operation is interrupted
             manifest.IgnoreList.Add(
                 "^" +
                 System.Text.RegularExpressions.Regex.Escape(tempDirectoryStandardPath));
@@ -456,14 +461,6 @@ namespace RepositoryManifest
         }
 
         /// <summary>
-        /// Give this manifest a new GUID
-        /// </summary>
-        public void ChangeGUID()
-        {
-            Guid = Guid.NewGuid(); ;
-        }
-
-        /// <summary>
         /// Recursive helper to count the number of bytes
         /// </summary>
         /// <param name="currentDir">
@@ -489,6 +486,14 @@ namespace RepositoryManifest
             }
 
             return byteCount;
+        }
+
+        /// <summary>
+        /// Give this manifest a new GUID
+        /// </summary>
+        public void ChangeGUID()
+        {
+            Guid = Guid.NewGuid(); ;
         }
 
         protected void DoAnyUpgradeMaintenance()
@@ -542,9 +547,9 @@ namespace RepositoryManifest
         public static String DefaultManifestStandardFilePath;
 
         /// <summary>
-        /// The path delimeter string for standard pathnames
+        /// The path delimiter string for standard pathnames
         /// </summary>
-        public static String StandardPathDelimeterString;
+        public static String StandardPathDelimiterString;
 
         /// <summary>
         /// Allowance for difference between DateTime as stored in filesystem
@@ -563,12 +568,12 @@ namespace RepositoryManifest
         /// </summary>
         static Manifest()
         {
-            StandardPathDelimeterString = "/";
+            StandardPathDelimiterString = "/";
 
             DefaultManifestFileName = ".repositoryManifest";
 
             DefaultManifestStandardFilePath = "." +
-                StandardPathDelimeterString +
+                StandardPathDelimiterString +
                 DefaultManifestFileName;
 
             // Tolerate up to two seconds of difference
@@ -605,7 +610,7 @@ namespace RepositoryManifest
         /// </returns>
         public static String MakeStandardPathString(ManifestDirectoryInfo directoryInfo)
         {
-            String pathString = directoryInfo.Name + StandardPathDelimeterString;
+            String pathString = directoryInfo.Name + StandardPathDelimiterString;
 
             if (directoryInfo.ParentDirectory != null)
             {

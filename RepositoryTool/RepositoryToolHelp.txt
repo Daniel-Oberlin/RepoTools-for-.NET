@@ -126,7 +126,7 @@ OPTIONS:
     -reHash
         Recompute all hash values during an update.  Useful if a file has
         changed somehow but you don't care.  Maybe you've lost the original
-        file and you dont' want to be bothered with error messages any more.
+        file and you don't want to be bothered with error messages any more.
 
     -manifestFile
         Path to the manifest file.  Defaults to ".manifestPrototype" in the
@@ -147,5 +147,5 @@ OPTIONS:
     -confirmUpdate
         After an update, ask the user before writing the updated manifest.
 
-    -useJSON
-        Use JSON to serialize manifest instead of .NET binary serialization.
+    -useBinarySerialization
+        Use .NET binary to serialize manifest instead of JSON.
