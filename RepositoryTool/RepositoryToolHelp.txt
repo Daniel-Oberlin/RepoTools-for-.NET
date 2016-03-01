@@ -147,5 +147,8 @@ OPTIONS:
     -confirmUpdate
         After an update, ask the user before writing the updated manifest.
 
-    -useBinarySerialization
-        Use .NET binary to serialize manifest instead of JSON.
+    -forceBinary
+        Use .NET binary format to serialize manifest instead of JSON format.
+
+    -forceJSON
+        Use JSON format to serialize manifest instead of .NET binary format.

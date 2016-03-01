@@ -569,17 +569,20 @@ namespace RepositoryTool
             String manifestPrototypeFilePath = Path.Combine(
                 appDirectoryPathName, PrototypeManifestFileName);
 
+            Manifest manifest = null;
             if (File.Exists(manifestPrototypeFilePath))
             {
                 Manifest prototype =
                     Manifest.ReadManifestFile(manifestPrototypeFilePath);
 
-                return prototype.CloneFromPrototype();
+                manifest = prototype.CloneFromPrototype();
             }
             else
             {
-                return Manifest.MakeCleanManifest();
+                manifest = Manifest.MakeCleanManifest();
             }
+
+            return manifest;
         }
 
         protected void WriteLine(String message)

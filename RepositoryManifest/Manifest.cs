@@ -35,6 +35,7 @@ namespace RepositoryManifest
 
             // TBD: Might consider actually setting this to something
             DefaultHashMethod = null;
+            UseJSON = true;
         }
 
         public static Manifest MakeCleanManifest()
@@ -233,7 +234,7 @@ namespace RepositoryManifest
 
                     manifest.RootDirectory.RestoreFromStore();
                     manifest.DoAnyUpgradeMaintenance();
-
+                    manifest.UseJSON = false;
             }
             catch (System.Runtime.Serialization.SerializationException)
             {

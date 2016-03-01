@@ -73,7 +73,8 @@ namespace RepositoryTool
             bool manifestInfoChanged = false;
             bool noTouch = false;
             bool confirmUpdate = false;
-            bool useJSON = true;
+            bool forceJSON = false;
+            bool forceBinary = false;
 
             string repositoryName = null;
             string repositoryDescription = null;
@@ -212,8 +213,12 @@ namespace RepositoryTool
                         confirmUpdate = true;
                         break;
 
-                    case "-useBinarySerialization":
-                        useJSON = false;
+                    case "-forceJSON":
+                        forceJSON = true;
+                        break;
+
+                    case "-forceBinary":
+                        forceBinary = true;
                         break;
 
                     default:
@@ -303,6 +308,7 @@ namespace RepositoryTool
                             if (doCreate == true)
                             {
                                 tool.Manifest = tool.MakeManifest();
+                                tool.Manifest.UseJSON = true;
                             }
 
                             break;
@@ -558,14 +564,19 @@ namespace RepositoryTool
                         break;
                 }
 
-
-                if (useJSON)
+                if (tool.Manifest != null)
                 {
-                    if (tool.Manifest != null)
+                    if (forceJSON)
                     {
                         tool.Manifest.UseJSON = true;
                     }
+
+                    if (forceBinary)
+                    {
+                        tool.Manifest.UseJSON = false;
+                    }
                 }
+
 
                 // Command-specific code to write the manifest, and possibly
                 // delete some files if grooming.
