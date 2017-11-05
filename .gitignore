@@ -9,4 +9,5 @@
 *.FileListAbsolute.txt
 *.pidb
 *.userprefs
+*.DS_Store
 Resources.resources
