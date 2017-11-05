@@ -1,0 +1,12 @@
+HttpServer:
+
+http://www.codeplex.com/webserver
+
+Seems that this was LGPL at the time that I incorporated the source code, but now it is listed as Apache licensed on CodePlex.  It is currently listed as unsupported.
+
+
+Newtonsoft.Json:
+
+http://james.newtonking.com/json
+
+This is MIT licensed.
