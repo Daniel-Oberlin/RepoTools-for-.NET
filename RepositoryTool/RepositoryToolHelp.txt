@@ -129,7 +129,7 @@ OPTIONS:
         file and you don't want to be bothered with error messages any more.
 
     -manifestFile
-        Path to the manifest file.  Defaults to ".manifestPrototype" in the
+        Path to the manifest file.  Defaults to ".repositoryManifest" in the
         current working directory.
 
     -recursive
